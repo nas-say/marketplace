@@ -71,3 +71,19 @@ export function formatNumber(num: number): string {
   }
   return num.toString();
 }
+
+export function getListingsBySeller(sellerId: string): Listing[] {
+  return getListings().filter((l) => l.sellerId === sellerId && l.status === "active");
+}
+
+export function getSimilarListings(listing: Listing, count = 3): Listing[] {
+  return getListings()
+    .filter((l) => l.id !== listing.id && l.category === listing.category && l.status === "active")
+    .slice(0, count);
+}
+
+export function getRevenueMultiple(askingPrice: number, mrr: number): string {
+  if (mrr === 0) return "N/A";
+  const multiple = askingPrice / mrr;
+  return `${multiple.toFixed(1)}×`;
+}

@@ -10,6 +10,10 @@ interface ListingFiltersProps {
   onCategoryChange: (value: string) => void;
   sortBy: string;
   onSortChange: (value: string) => void;
+  minPrice: string;
+  onMinPriceChange: (value: string) => void;
+  maxPrice: string;
+  onMaxPriceChange: (value: string) => void;
 }
 
 export function ListingFilters({
@@ -19,6 +23,10 @@ export function ListingFilters({
   onCategoryChange,
   sortBy,
   onSortChange,
+  minPrice,
+  onMinPriceChange,
+  maxPrice,
+  onMaxPriceChange,
 }: ListingFiltersProps) {
   return (
     <div className="space-y-6">
@@ -26,10 +34,10 @@ export function ListingFilters({
 
       <div>
         <h3 className="mb-3 text-sm font-semibold text-zinc-50">Category</h3>
-        <div className="space-y-2">
+        <div className="space-y-1">
           <button
             onClick={() => onCategoryChange("")}
-            className={`block w-full text-left text-sm px-2 py-1 rounded ${
+            className={`block w-full text-left text-sm px-2 py-1.5 rounded ${
               selectedCategory === "" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-50"
             }`}
           >
@@ -39,13 +47,42 @@ export function ListingFilters({
             <button
               key={slug}
               onClick={() => onCategoryChange(slug)}
-              className={`block w-full text-left text-sm px-2 py-1 rounded ${
+              className={`block w-full text-left text-sm px-2 py-1.5 rounded ${
                 selectedCategory === slug ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-50"
               }`}
             >
               {label}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-zinc-50">Price Range</h3>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">$</span>
+            <input
+              type="number"
+              min="0"
+              placeholder="Min"
+              value={minPrice}
+              onChange={(e) => onMinPriceChange(e.target.value)}
+              className="w-full rounded-md border border-zinc-800 bg-zinc-900 pl-6 pr-2 py-1.5 text-sm text-zinc-50 placeholder:text-zinc-600"
+            />
+          </div>
+          <span className="text-zinc-600 text-xs">–</span>
+          <div className="relative flex-1">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">$</span>
+            <input
+              type="number"
+              min="0"
+              placeholder="Max"
+              value={maxPrice}
+              onChange={(e) => onMaxPriceChange(e.target.value)}
+              className="w-full rounded-md border border-zinc-800 bg-zinc-900 pl-6 pr-2 py-1.5 text-sm text-zinc-50 placeholder:text-zinc-600"
+            />
+          </div>
         </div>
       </div>
 

@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap } from "lucide-react";
+import { getListings, getBetaTests, formatPrice } from "@/lib/data";
 
 export function Hero() {
+  const listings = getListings().filter((l) => l.status === "active");
+  const betaTests = getBetaTests();
+  const totalSalesValue = listings.reduce((sum, l) => sum + l.askingPrice, 0);
+
   return (
     <section className="gradient-hero py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
@@ -16,8 +21,8 @@ export function Hero() {
           <span className="text-indigo-500">Side Projects</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
-          The marketplace where indie hackers trade projects and find beta testers.
-          Build, test, improve, sell — all in one place.
+          Profitable projects with real revenue, real users, and verified metrics.
+          Skip the build phase — acquire something that already works.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link href="/browse">
@@ -31,6 +36,29 @@ export function Hero() {
               List Your Project
             </Button>
           </Link>
+        </div>
+
+        {/* Live stats bar */}
+        <div className="mt-16 flex flex-col items-center justify-center gap-6 sm:flex-row sm:gap-12">
+          <div className="text-center">
+            <p className="text-3xl font-bold text-zinc-50">{listings.length}</p>
+            <p className="mt-1 text-sm text-zinc-500">Active listings</p>
+          </div>
+          <div className="hidden sm:block h-10 w-px bg-zinc-800" />
+          <div className="text-center">
+            <p className="text-3xl font-bold text-zinc-50">{formatPrice(totalSalesValue)}</p>
+            <p className="mt-1 text-sm text-zinc-500">In listed inventory</p>
+          </div>
+          <div className="hidden sm:block h-10 w-px bg-zinc-800" />
+          <div className="text-center">
+            <p className="text-3xl font-bold text-zinc-50">{betaTests.filter((bt) => bt.status !== "closed").length}</p>
+            <p className="mt-1 text-sm text-zinc-500">Open beta tests</p>
+          </div>
+          <div className="hidden sm:block h-10 w-px bg-zinc-800" />
+          <div className="text-center">
+            <p className="text-3xl font-bold text-zinc-50">5%</p>
+            <p className="mt-1 text-sm text-zinc-500">Platform fee</p>
+          </div>
         </div>
       </div>
     </section>
