@@ -1,0 +1,74 @@
+[
+  {
+    "id": "fb_001", "betaTestId": "bt_001", "testerId": "usr_003", "type": "bug_report", "createdAt": "2026-02-12T14:30:00Z",
+    "bugReport": { "title": "GitHub import fails for private repos", "severity": "major", "stepsToReproduce": "1. Connect GitHub account\n2. Try importing issues from a private repo\n3. Click 'Import'", "expected": "Issues should import successfully", "actual": "Error 403: Forbidden. No helpful error message shown." }
+  },
+  {
+    "id": "fb_002", "betaTestId": "bt_001", "testerId": "usr_005", "type": "ux_rating", "createdAt": "2026-02-13T09:15:00Z",
+    "uxRating": { "overall": 4, "easeOfUse": 5, "visualDesign": 4, "performance": 3, "comments": "Love the keyboard shortcuts. The board feels snappy. Only concern is that the weekly report takes 2-3 seconds to load even with a small board." }
+  },
+  {
+    "id": "fb_003", "betaTestId": "bt_001", "testerId": "usr_004", "type": "feature_suggestion", "createdAt": "2026-02-14T11:00:00Z",
+    "featureSuggestion": { "title": "Pomodoro timer per card", "description": "It would be great to have a built-in Pomodoro timer that you can start from any card. Track time spent per card automatically.", "priority": "nice_to_have", "useCase": "I use Pomodoro for deep work and currently switch between FlowBoard and a separate timer app." }
+  },
+  {
+    "id": "fb_004", "betaTestId": "bt_002", "testerId": "usr_005", "type": "bug_report", "createdAt": "2026-02-08T16:45:00Z",
+    "bugReport": { "title": "App crashes when uploading large recipe photos", "severity": "critical", "stepsToReproduce": "1. Create a new recipe\n2. Take a photo with iPhone 15 (48MP mode)\n3. Tap 'Add Photo'\n4. App crashes immediately", "expected": "Photo should be compressed and uploaded", "actual": "App crashes with no error. Recipe draft is lost." }
+  },
+  {
+    "id": "fb_005", "betaTestId": "bt_002", "testerId": "usr_004", "type": "ux_rating", "createdAt": "2026-02-09T10:30:00Z",
+    "uxRating": { "overall": 3, "easeOfUse": 3, "visualDesign": 4, "performance": 2, "comments": "Beautiful design but the app is sluggish on Android. Scrolling through the recipe feed stutters. The meal plan feature is confusing — I couldn't figure out how to add a recipe to Wednesday without reading the help docs." }
+  },
+  {
+    "id": "fb_006", "betaTestId": "bt_003", "testerId": "usr_002", "type": "bug_report", "createdAt": "2026-02-18T13:20:00Z",
+    "bugReport": { "title": "GST calculation wrong for interstate invoices", "severity": "critical", "stepsToReproduce": "1. Set business state as Maharashtra\n2. Create invoice for client in Karnataka\n3. Add item with 18% GST", "expected": "Should show IGST 18%", "actual": "Shows CGST 9% + SGST 9% (wrong for interstate)" }
+  },
+  {
+    "id": "fb_007", "betaTestId": "bt_003", "testerId": "usr_005", "type": "feature_suggestion", "createdAt": "2026-02-19T15:00:00Z",
+    "featureSuggestion": { "title": "Multi-currency support with live rates", "description": "For freelancers billing international clients, it would be helpful to create invoices in USD/EUR with automatic INR conversion using live exchange rates.", "priority": "must_have", "useCase": "I bill 3 US clients monthly and currently calculate conversions manually." }
+  },
+  {
+    "id": "fb_008", "betaTestId": "bt_004", "testerId": "usr_006", "type": "ux_rating", "createdAt": "2026-02-05T11:00:00Z",
+    "uxRating": { "overall": 5, "easeOfUse": 5, "visualDesign": 4, "performance": 5, "comments": "This is exactly what I needed. Auto-categorization is surprisingly accurate (got 8/10 right). Search is instant even with 200+ bookmarks. Only wish: dark mode." }
+  },
+  {
+    "id": "fb_009", "betaTestId": "bt_004", "testerId": "usr_003", "type": "bug_report", "createdAt": "2026-02-06T14:30:00Z",
+    "bugReport": { "title": "Import duplicates bookmarks from folders", "severity": "minor", "stepsToReproduce": "1. Have bookmarks in nested folders\n2. Click 'Import all bookmarks'\n3. Check imported list", "expected": "Each bookmark imported once", "actual": "Bookmarks in nested folders appear twice" }
+  },
+  {
+    "id": "fb_010", "betaTestId": "bt_005", "testerId": "usr_002", "type": "bug_report", "createdAt": "2026-02-22T10:00:00Z",
+    "bugReport": { "title": "VS Code import only picks up .js files", "severity": "major", "stepsToReproduce": "1. Open SnipVault\n2. Click 'Import from VS Code'\n3. Check imported snippets", "expected": "Should import snippets for all languages", "actual": "Only JavaScript/TypeScript snippets are imported. Python, Go, Rust snippets are missing." }
+  },
+  {
+    "id": "fb_011", "betaTestId": "bt_005", "testerId": "usr_006", "type": "ux_rating", "createdAt": "2026-02-23T09:00:00Z",
+    "uxRating": { "overall": 4, "easeOfUse": 4, "visualDesign": 5, "performance": 4, "comments": "Gorgeous app. The Tauri build feels native and fast. Syntax highlighting is excellent. Two minor gripes: no way to bulk-tag snippets, and the search doesn't match against code content (only titles and tags)." }
+  },
+  {
+    "id": "fb_012", "betaTestId": "bt_006", "testerId": "usr_003", "type": "ux_rating", "createdAt": "2026-02-20T16:00:00Z",
+    "uxRating": { "overall": 4, "easeOfUse": 4, "visualDesign": 5, "performance": 4, "comments": "The GitHub auto-import is magic. Picked up all my projects with accurate descriptions. Template selection is clean. Only issue: the custom domain setup docs are confusing." }
+  },
+  {
+    "id": "fb_013", "betaTestId": "bt_006", "testerId": "usr_005", "type": "feature_suggestion", "createdAt": "2026-02-21T11:00:00Z",
+    "featureSuggestion": { "title": "Blog section for portfolio", "description": "Many developers want a blog alongside their portfolio. Adding a basic markdown blog with RSS feed would make this a complete solution.", "priority": "nice_to_have", "useCase": "I currently use a separate blog on Hashnode but would prefer everything in one place." }
+  },
+  {
+    "id": "fb_014", "betaTestId": "bt_007", "testerId": "usr_004", "type": "bug_report", "createdAt": "2026-02-24T08:30:00Z",
+    "bugReport": { "title": "Streak counter resets at midnight UTC instead of local time", "severity": "major", "stepsToReproduce": "1. Set timezone to IST (UTC+5:30)\n2. Log a habit at 11:30 PM IST\n3. Check streak the next morning", "expected": "Streak should continue (logged before midnight IST)", "actual": "Streak shows as broken because it uses UTC midnight" }
+  },
+  {
+    "id": "fb_015", "betaTestId": "bt_007", "testerId": "usr_006", "type": "ux_rating", "createdAt": "2026-02-25T10:00:00Z",
+    "uxRating": { "overall": 4, "easeOfUse": 5, "visualDesign": 4, "performance": 5, "comments": "Addictive in the best way. The streak insurance is a clever feature. Friend challenges are fun. Would love to see some data visualization — a calendar heatmap like GitHub's contribution graph." }
+  },
+  {
+    "id": "fb_016", "betaTestId": "bt_007", "testerId": "usr_002", "type": "feature_suggestion", "createdAt": "2026-02-25T14:00:00Z",
+    "featureSuggestion": { "title": "Habit templates library", "description": "Pre-built habit templates like 'Morning Routine', 'Fitness Basics', 'Learning to Code' that users can one-click install instead of creating habits from scratch.", "priority": "nice_to_have", "useCase": "New users often don't know what habits to track. Templates would reduce onboarding friction." }
+  },
+  {
+    "id": "fb_017", "betaTestId": "bt_008", "testerId": "usr_004", "type": "bug_report", "createdAt": "2026-02-26T09:00:00Z",
+    "bugReport": { "title": "Slack alerts fire twice for the same incident", "severity": "minor", "stepsToReproduce": "1. Add an endpoint monitor\n2. Take the endpoint down\n3. Wait for alert", "expected": "One Slack alert when endpoint goes down", "actual": "Two identical Slack messages arrive within 10 seconds" }
+  },
+  {
+    "id": "fb_018", "betaTestId": "bt_008", "testerId": "usr_002", "type": "feature_suggestion", "createdAt": "2026-02-27T11:00:00Z",
+    "featureSuggestion": { "title": "Status page generator", "description": "Auto-generate a public status page (like status.example.com) from the monitored endpoints. Show uptime percentage and incident history.", "priority": "must_have", "useCase": "Every SaaS needs a status page. If PingDash can auto-generate one from the monitoring data, it saves setting up a separate tool." }
+  }
+]

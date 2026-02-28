@@ -1,0 +1,68 @@
+[
+  {
+    "id": "usr_001",
+    "displayName": "Arjun Mehta",
+    "avatar": "/images/placeholder-avatar.png",
+    "bio": "Full-stack dev building SaaS products. 3x founder.",
+    "location": "Bangalore, India",
+    "website": "https://arjunmehta.dev",
+    "social": { "twitter": "arjunbuilds", "github": "arjunmehta" },
+    "stats": { "totalSales": 5, "totalEarnings": 2500000, "listingsCount": 3, "betaTestsCompleted": 0, "feedbackGiven": 0, "memberSince": "2025-06-15" },
+    "verified": true
+  },
+  {
+    "id": "usr_002",
+    "displayName": "Priya Sharma",
+    "avatar": "/images/placeholder-avatar.png",
+    "bio": "Indie hacker. Chrome extensions and micro-SaaS.",
+    "location": "Mumbai, India",
+    "website": "https://priyasharma.io",
+    "social": { "twitter": "priyacodes", "github": "priyasharma" },
+    "stats": { "totalSales": 2, "totalEarnings": 800000, "listingsCount": 4, "betaTestsCompleted": 3, "feedbackGiven": 12, "memberSince": "2025-08-01" },
+    "verified": true
+  },
+  {
+    "id": "usr_003",
+    "displayName": "Rahul Verma",
+    "avatar": "/images/placeholder-avatar.png",
+    "bio": "Mobile dev specializing in React Native and Flutter.",
+    "location": "Delhi, India",
+    "website": "",
+    "social": { "github": "rahulverma" },
+    "stats": { "totalSales": 1, "totalEarnings": 350000, "listingsCount": 2, "betaTestsCompleted": 7, "feedbackGiven": 28, "memberSince": "2025-09-10" },
+    "verified": false
+  },
+  {
+    "id": "usr_004",
+    "displayName": "Sneha Patel",
+    "avatar": "/images/placeholder-avatar.png",
+    "bio": "Designer turned developer. UI kits and templates.",
+    "location": "Pune, India",
+    "website": "https://snehapatel.design",
+    "social": { "twitter": "snehadesigns", "github": "snehapatel" },
+    "stats": { "totalSales": 8, "totalEarnings": 1200000, "listingsCount": 5, "betaTestsCompleted": 1, "feedbackGiven": 5, "memberSince": "2025-07-20" },
+    "verified": true
+  },
+  {
+    "id": "usr_005",
+    "displayName": "Karthik Nair",
+    "avatar": "/images/placeholder-avatar.png",
+    "bio": "Backend engineer. APIs and automation tools.",
+    "location": "Chennai, India",
+    "website": "",
+    "social": { "github": "karthiknair" },
+    "stats": { "totalSales": 0, "totalEarnings": 0, "listingsCount": 1, "betaTestsCompleted": 15, "feedbackGiven": 42, "memberSince": "2025-10-05" },
+    "verified": false
+  },
+  {
+    "id": "usr_006",
+    "displayName": "Ananya Roy",
+    "avatar": "/images/placeholder-avatar.png",
+    "bio": "Building in public. Newsletter + SaaS enthusiast.",
+    "location": "Kolkata, India",
+    "website": "https://ananyaroy.com",
+    "social": { "twitter": "ananyabuilds", "github": "ananyaroy", "linkedin": "ananyaroy" },
+    "stats": { "totalSales": 3, "totalEarnings": 950000, "listingsCount": 2, "betaTestsCompleted": 5, "feedbackGiven": 18, "memberSince": "2025-08-15" },
+    "verified": true
+  }
+]

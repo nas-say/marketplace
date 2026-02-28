@@ -1,0 +1,10 @@
+[
+  { "slug": "saas", "label": "SaaS", "icon": "cloud", "description": "Software as a Service products", "count": 4 },
+  { "slug": "mobile-app", "label": "Mobile Apps", "icon": "smartphone", "description": "iOS and Android applications", "count": 2 },
+  { "slug": "chrome-extension", "label": "Chrome Extensions", "icon": "puzzle", "description": "Browser extensions and add-ons", "count": 2 },
+  { "slug": "domain", "label": "Domains", "icon": "globe", "description": "Premium domain names", "count": 1 },
+  { "slug": "open-source", "label": "Open Source", "icon": "git-branch", "description": "Open source projects with communities", "count": 1 },
+  { "slug": "bot-automation", "label": "Bots & Automation", "icon": "bot", "description": "Automated tools and bots", "count": 2 },
+  { "slug": "api", "label": "APIs", "icon": "server", "description": "API services and backends", "count": 1 },
+  { "slug": "template-theme", "label": "Templates & Themes", "icon": "layout", "description": "Website templates and UI themes", "count": 2 }
+]
