@@ -7,9 +7,12 @@ import { StatCard } from "@/components/shared/stat-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { ListingCard } from "@/components/listing/listing-card";
 import { BetaCard } from "@/components/beta/beta-card";
-import { DollarSign, Package, TestTube, MessageSquare, PlusCircle } from "lucide-react";
+import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { formatPrice } from "@/lib/data";
+import { deleteListingAction, markSoldAction } from "./actions";
 
 const MONTHLY_DATA = [
   { month: "Mar", value: 22, label: "$22K" }, { month: "Apr", value: 35, label: "$35K" },
@@ -32,6 +35,19 @@ interface Props {
 export function DashboardClient({ displayName, stats, listings, betaTests }: Props) {
   const [activeTab, setActiveTab] = useState("Overview");
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const [myListings, setMyListings] = useState(listings);
+
+  const handleDelete = async (listingId: string) => {
+    if (!window.confirm("Delete this listing? This cannot be undone.")) return;
+    const result = await deleteListingAction(listingId);
+    if (!result.error) setMyListings((prev) => prev.filter((l) => l.id !== listingId));
+  };
+
+  const handleMarkSold = async (listingId: string) => {
+    if (!window.confirm("Mark this listing as sold?")) return;
+    const result = await markSoldAction(listingId);
+    if (!result.error) setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, status: "sold" as const } : l));
+  };
 
   const recentActivity = [
     { text: betaTests[0] ? `New feedback received on ${betaTests[0].title}` : "No recent beta test activity", time: "2 hours ago", dot: "bg-green-500" },
@@ -83,7 +99,7 @@ export function DashboardClient({ displayName, stats, listings, betaTests }: Pro
 
       {activeTab === "My Listings" && (
         <div>
-          {listings.length === 0 ? (
+          {myListings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Package className="h-10 w-10 text-zinc-700 mb-3" />
               <p className="font-semibold text-zinc-50">No listings yet</p>
@@ -91,8 +107,42 @@ export function DashboardClient({ displayName, stats, listings, betaTests }: Pro
               <Link href="/create" className="mt-4"><Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">Create listing</Button></Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {listings.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
+            <div className="space-y-3">
+              {myListings.map((listing) => (
+                <div key={listing.id} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-zinc-200 truncate">{listing.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-sm text-zinc-400">{formatPrice(listing.askingPrice)}</span>
+                      <Badge className={
+                        listing.status === "active" ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                        listing.status === "sold" ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20" :
+                        "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                      }>{listing.status}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link href={`/listing/${listing.id}`}>
+                      <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-zinc-50 px-2">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                    <Link href={`/listing/${listing.id}/edit`}>
+                      <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-zinc-50 px-2">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                    {listing.status === "active" && (
+                      <Button size="sm" variant="outline" className="border-zinc-700 text-amber-400 hover:text-amber-300 px-2" onClick={() => handleMarkSold(listing.id)}>
+                        <CheckCheck className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="border-zinc-700 text-red-400 hover:text-red-300 px-2" onClick={() => handleDelete(listing.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

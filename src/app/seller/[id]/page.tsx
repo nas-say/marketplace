@@ -5,7 +5,7 @@ import { formatPrice } from "@/lib/data";
 import { ListingCard } from "@/components/listing/listing-card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/shared/stat-card";
-import { User, MapPin, Globe, Twitter, Github, DollarSign, Package, Star } from "lucide-react";
+import { User, MapPin, Globe, DollarSign, Package, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -60,18 +60,6 @@ export default async function SellerPage({ params }: Props) {
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 shrink-0" />
                   <a href={seller.website} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 truncate">{seller.website.replace(/^https?:\/\//, "")}</a>
-                </div>
-              )}
-              {seller.social.twitter && (
-                <div className="flex items-center gap-2">
-                  <Twitter className="h-4 w-4 shrink-0" />
-                  <a href={`https://twitter.com/${seller.social.twitter}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400">@{seller.social.twitter}</a>
-                </div>
-              )}
-              {seller.social.github && (
-                <div className="flex items-center gap-2">
-                  <Github className="h-4 w-4 shrink-0" />
-                  <a href={`https://github.com/${seller.social.github}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400">{seller.social.github}</a>
                 </div>
               )}
             </div>

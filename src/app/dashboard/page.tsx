@@ -1,6 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getListingsBySeller } from "@/lib/db/listings";
+import { getAllListingsBySeller } from "@/lib/db/listings";
 import { getBetaTests } from "@/lib/db/beta-tests";
 import { getProfile } from "@/lib/db/profiles";
 import { formatPrice } from "@/lib/data";
@@ -14,7 +14,7 @@ export default async function DashboardPage() {
 
   const [profile, listings, allBetaTests] = await Promise.all([
     getProfile(userId),
-    getListingsBySeller(userId),
+    getAllListingsBySeller(userId),
     getBetaTests(),
   ]);
 

@@ -43,6 +43,28 @@ export async function getProfiles(): Promise<User[]> {
   return data.map(rowToUser);
 }
 
+export async function updateProfile(
+  clerkUserId: string,
+  payload: {
+    displayName: string;
+    bio: string;
+    location: string;
+    website: string;
+    twitter: string;
+    github: string;
+  }
+): Promise<void> {
+  const client = createServiceClient();
+  await client.from("profiles").update({
+    display_name: payload.displayName || null,
+    bio: payload.bio || null,
+    location: payload.location || null,
+    website: payload.website || null,
+    twitter: payload.twitter || null,
+    github: payload.github || null,
+  }).eq("clerk_user_id", clerkUserId);
+}
+
 // Called by Clerk webhook on user.created
 export async function upsertProfile(payload: {
   clerkUserId: string;

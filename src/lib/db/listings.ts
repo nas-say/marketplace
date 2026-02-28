@@ -90,6 +90,60 @@ export async function getSimilarListings(listing: Listing, count = 3): Promise<L
   return data.map(rowToListing);
 }
 
+export async function getAllListingsBySeller(sellerId: string): Promise<Listing[]> {
+  const client = await createServerClient();
+  const { data, error } = await client
+    .from("listings")
+    .select("*")
+    .eq("seller_id", sellerId)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map(rowToListing);
+}
+
+export async function updateListing(
+  clerkUserId: string,
+  listingId: string,
+  payload: {
+    title: string; pitch: string; description: string; category: string;
+    techStack: string[]; askingPrice: number; openToOffers: boolean;
+    mrr: number; monthlyProfit: number; monthlyVisitors: number;
+    registeredUsers: number; assetsIncluded: string[];
+  }
+): Promise<boolean> {
+  const client = createServiceClient();
+  const { error } = await client.from("listings").update({
+    title: payload.title, pitch: payload.pitch, description: payload.description,
+    category: payload.category, tech_stack: payload.techStack,
+    asking_price: payload.askingPrice, open_to_offers: payload.openToOffers,
+    mrr: payload.mrr, monthly_profit: payload.monthlyProfit,
+    monthly_visitors: payload.monthlyVisitors, registered_users: payload.registeredUsers,
+    assets_included: payload.assetsIncluded,
+  }).eq("id", listingId).eq("seller_id", clerkUserId);
+  return !error;
+}
+
+export async function updateListingStatus(
+  clerkUserId: string,
+  listingId: string,
+  status: "active" | "sold" | "draft"
+): Promise<boolean> {
+  const client = createServiceClient();
+  const { error } = await client.from("listings").update({ status })
+    .eq("id", listingId).eq("seller_id", clerkUserId);
+  return !error;
+}
+
+export async function deleteListing(
+  clerkUserId: string,
+  listingId: string
+): Promise<boolean> {
+  const client = createServiceClient();
+  const { error } = await client.from("listings").delete()
+    .eq("id", listingId).eq("seller_id", clerkUserId);
+  return !error;
+}
+
 export async function createListing(
   clerkUserId: string,
   payload: {
