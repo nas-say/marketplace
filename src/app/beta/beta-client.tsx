@@ -7,7 +7,9 @@ import { BetaGrid } from "@/components/beta/beta-grid";
 import { SearchBar } from "@/components/shared/search-bar";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, User as UserIcon } from "lucide-react";
+import { Trophy, User as UserIcon, PlusCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   betaTests: BetaTest[];
@@ -32,7 +34,14 @@ export function BetaPageClient({ betaTests, topTesters }: Props) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader title="Beta Test Board" description="Find projects to test and earn rewards" />
+      <div className="flex items-start justify-between mb-8">
+        <PageHeader title="Beta Test Board" description="Find projects to test and earn rewards" />
+        <Link href="/beta/create">
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 shrink-0">
+            <PlusCircle className="mr-1.5 h-4 w-4" />New Beta Test
+          </Button>
+        </Link>
+      </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
         <div>
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
