@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap } from "lucide-react";
-import { getListings, getBetaTests, formatPrice } from "@/lib/data";
+import { getListings } from "@/lib/db/listings";
+import { getActiveBetaTests } from "@/lib/db/beta-tests";
+import { formatPrice } from "@/lib/data";
 
-export function Hero() {
-  const listings = getListings().filter((l) => l.status === "active");
-  const betaTests = getBetaTests();
+export async function Hero() {
+  const [listings, betaTests] = await Promise.all([getListings(), getActiveBetaTests()]);
   const totalSalesValue = listings.reduce((sum, l) => sum + l.askingPrice, 0);
 
   return (
@@ -51,7 +52,7 @@ export function Hero() {
           </div>
           <div className="hidden sm:block h-10 w-px bg-zinc-800" />
           <div className="text-center">
-            <p className="text-3xl font-bold text-zinc-50">{betaTests.filter((bt) => bt.status !== "closed").length}</p>
+            <p className="text-3xl font-bold text-zinc-50">{betaTests.length}</p>
             <p className="mt-1 text-sm text-zinc-500">Open beta tests</p>
           </div>
           <div className="hidden sm:block h-10 w-px bg-zinc-800" />

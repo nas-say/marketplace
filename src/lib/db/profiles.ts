@@ -1,0 +1,60 @@
+import { createServerClient, createServiceClient } from "@/lib/supabase";
+import { User } from "@/types/user";
+
+function rowToUser(row: Record<string, unknown>): User {
+  return {
+    id: row.clerk_user_id as string,
+    displayName: (row.display_name as string) ?? "Anonymous",
+    avatar: "/images/placeholder-avatar.png",
+    bio: (row.bio as string) ?? "",
+    location: (row.location as string) ?? "",
+    website: (row.website as string) ?? "",
+    social: {
+      twitter: (row.twitter as string) ?? undefined,
+      github: (row.github as string) ?? undefined,
+    },
+    stats: {
+      totalSales: Number(row.total_sales ?? 0),
+      totalEarnings: Number(row.total_earnings ?? 0),
+      listingsCount: 0,
+      betaTestsCompleted: Number(row.beta_tests_completed ?? 0),
+      feedbackGiven: Number(row.feedback_given ?? 0),
+      memberSince: row.created_at as string,
+    },
+    verified: Boolean(row.verified),
+  };
+}
+
+export async function getProfile(clerkUserId: string): Promise<User | null> {
+  const client = await createServerClient();
+  const { data, error } = await client
+    .from("profiles")
+    .select("*")
+    .eq("clerk_user_id", clerkUserId)
+    .single();
+  if (error || !data) return null;
+  return rowToUser(data);
+}
+
+export async function getProfiles(): Promise<User[]> {
+  const client = await createServerClient();
+  const { data, error } = await client.from("profiles").select("*");
+  if (error || !data) return [];
+  return data.map(rowToUser);
+}
+
+// Called by Clerk webhook on user.created
+export async function upsertProfile(payload: {
+  clerkUserId: string;
+  displayName: string;
+  email?: string;
+}): Promise<void> {
+  const client = createServiceClient();
+  await client.from("profiles").upsert(
+    {
+      clerk_user_id: payload.clerkUserId,
+      display_name: payload.displayName,
+    },
+    { onConflict: "clerk_user_id" }
+  );
+}

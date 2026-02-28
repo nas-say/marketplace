@@ -1,0 +1,38 @@
+import { createServiceClient, createServerClient } from "@/lib/supabase";
+
+export async function applyToBetaTest(
+  clerkUserId: string,
+  betaTestId: string
+): Promise<{ success: boolean; alreadyApplied: boolean }> {
+  const client = createServiceClient();
+
+  const { data: existing } = await client
+    .from("beta_applications")
+    .select("id")
+    .eq("clerk_user_id", clerkUserId)
+    .eq("beta_test_id", betaTestId)
+    .maybeSingle();
+
+  if (existing) return { success: false, alreadyApplied: true };
+
+  const { error } = await client
+    .from("beta_applications")
+    .insert({ clerk_user_id: clerkUserId, beta_test_id: betaTestId });
+
+  if (!error) {
+    // Increment spots_filled
+    await client.rpc("increment_spots_filled", { beta_test_id: betaTestId });
+  }
+
+  return { success: !error, alreadyApplied: false };
+}
+
+export async function getUserApplicationIds(clerkUserId: string): Promise<string[]> {
+  const client = await createServerClient();
+  const { data, error } = await client
+    .from("beta_applications")
+    .select("beta_test_id")
+    .eq("clerk_user_id", clerkUserId);
+  if (error || !data) return [];
+  return data.map((row) => row.beta_test_id as string);
+}

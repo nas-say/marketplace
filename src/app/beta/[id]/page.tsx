@@ -1,39 +1,41 @@
-import { getBetaTestById, getUserById, getFeedbackByBetaTest, getBetaTests } from "@/lib/data";
-import { FeedbackItem } from "@/components/beta/feedback-item";
+import { getBetaTestById } from "@/lib/db/beta-tests";
+import { getProfile } from "@/lib/db/profiles";
+import { getUserApplicationIds } from "@/lib/db/applications";
+import { ApplyButton } from "./apply-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import type { Metadata } from "next";
 
-interface BetaDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+interface Props { params: Promise<{ id: string }> }
 
-export function generateStaticParams() {
-  return getBetaTests().map((betaTest) => ({ id: betaTest.id }));
-}
-
-export default async function BetaDetailPage({ params }: BetaDetailPageProps) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const betaTest = getBetaTestById(id);
+  const betaTest = await getBetaTestById(id);
+  if (!betaTest) return {};
+  return { title: `${betaTest.title} — SideFlip Beta` };
+}
 
-  if (!betaTest) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold text-zinc-50">Beta test not found</h1>
-        <Link href="/beta" className="mt-4 text-indigo-400 hover:underline">Back to beta board</Link>
-      </div>
-    );
-  }
+export default async function BetaDetailPage({ params }: Props) {
+  const { id } = await params;
+  const { userId } = await auth();
 
-  const creator = getUserById(betaTest.creatorId);
-  const feedback = getFeedbackByBetaTest(betaTest.id);
+  const [betaTest, appliedIds] = await Promise.all([
+    getBetaTestById(id),
+    userId ? getUserApplicationIds(userId) : Promise.resolve([]),
+  ]);
+
+  if (!betaTest) notFound();
+
+  const creator = await getProfile(betaTest.creatorId);
+  const alreadyApplied = appliedIds.includes(id);
   const spotsRemaining = betaTest.spots.total - betaTest.spots.filled;
   const fillPercent = (betaTest.spots.filled / betaTest.spots.total) * 100;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Breadcrumb */}
       <div className="mb-6 text-sm text-zinc-500">
         <Link href="/" className="hover:text-zinc-300">Home</Link>
         <span className="mx-2">/</span>
@@ -59,34 +61,26 @@ export default async function BetaDetailPage({ params }: BetaDetailPageProps) {
 
           <p className="mt-6 text-zinc-300">{betaTest.description}</p>
 
-          {/* Testing instructions */}
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold text-zinc-50 mb-4">Testing Instructions</h2>
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              {betaTest.testingInstructions.split("\n").map((line, i) => (
-                <p key={i} className="text-sm text-zinc-300 py-0.5">{line}</p>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 text-sm text-zinc-500">
-            <strong className="text-zinc-300">Requirements:</strong> {betaTest.requirements}
-          </div>
-
-          {/* Feedback section */}
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold text-zinc-50 mb-4">
-              Feedback ({feedback.length})
-            </h2>
-            {feedback.length === 0 ? (
-              <p className="text-zinc-500">No feedback yet. Be the first to test!</p>
-            ) : (
-              <div className="space-y-4">
-                {feedback.map((fb) => (
-                  <FeedbackItem key={fb.id} feedback={fb} />
+          {betaTest.testingInstructions && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold text-zinc-50 mb-4">Testing Instructions</h2>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                {betaTest.testingInstructions.split("\n").map((line, i) => (
+                  <p key={i} className="text-sm text-zinc-300 py-0.5">{line}</p>
                 ))}
               </div>
-            )}
+            </div>
+          )}
+
+          {betaTest.requirements && (
+            <div className="mt-4 text-sm text-zinc-500">
+              <strong className="text-zinc-300">Requirements:</strong> {betaTest.requirements}
+            </div>
+          )}
+
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold text-zinc-50 mb-4">Feedback</h2>
+            <p className="text-zinc-500 text-sm">Feedback from testers will appear here.</p>
           </div>
         </div>
 
@@ -107,30 +101,32 @@ export default async function BetaDetailPage({ params }: BetaDetailPageProps) {
             </div>
 
             <p className="mb-4 text-sm text-zinc-500">
-              Deadline: {new Date(betaTest.deadline).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              Deadline:{" "}
+              {new Date(betaTest.deadline).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
             </p>
 
-            {betaTest.status !== "closed" ? (
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-500">
-                Sign Up to Test
-              </Button>
-            ) : (
-              <Button disabled className="w-full">Testing Closed</Button>
-            )}
+            <ApplyButton
+              betaTestId={id}
+              alreadyApplied={alreadyApplied}
+              closed={betaTest.status === "closed"}
+            />
 
-            {/* Creator info */}
             {creator && (
               <div className="mt-6 border-t border-zinc-800 pt-4">
                 <p className="text-sm text-zinc-500 mb-2">Created by</p>
-                <div className="flex items-center gap-2">
+                <Link href={`/seller/${creator.id}`} className="flex items-center gap-2 group">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800">
                     <User className="h-4 w-4 text-zinc-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-zinc-50">{creator.displayName}</p>
-                    <p className="text-xs text-zinc-500">{creator.bio}</p>
+                    <p className="text-sm font-medium text-zinc-50 group-hover:text-indigo-400 transition-colors">{creator.displayName}</p>
+                    {creator.bio && <p className="text-xs text-zinc-500 truncate max-w-[200px]">{creator.bio}</p>}
                   </div>
-                </div>
+                </Link>
               </div>
             )}
           </div>

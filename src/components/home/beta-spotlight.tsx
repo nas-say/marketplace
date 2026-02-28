@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getActiveBetaTests } from "@/lib/data";
+import { getActiveBetaTests } from "@/lib/db/beta-tests";
 import { BetaCard } from "@/components/beta/beta-card";
 
-export function BetaSpotlight() {
-  const betaTests = getActiveBetaTests().slice(0, 3);
+export async function BetaSpotlight() {
+  const betaTests = (await getActiveBetaTests()).slice(0, 3);
 
   return (
     <section className="py-20">

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getFeaturedListings } from "@/lib/data";
+import { getFeaturedListings } from "@/lib/db/listings";
 import { ListingCard } from "@/components/listing/listing-card";
 
-export function FeaturedListings() {
-  const listings = getFeaturedListings();
+export async function FeaturedListings() {
+  const listings = await getFeaturedListings();
 
   return (
     <section className="py-20">
