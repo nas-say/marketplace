@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const service = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Server component client (respects RLS via cookies/session)
 export async function createServerClient() {
@@ -34,5 +33,14 @@ export function createBrowserClient() {
 
 // Service role client — bypasses RLS, only use in server actions / API routes
 export function createServiceClient() {
+  if (typeof window !== "undefined") {
+    throw new Error("createServiceClient must only be used on the server.");
+  }
+
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!service) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
+  }
+
   return createClient(url, service);
 }
