@@ -13,14 +13,18 @@ export function BetaCard({ betaTest }: BetaCardProps) {
   const fillPercent = (betaTest.spots.filled / betaTest.spots.total) * 100;
 
   const statusColor =
-    betaTest.status === "accepting"
+    betaTest.status === "draft"
+      ? "bg-violet-500/10 text-violet-400"
+      : betaTest.status === "accepting"
       ? "bg-green-500/10 text-green-500"
       : betaTest.status === "almost_full"
       ? "bg-amber-500/10 text-amber-500"
       : "bg-zinc-500/10 text-zinc-500";
 
   const statusLabel =
-    betaTest.status === "accepting"
+    betaTest.status === "draft"
+      ? "Draft (Funding Pending)"
+      : betaTest.status === "accepting"
       ? "Accepting Testers"
       : betaTest.status === "almost_full"
       ? "Almost Full"

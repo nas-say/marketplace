@@ -25,7 +25,7 @@ export interface BetaTest {
     poolStatus: "not_required" | "pending" | "partial" | "funded";
   };
   creatorId: string;
-  status: "accepting" | "almost_full" | "closed";
+  status: "draft" | "accepting" | "almost_full" | "closed";
   deadline: string;
   createdAt: string;
   updatedAt: string;

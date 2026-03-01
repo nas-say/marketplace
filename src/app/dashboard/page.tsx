@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getAllListingsBySeller } from "@/lib/db/listings";
-import { getBetaTests } from "@/lib/db/beta-tests";
+import { getBetaTestsByCreator } from "@/lib/db/beta-tests";
 import { getProfile } from "@/lib/db/profiles";
 import { formatPrice } from "@/lib/data";
 import { DashboardClient } from "./dashboard-client";
@@ -15,10 +15,10 @@ export default async function DashboardPage() {
   const [profile, listings, allBetaTests] = await Promise.all([
     getProfile(userId),
     getAllListingsBySeller(userId),
-    getBetaTests(),
+    getBetaTestsByCreator(userId),
   ]);
 
-  const myBetaTests = allBetaTests.filter((bt) => bt.creatorId === userId);
+  const myBetaTests = allBetaTests;
 
   const displayName =
     profile?.displayName ??

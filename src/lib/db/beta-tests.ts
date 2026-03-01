@@ -24,16 +24,44 @@ function toPoolStatus(value: unknown): BetaTest["reward"]["poolStatus"] {
   return "not_required";
 }
 
+function isDraftFromFunding(reward: {
+  type: BetaTest["reward"]["type"];
+  poolTotalMinor: number;
+  poolStatus: BetaTest["reward"]["poolStatus"];
+}): boolean {
+  return reward.type === "cash" && reward.poolTotalMinor > 0 && reward.poolStatus !== "funded";
+}
+
+function mapStatusFromRow(
+  rawStatus: unknown,
+  filled: number,
+  total: number,
+  reward: {
+    type: BetaTest["reward"]["type"];
+    poolTotalMinor: number;
+    poolStatus: BetaTest["reward"]["poolStatus"];
+  }
+): BetaTest["status"] {
+  if (rawStatus === "closed") return "closed";
+  if (isDraftFromFunding(reward)) return "draft";
+  if (filled / total >= 0.8) return "almost_full";
+  return "accepting";
+}
+
 function rowToBetaTest(row: Record<string, unknown>): BetaTest {
   const filled = Number(row.spots_filled ?? 0);
   const total = Number(row.spots_total ?? 20);
-  let status = (row.status as BetaTest["status"]) ?? "accepting";
-  // Auto-upgrade status based on fill rate if still "accepting"
-  if (status === "accepting" && filled / total >= 0.8) status = "almost_full";
 
   const rewardAmountMinor = Number(row.reward_amount_minor ?? 0);
   const poolTotalMinor = Number(row.reward_pool_total_minor ?? 0);
   const poolFundedMinor = Number(row.reward_pool_funded_minor ?? 0);
+  const rewardType = toRewardType(row.reward_type);
+  const poolStatus = toPoolStatus(row.reward_pool_status);
+  const status = mapStatusFromRow(row.status, filled, total, {
+    type: rewardType,
+    poolTotalMinor,
+    poolStatus,
+  });
 
   return {
     id: row.id as string,
@@ -46,13 +74,13 @@ function rowToBetaTest(row: Record<string, unknown>): BetaTest {
     feedbackTypes: (row.feedback_types as BetaTest["feedbackTypes"]) ?? [],
     spots: { total, filled },
     reward: {
-      type: toRewardType(row.reward_type),
+      type: rewardType,
       amount: rewardAmountMinor,
       description: (row.reward_description as string) ?? "",
       currency: toRewardCurrency(row.reward_currency),
       poolTotalMinor,
       poolFundedMinor,
-      poolStatus: toPoolStatus(row.reward_pool_status),
+      poolStatus,
     },
     testingInstructions: (row.testing_instructions as string) ?? "",
     requirements: (row.requirements as string) ?? "",
@@ -71,6 +99,17 @@ export async function getBetaTests(): Promise<BetaTest[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error || !data) return [];
+  return data.map(rowToBetaTest).filter((bt) => bt.status !== "draft");
+}
+
+export async function getBetaTestsByCreator(clerkUserId: string): Promise<BetaTest[]> {
+  const client = await createServerClient();
+  const { data, error } = await client
+    .from("beta_tests")
+    .select("*")
+    .eq("creator_id", clerkUserId)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
   return data.map(rowToBetaTest);
 }
 
@@ -82,7 +121,9 @@ export async function getActiveBetaTests(): Promise<BetaTest[]> {
     .neq("status", "closed")
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  return data.map(rowToBetaTest);
+  return data
+    .map(rowToBetaTest)
+    .filter((bt) => bt.status === "accepting" || bt.status === "almost_full");
 }
 
 export async function getBetaTestById(id: string): Promise<BetaTest | null> {

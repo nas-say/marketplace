@@ -29,6 +29,7 @@ export default async function BetaDetailPage({ params }: Props) {
   ]);
 
   if (!betaTest) notFound();
+  if (betaTest.status === "draft" && userId !== betaTest.creatorId) notFound();
 
   const creator = await getProfile(betaTest.creatorId);
   const alreadyApplied = appliedIds.includes(id);
