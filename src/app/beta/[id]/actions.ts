@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase";
 import { getUserApplicationIds } from "@/lib/db/applications";
 import { saveUpiId } from "@/lib/db/profiles";
 import { revalidatePath } from "next/cache";
+import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UPI_PATTERN = /^[A-Za-z0-9._-]{2,256}@[A-Za-z]{2,64}$/;
@@ -17,6 +18,15 @@ function normalizeRewardType(value: unknown): "cash" | "premium_access" {
 
 function isMissingColumnError(error: { code?: string } | null | undefined): boolean {
   return error?.code === "42703";
+}
+
+interface ApproveApplicationRow {
+  status?: string;
+  applicant_email?: string | null;
+  payout_status?: string | null;
+  payout_gross_minor?: number | null;
+  payout_fee_minor?: number | null;
+  payout_net_minor?: number | null;
 }
 
 export async function applyAction(
@@ -133,7 +143,7 @@ export async function approveApplicationAction(
 
   const { data: betaTest, error: betaError } = await client
     .from("beta_tests")
-    .select("creator_id, reward_type, reward_pool_status, reward_pool_total_minor")
+    .select("creator_id, reward_type, reward_pool_status, reward_pool_total_minor, reward_amount_minor")
     .eq("id", betaTestId)
     .maybeSingle();
 
@@ -149,32 +159,84 @@ export async function approveApplicationAction(
     return { error: "Fund the reward pool before approving cash-reward applicants." };
   }
 
-  const { data: application, error: applicationError } = await client
+  let application: ApproveApplicationRow | null = null;
+
+  const applicationResult = await client
     .from("beta_applications")
-    .select("status, applicant_email")
+    .select("status, applicant_email, payout_status, payout_gross_minor, payout_fee_minor, payout_net_minor")
     .eq("beta_test_id", betaTestId)
     .eq("clerk_user_id", applicantUserId)
     .maybeSingle();
 
-  if (applicationError || !application) {
+  if (applicationResult.error && isMissingColumnError(applicationResult.error)) {
+    const legacyResult = await client
+      .from("beta_applications")
+      .select("status, applicant_email")
+      .eq("beta_test_id", betaTestId)
+      .eq("clerk_user_id", applicantUserId)
+      .maybeSingle();
+    application = (legacyResult.data as ApproveApplicationRow | null) ?? null;
+  } else {
+    application = (applicationResult.data as ApproveApplicationRow | null) ?? null;
+  }
+
+  if (!application) {
     return { error: "Applicant record not found." };
   }
 
+  const rewardType = String(betaTest.reward_type ?? "cash");
+  const cashPayout = calculateCashBetaPayout(Number(betaTest.reward_amount_minor ?? 0));
+
   if (application.status !== "accepted") {
+    const updatePayload: Record<string, unknown> = { status: "accepted" };
+    if (rewardType === "cash") {
+      updatePayload.payout_status = "pending";
+      updatePayload.payout_gross_minor = cashPayout.grossMinor;
+      updatePayload.payout_fee_minor = cashPayout.feeMinor;
+      updatePayload.payout_net_minor = cashPayout.netMinor;
+    }
+
     const { error: updateError } = await client
       .from("beta_applications")
-      .update({ status: "accepted" })
+      .update(updatePayload)
       .eq("beta_test_id", betaTestId)
       .eq("clerk_user_id", applicantUserId);
 
     if (updateError) {
-      return { error: "Could not approve applicant right now." };
+      if (isMissingColumnError(updateError)) {
+        const { error: legacyUpdateError } = await client
+          .from("beta_applications")
+          .update({ status: "accepted" })
+          .eq("beta_test_id", betaTestId)
+          .eq("clerk_user_id", applicantUserId);
+
+        if (legacyUpdateError) {
+          return { error: "Could not approve applicant right now." };
+        }
+      } else {
+        return { error: "Could not approve applicant right now." };
+      }
     }
+  } else if (
+    rewardType === "cash" &&
+    (application.payout_gross_minor === null ||
+      application.payout_fee_minor === null ||
+      application.payout_net_minor === null)
+  ) {
+    // Backfill payout breakdown for legacy accepted rows.
+    await client
+      .from("beta_applications")
+      .update({
+        payout_gross_minor: cashPayout.grossMinor,
+        payout_fee_minor: cashPayout.feeMinor,
+        payout_net_minor: cashPayout.netMinor,
+      })
+      .eq("beta_test_id", betaTestId)
+      .eq("clerk_user_id", applicantUserId);
   }
 
   revalidatePath(`/beta/${betaTestId}`);
 
-  const rewardType = String(betaTest.reward_type ?? "cash");
   const applicantEmail = typeof application.applicant_email === "string" ? application.applicant_email : null;
   const notice =
     rewardType === "premium_access"

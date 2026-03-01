@@ -106,6 +106,9 @@ export default async function AdminPage() {
           <p className="mt-1 text-xs text-zinc-400">
             {formatCurrencyMinor(snapshot.overview.pendingCashPayoutAmountMinor, "INR")}
           </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            5% fee share: {formatCurrencyMinor(snapshot.overview.pendingCashPlatformFeeMinor, "INR")}
+          </p>
         </div>
       </section>
 
@@ -149,7 +152,9 @@ export default async function AdminPage() {
                     <p className="text-xs text-zinc-500">{row.applicantEmail ?? "No email captured"}</p>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <p className="text-zinc-200">{formatCurrencyMinor(row.rewardAmountMinor, row.rewardCurrency)}</p>
+                    <p className="text-zinc-200">Gross: {formatCurrencyMinor(row.payoutGrossMinor, row.rewardCurrency)}</p>
+                    <p className="text-amber-300 text-xs">Fee (5%): {formatCurrencyMinor(row.payoutFeeMinor, row.rewardCurrency)}</p>
+                    <p className="text-green-300 text-xs">Net payout: {formatCurrencyMinor(row.payoutNetMinor, row.rewardCurrency)}</p>
                     <p className="text-xs text-zinc-500">Pool: {row.rewardPoolStatus}</p>
                   </td>
                   <td className="px-3 py-3 align-top">
@@ -356,4 +361,3 @@ export default async function AdminPage() {
     </div>
   );
 }
-

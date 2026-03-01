@@ -93,9 +93,9 @@ export default function HowItWorksPage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-4">
           {[
             { icon: <Search className="h-6 w-6" />, title: "Browse", desc: "Find projects looking for beta testers." },
-            { icon: <ArrowRight className="h-6 w-6" />, title: "Apply", desc: "Sign up and get access to the project." },
+            { icon: <ArrowRight className="h-6 w-6" />, title: "Apply", desc: "Apply with your contact details (and UPI for cash rewards)." },
             { icon: <MessageSquare className="h-6 w-6" />, title: "Test & Feedback", desc: "Test the product and submit structured feedback." },
-            { icon: <Trophy className="h-6 w-6" />, title: "Earn", desc: "Get paid in cash or premium access rewards." },
+            { icon: <Trophy className="h-6 w-6" />, title: "Earn", desc: "Get cash rewards (net of 5% platform fee) or premium access." },
           ].map((step) => (
             <div key={step.title} className="text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500">
@@ -131,11 +131,11 @@ export default function HowItWorksPage() {
           </div>
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center">
             <p className="text-3xl font-bold text-green-500">Free</p>
-            <p className="mt-2 text-sm text-zinc-400">Listing a beta test</p>
+            <p className="mt-2 text-sm text-zinc-400">Posting a beta test</p>
           </div>
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center">
-            <p className="text-3xl font-bold text-zinc-50">100%</p>
-            <p className="mt-2 text-sm text-zinc-400">Testers keep all rewards</p>
+            <p className="text-3xl font-bold text-zinc-50">5%</p>
+            <p className="mt-2 text-sm text-zinc-400">Platform fee on cash tester payouts</p>
           </div>
         </div>
       </section>
@@ -155,6 +155,10 @@ export default function HowItWorksPage() {
             {
               q: "Can I list a project for free?",
               a: "Yes. Listing is free. Connecting with sellers costs Connects.",
+            },
+            {
+              q: "How does beta testing pricing work?",
+              a: "Posting a beta test is free. For cash rewards, SideFlip deducts a 5% platform fee while paying approved testers.",
             },
             {
               q: "Does SideFlip handle sale disputes?",

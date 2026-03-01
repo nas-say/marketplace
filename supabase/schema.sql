@@ -261,6 +261,9 @@ create table if not exists beta_applications (
   status         text default 'pending' check (status in ('pending', 'accepted', 'rejected')),
   upi_id         text,
   applicant_email text,
+  payout_gross_minor bigint,
+  payout_fee_minor bigint,
+  payout_net_minor bigint,
   payout_status  text default 'pending' check (payout_status in ('pending', 'paid', 'failed')),
   payout_paid_at timestamptz,
   payout_note    text,
@@ -499,7 +502,26 @@ alter table beta_applications add column if not exists applicant_email text;
 alter table beta_applications add column if not exists payout_status text default 'pending';
 alter table beta_applications add column if not exists payout_paid_at timestamptz;
 alter table beta_applications add column if not exists payout_note text;
+alter table beta_applications add column if not exists payout_gross_minor bigint;
+alter table beta_applications add column if not exists payout_fee_minor bigint;
+alter table beta_applications add column if not exists payout_net_minor bigint;
 update beta_applications set payout_status = 'pending' where payout_status is null;
+
+update beta_applications as ba
+set
+  payout_gross_minor = bt.reward_amount_minor,
+  payout_fee_minor = ceil(bt.reward_amount_minor * 0.05)::bigint,
+  payout_net_minor = greatest(bt.reward_amount_minor - ceil(bt.reward_amount_minor * 0.05)::bigint, 0)
+from beta_tests bt
+where
+  ba.beta_test_id = bt.id
+  and ba.status = 'accepted'
+  and bt.reward_type = 'cash'
+  and (
+    ba.payout_gross_minor is null
+    or ba.payout_fee_minor is null
+    or ba.payout_net_minor is null
+  );
 
 do $$ begin
   alter table beta_applications drop constraint if exists beta_applications_payout_status_check;

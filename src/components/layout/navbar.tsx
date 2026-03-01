@@ -52,6 +52,7 @@ export function Navbar() {
           <SignedIn>
             <Link href="/dashboard" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Dashboard</Link>
             <Link href="/connects" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Connects</Link>
+            <Link href="/how-it-works" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">How It Works</Link>
             <Link href="/settings" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Settings</Link>
             <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
           </SignedIn>
@@ -93,6 +94,34 @@ export function Navbar() {
               </SignUpButton>
             </SignedOut>
             <SignedIn>
+              <Link
+                href="/dashboard"
+                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
+                onClick={() => setMobileOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/connects"
+                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
+                onClick={() => setMobileOpen(false)}
+              >
+                Connects
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
+                onClick={() => setMobileOpen(false)}
+              >
+                How It Works
+              </Link>
+              <Link
+                href="/settings"
+                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
+                onClick={() => setMobileOpen(false)}
+              >
+                Settings
+              </Link>
               <div className="flex items-center gap-3 py-2">
                 <UserButton />
                 <span className="text-sm text-zinc-400">My Account</span>

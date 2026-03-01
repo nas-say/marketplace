@@ -128,6 +128,10 @@ export default function TermsPage() {
             payment if a creator fails to approve testers.
           </p>
           <p className="mt-3">
+            For cash beta rewards, SideFlip deducts a <strong className="text-zinc-300">5% platform fee</strong> at
+            payout time. Testers receive the net payout amount after this deduction.
+          </p>
+          <p className="mt-3">
             Cash reward funding payments are final and non-refundable once paid, except in case
             of technical payment failures where no funding is recorded.
           </p>

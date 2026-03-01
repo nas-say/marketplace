@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase";
+import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
 
 type PayoutStatus = "pending" | "paid" | "failed";
 
@@ -23,6 +24,9 @@ interface RawCashPayoutRow {
   payout_status?: string | null;
   payout_paid_at?: string | null;
   payout_note?: string | null;
+  payout_gross_minor?: number | string | null;
+  payout_fee_minor?: number | string | null;
+  payout_net_minor?: number | string | null;
   beta_tests?: JoinedBetaTestRow | JoinedBetaTestRow[] | null;
 }
 
@@ -57,6 +61,7 @@ export interface AdminOverview {
   acceptedCashApplicants: number;
   pendingCashPayouts: number;
   pendingCashPayoutAmountMinor: number;
+  pendingCashPlatformFeeMinor: number;
   acceptedPremiumApplicants: number;
   manualReviewRequests: number;
 }
@@ -65,7 +70,9 @@ export interface AdminCashPayoutItem {
   betaTestId: string;
   betaTestTitle: string;
   creatorId: string;
-  rewardAmountMinor: number;
+  payoutGrossMinor: number;
+  payoutFeeMinor: number;
+  payoutNetMinor: number;
   rewardCurrency: string;
   rewardPoolStatus: string;
   applicantUserId: string;
@@ -168,6 +175,15 @@ function isMissingColumnError(error: { code?: string } | null | undefined): bool
   return error?.code === "42703";
 }
 
+function toMinorNumber(input: unknown): number | null {
+  if (typeof input === "number" && Number.isFinite(input)) return Math.max(0, Math.round(input));
+  if (typeof input === "string" && input.trim().length > 0) {
+    const parsed = Number(input);
+    if (Number.isFinite(parsed)) return Math.max(0, Math.round(parsed));
+  }
+  return null;
+}
+
 async function exactCount(queryPromise: PromiseLike<unknown>): Promise<number> {
   try {
     const result = (await queryPromise) as { count?: number | null; error?: unknown };
@@ -246,7 +262,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     .limit(300);
 
   const payoutSelectWithStatus =
-    "beta_test_id, clerk_user_id, applicant_email, upi_id, created_at, status, payout_status, payout_paid_at, payout_note, beta_tests!inner(id, title, reward_type, reward_currency, reward_amount_minor, reward_pool_status, creator_id)";
+    "beta_test_id, clerk_user_id, applicant_email, upi_id, created_at, status, payout_status, payout_paid_at, payout_note, payout_gross_minor, payout_fee_minor, payout_net_minor, beta_tests!inner(id, title, reward_type, reward_currency, reward_amount_minor, reward_pool_status, creator_id)";
   const payoutSelectLegacy =
     "beta_test_id, clerk_user_id, applicant_email, upi_id, created_at, status, beta_tests!inner(id, title, reward_type, reward_currency, reward_amount_minor, reward_pool_status, creator_id)";
 
@@ -317,11 +333,18 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
         return null;
       }
 
+      const fallbackPayout = calculateCashBetaPayout(Number(betaTest.reward_amount_minor ?? 0));
+      const payoutGrossMinor = toMinorNumber(row.payout_gross_minor) ?? fallbackPayout.grossMinor;
+      const payoutFeeMinor = toMinorNumber(row.payout_fee_minor) ?? fallbackPayout.feeMinor;
+      const payoutNetMinor = toMinorNumber(row.payout_net_minor) ?? fallbackPayout.netMinor;
+
       return {
         betaTestId: row.beta_test_id,
         betaTestTitle: betaTest.title,
         creatorId: betaTest.creator_id ?? "",
-        rewardAmountMinor: Number(betaTest.reward_amount_minor ?? 0),
+        payoutGrossMinor,
+        payoutFeeMinor,
+        payoutNetMinor,
         rewardCurrency: String(betaTest.reward_currency ?? "INR"),
         rewardPoolStatus: String(betaTest.reward_pool_status ?? "pending"),
         applicantUserId: row.clerk_user_id,
@@ -485,7 +508,11 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
 
   const pendingCashPayoutRows = cashPayoutQueue.filter((row) => row.payoutStatus !== "paid");
   const pendingCashPayoutAmountMinor = pendingCashPayoutRows.reduce(
-    (sum, row) => sum + Math.max(0, row.rewardAmountMinor),
+    (sum, row) => sum + Math.max(0, row.payoutNetMinor),
+    0
+  );
+  const pendingCashPlatformFeeMinor = pendingCashPayoutRows.reduce(
+    (sum, row) => sum + Math.max(0, row.payoutFeeMinor),
     0
   );
 
@@ -503,6 +530,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
       acceptedCashApplicants: cashPayoutQueue.length,
       pendingCashPayouts: pendingCashPayoutRows.length,
       pendingCashPayoutAmountMinor,
+      pendingCashPlatformFeeMinor,
       acceptedPremiumApplicants: premiumApprovalQueue.length,
       manualReviewRequests,
     },
