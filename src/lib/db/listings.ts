@@ -110,7 +110,7 @@ export async function getSimilarListings(listing: Listing, count = 3): Promise<L
 }
 
 export async function getAllListingsBySeller(sellerId: string): Promise<Listing[]> {
-  const client = await createServerClient();
+  const client = createServiceClient();
   const { data, error } = await client
     .from("listings")
     .select("*")
