@@ -73,6 +73,8 @@ exception
   when duplicate_object then null;
 end $$;
 
+alter table listings alter column status set default 'pending_verification';
+
 do $$ begin
   alter table listings drop constraint if exists listings_ownership_verification_method_check;
   alter table listings add constraint listings_ownership_verification_method_check check (
