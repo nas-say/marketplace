@@ -229,7 +229,10 @@ export async function verifyRepoOwnership(
         .from("listing_ownership_verifications")
         .update({ last_error: "Could not access repository from GitHub API." })
         .eq("id", verification.id);
-      return { verified: false, error: "Could not access this GitHub repository." };
+      return {
+        verified: false,
+        error: "Could not access this GitHub repository. Only public repositories are supported right now.",
+      };
     }
 
     const repoJson = (await repoResponse.json()) as { description?: string };

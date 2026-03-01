@@ -8,6 +8,7 @@ import { CATEGORY_LABELS } from "@/lib/constants";
 const MAX_LISTING_PRICE = 10_000_000;
 const MAX_MRR = 1_000_000;
 const MAX_COUNTER = 100_000_000;
+const MAX_BETA_REWARD_INR = 1_000_000;
 
 function validateMoneyField(value: number, field: string, max: number): string | null {
   if (!Number.isFinite(value)) return `${field} must be a valid number.`;
@@ -39,7 +40,7 @@ export async function createListingAction(payload: {
   assetsIncluded: string[];
   includeBeta: boolean;
   betaSpots: number;
-  betaReward: string;
+  betaRewardInr: number;
   betaInstructions: string;
   betaDeadline: string;
 }): Promise<{ error?: string; listingId?: string; requiresVerification?: boolean }> {
@@ -90,13 +91,19 @@ export async function createListingAction(payload: {
     .slice(0, 50);
 
   const includeBeta = Boolean(payload.includeBeta);
-  const betaReward = payload.betaReward.trim();
+  const betaRewardInr = Number.isFinite(payload.betaRewardInr) ? payload.betaRewardInr : 0;
+  const betaRewardMinor = Math.round(betaRewardInr * 100);
   const betaInstructions = payload.betaInstructions.trim();
   const betaDeadline = payload.betaDeadline.trim();
   const betaSpots = Number.isFinite(payload.betaSpots) ? Math.floor(payload.betaSpots) : 0;
 
   if (includeBeta) {
-    if (!betaReward) return { error: "Beta reward details are required when beta testing is enabled." };
+    if (betaRewardMinor <= 0) {
+      return { error: "Cash reward per tester (INR) is required when beta testing is enabled." };
+    }
+    if (betaRewardInr > MAX_BETA_REWARD_INR) {
+      return { error: "Cash reward per tester is too large." };
+    }
     if (!betaDeadline) return { error: "Beta deadline is required when beta testing is enabled." };
     if (!Number.isInteger(betaSpots) || betaSpots < 1 || betaSpots > 1000) {
       return { error: "Beta spots must be between 1 and 1000." };
@@ -131,11 +138,19 @@ export async function createListingAction(payload: {
   if (!result) return { error: "Failed to create listing. Please try again." };
 
   if (includeBeta) {
+    const rewardDisplay = (betaRewardMinor / 100).toLocaleString("en-IN", {
+      minimumFractionDigits: betaRewardMinor % 100 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    });
+
     const betaResult = await createBetaTest(userId, {
       title,
       description,
       spotsTotal: betaSpots || 20,
-      rewardDescription: betaReward,
+      rewardDescription: `INR ${rewardDisplay} cash per completed test`,
+      rewardType: "cash",
+      rewardCurrency: "INR",
+      rewardAmountMinor: betaRewardMinor,
       testingInstructions: betaInstructions,
       deadline: betaDeadline,
     });

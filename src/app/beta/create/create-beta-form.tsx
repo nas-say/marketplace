@@ -178,6 +178,9 @@ export function CreateBetaForm() {
                 placeholder="e.g., 300"
                 className="bg-zinc-900 border-zinc-800"
               />
+              <p className="mt-1 text-xs text-amber-400">
+                Beta reward funding payments are final and non-refundable once paid.
+              </p>
             </div>
           )}
           <div className="mt-4">

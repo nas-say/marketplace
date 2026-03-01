@@ -127,6 +127,10 @@ export default function TermsPage() {
             is controlled by the creator&apos;s actions on the platform; we cannot guarantee
             payment if a creator fails to approve testers.
           </p>
+          <p className="mt-3">
+            Cash reward funding payments are final and non-refundable once paid, except in case
+            of technical payment failures where no funding is recorded.
+          </p>
         </section>
 
         <section>

@@ -79,23 +79,26 @@ export default function RefundPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-50 mb-3">5. Beta Test Reward Funding</h2>
           <p className="mb-3">
-            Cash reward pools funded by beta test creators via Razorpay are handled
-            differently:
+            <strong className="text-zinc-200">
+              Cash reward pool funding for beta tests is final and non-refundable once paid.
+            </strong>{" "}
+            By funding a beta reward pool, you authorize SideFlip to earmark those funds for
+            tester payouts under your beta test terms.
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>
-              If the beta test is cancelled before any testers are paid, the creator may
-              request a refund of the unfunded pool.
+              Funds remain allocated to that beta test and cannot be withdrawn back to your
+              account.
             </li>
             <li>
-              Once rewards have been disbursed to testers, those amounts are not refundable.
+              Payments to testers and any platform processing already completed are irreversible.
             </li>
             <li>
-              Refund requests for reward funding must be submitted to{" "}
+              If a payment fails technically before funding is recorded, contact{" "}
               <a href={`mailto:${CONTACT_EMAIL}`} className="text-indigo-400 hover:text-indigo-300">
                 {CONTACT_EMAIL}
               </a>{" "}
-              within 30 days of the beta test closing.
+              with the order/payment IDs for investigation.
             </li>
           </ul>
         </section>

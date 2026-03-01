@@ -251,21 +251,26 @@ export function FundingCard({
             </Button>
           </div>
         ) : (
-          <Button
-            size="sm"
-            className="mt-3 w-full bg-indigo-600 hover:bg-indigo-500"
-            onClick={() => void handleFund()}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                Opening checkout...
-              </>
-            ) : (
-              `Fund ${formatMinorAmount(remainingMinor, rewardCurrency)}`
-            )}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              className="mt-3 w-full bg-indigo-600 hover:bg-indigo-500"
+              onClick={() => void handleFund()}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Opening checkout...
+                </>
+              ) : (
+                `Fund ${formatMinorAmount(remainingMinor, rewardCurrency)}`
+              )}
+            </Button>
+            <p className="mt-2 text-xs text-amber-400">
+              Beta reward funding payments are final and non-refundable once paid.
+            </p>
+          </>
         )
       ) : funded ? (
         <p className="mt-2 text-xs text-green-400">Reward pool funded by creator.</p>

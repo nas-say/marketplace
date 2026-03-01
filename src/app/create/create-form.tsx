@@ -81,7 +81,7 @@ export function CreateForm() {
       assetsIncluded: assets,
       includeBeta,
       betaSpots: Number(fd.get("betaSpots")) || 20,
-      betaReward: (fd.get("betaReward") as string) || "",
+      betaRewardInr: Number(fd.get("betaRewardInr")) || 0,
       betaInstructions: (fd.get("betaInstructions") as string) || "",
       betaDeadline: (fd.get("betaDeadline") as string) || "",
     });
@@ -311,8 +311,18 @@ export function CreateForm() {
                 <Input name="betaSpots" type="number" min="1" placeholder="20" className="bg-zinc-900 border-zinc-700" />
               </div>
               <div>
-                <label className="block text-sm text-zinc-400 mb-1">Reward for Testers</label>
-                <Input name="betaReward" placeholder="e.g., $10 per completed test, or Free Pro access" className="bg-zinc-900 border-zinc-700" />
+                <label className="block text-sm text-zinc-400 mb-1">Cash Reward per Tester (INR)</label>
+                <Input
+                  name="betaRewardInr"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="e.g., 300"
+                  className="bg-zinc-900 border-zinc-700"
+                />
+                <p className="mt-1 text-xs text-amber-400">
+                  Cash rewards are funded via Razorpay and are non-refundable once paid.
+                </p>
               </div>
               <div>
                 <label className="block text-sm text-zinc-400 mb-1">Testing Instructions</label>

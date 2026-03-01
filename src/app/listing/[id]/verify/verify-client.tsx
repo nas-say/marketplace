@@ -195,6 +195,10 @@ export function VerifyListingClient({ listing, verifications }: Props) {
           <p className="mt-2 text-sm text-zinc-500">
             Enter your GitHub repository and generate a challenge token.
           </p>
+          <p className="mt-1 text-xs text-amber-400">
+            Only public repositories are supported. You can temporarily make your repo public to verify,
+            then switch it back to private.
+          </p>
 
           <div className="mt-4 flex gap-2">
             <Input
