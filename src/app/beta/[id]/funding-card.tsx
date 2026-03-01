@@ -12,6 +12,8 @@ type Currency = "INR" | "USD" | "EUR" | "GBP";
 interface Props {
   betaTestId: string;
   isCreator: boolean;
+  countryCode: string;
+  paymentsEnabledForCountry: boolean;
   rewardType: RewardType;
   rewardCurrency: Currency;
   poolTotalMinor: number;
@@ -71,6 +73,8 @@ function formatMinorAmount(minor: number, currency: Currency) {
 export function FundingCard({
   betaTestId,
   isCreator,
+  countryCode,
+  paymentsEnabledForCountry,
   rewardType,
   rewardCurrency,
   poolTotalMinor,
@@ -79,6 +83,7 @@ export function FundingCard({
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [markingInterest, setMarkingInterest] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -173,6 +178,43 @@ export function FundingCard({
     }
   };
 
+  const handleMarkInterest = async () => {
+    if (!isCreator || funded || markingInterest) return;
+
+    setMarkingInterest(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/payments/interest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feature: "beta_reward_funding",
+          context: {
+            betaTestId,
+            rewardCurrency,
+            poolTotalMinor,
+            poolFundedMinor,
+            countryCode,
+          },
+        }),
+      });
+
+      const json = (await response.json()) as { success?: boolean; error?: string };
+      if (!response.ok || !json.success) {
+        setError(json.error ?? "Could not mark your interest right now.");
+        setMarkingInterest(false);
+        return;
+      }
+
+      setMessage("Marked. We will email you when payments are available in your country.");
+      setMarkingInterest(false);
+    } catch {
+      setError("Could not mark your interest right now.");
+      setMarkingInterest(false);
+    }
+  };
+
   return (
     <div className="mb-4 rounded border border-zinc-800 bg-zinc-800/60 p-3 text-left">
       <p className="text-sm font-medium text-zinc-300">Reward Pool</p>
@@ -187,6 +229,27 @@ export function FundingCard({
       {isCreator ? (
         funded ? (
           <p className="mt-2 text-xs text-green-400">Fully funded. Testers can apply.</p>
+        ) : !paymentsEnabledForCountry ? (
+          <div className="mt-3">
+            <p className="mb-2 text-xs text-amber-400">
+              Payments are currently available only in India. Mark interested to get notified.
+            </p>
+            <Button
+              size="sm"
+              className="w-full bg-zinc-700 hover:bg-zinc-600"
+              onClick={() => void handleMarkInterest()}
+              disabled={markingInterest}
+            >
+              {markingInterest ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Marking...
+                </>
+              ) : (
+                "Mark Interested"
+              )}
+            </Button>
+          </div>
         ) : (
           <Button
             size="sm"

@@ -38,8 +38,9 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-zinc-50">Company</h3>
             <ul className="mt-3 space-y-2">
               <li><Link href="/how-it-works" className="text-sm text-zinc-400 hover:text-zinc-50">About</Link></li>
-              <li><span className="text-sm text-zinc-500">Terms (Coming soon)</span></li>
-              <li><span className="text-sm text-zinc-500">Privacy (Coming soon)</span></li>
+              <li><Link href="/terms" className="text-sm text-zinc-400 hover:text-zinc-50">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="text-sm text-zinc-400 hover:text-zinc-50">Privacy Policy</Link></li>
+              <li><Link href="/refund" className="text-sm text-zinc-400 hover:text-zinc-50">Refund Policy</Link></li>
             </ul>
           </div>
         </div>

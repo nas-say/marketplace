@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
+import { getVisitorCountryCode } from "@/lib/geo";
 import { createRazorpayOrder, getRazorpayPublicKeyId } from "@/lib/payments/razorpay";
 
 export const runtime = "nodejs";
@@ -18,6 +19,12 @@ export async function POST(request: Request) {
   if (!userId) {
     logBetaOrderFailure("not_authenticated", {});
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  const countryCode = await getVisitorCountryCode();
+  if (countryCode !== "IN" && process.env.NODE_ENV === "production") {
+    logBetaOrderFailure("country_not_supported", { userId, countryCode });
+    return NextResponse.json({ error: "Payments are currently available only in India." }, { status: 400 });
   }
 
   const body = (await request.json().catch(() => null)) as CreateOrderBody | null;

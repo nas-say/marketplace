@@ -49,6 +49,8 @@ interface Props {
   transactions: Transaction[];
   hasMoreTransactions: boolean;
   currency: Currency;
+  countryCode: string;
+  paymentsEnabledForCountry: boolean;
   signupGiftAmount: number;
   hasClaimedGift: boolean;
 }
@@ -100,6 +102,8 @@ export function ConnectsClient({
   transactions: initialTransactions,
   hasMoreTransactions: initialHasMoreTransactions,
   currency,
+  countryCode,
+  paymentsEnabledForCountry,
   signupGiftAmount,
   hasClaimedGift,
 }: Props) {
@@ -113,6 +117,7 @@ export function ConnectsClient({
   const [claimed, setClaimed] = useState(hasClaimedGift);
   const [claimError, setClaimError] = useState("");
   const [buyingConnects, setBuyingConnects] = useState<number | null>(null);
+  const [markingInterestConnects, setMarkingInterestConnects] = useState<number | null>(null);
   const [purchaseError, setPurchaseError] = useState("");
   const [purchaseMessage, setPurchaseMessage] = useState("");
 
@@ -139,7 +144,7 @@ export function ConnectsClient({
   };
 
   const handleBuyBundle = async (connects: number) => {
-    if (currency !== "INR") return;
+    if (!paymentsEnabledForCountry || currency !== "INR") return;
 
     setPurchaseError("");
     setPurchaseMessage("");
@@ -219,6 +224,41 @@ export function ConnectsClient({
     } catch {
       setPurchaseError("Could not start Razorpay checkout. Please try again.");
       setBuyingConnects(null);
+    }
+  };
+
+  const handleMarkInterest = async (connects: number, priceLabel: string) => {
+    if (paymentsEnabledForCountry) return;
+
+    setPurchaseError("");
+    setPurchaseMessage("");
+    setMarkingInterestConnects(connects);
+
+    try {
+      const response = await fetch("/api/payments/interest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feature: "connects_payment",
+          context: {
+            connects,
+            priceLabel,
+            currency,
+            countryCode,
+          },
+        }),
+      });
+      const json = (await response.json()) as { success?: boolean; error?: string };
+      if (!response.ok || !json.success) {
+        setPurchaseError(json.error ?? "Could not mark your interest right now.");
+        setMarkingInterestConnects(null);
+        return;
+      }
+      setPurchaseMessage("Marked. We will email you when payments are available in your country.");
+      setMarkingInterestConnects(null);
+    } catch {
+      setPurchaseError("Could not mark your interest right now.");
+      setMarkingInterestConnects(null);
     }
   };
 
@@ -309,7 +349,7 @@ export function ConnectsClient({
             <p className="text-sm text-zinc-500">connects</p>
             <p className="mt-2 text-xl font-semibold text-violet-400">{bundle.price}</p>
             <p className="text-xs text-zinc-500 mt-0.5">{bundle.description}</p>
-            {currency === "INR" ? (
+            {paymentsEnabledForCountry && currency === "INR" ? (
               <Button
                 className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500"
                 onClick={() => void handleBuyBundle(bundle.connects)}
@@ -322,17 +362,25 @@ export function ConnectsClient({
                 )}
               </Button>
             ) : (
-              <Button className="mt-4 w-full bg-zinc-800 hover:bg-zinc-800 text-zinc-500 cursor-not-allowed" disabled>
-                Coming Soon
+              <Button
+                className="mt-4 w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+                onClick={() => void handleMarkInterest(bundle.connects, bundle.price)}
+                disabled={markingInterestConnects === bundle.connects}
+              >
+                {markingInterestConnects === bundle.connects ? (
+                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Marking...</>
+                ) : (
+                  "Mark Interested"
+                )}
               </Button>
             )}
           </div>
         ))}
       </div>
       <p className="text-xs text-zinc-600 mb-10 text-center">
-        {currency === "INR"
+        {paymentsEnabledForCountry && currency === "INR"
           ? "INR payments are live via Razorpay. Unlock cost scales by listing price (starts at 2 connects)."
-          : "Payments via LemonSqueezy — coming soon. Unlock cost scales by listing price (starts at 2 connects)."}
+          : "Payments are currently available only in India. Mark interested and we will email you when your country goes live."}
       </p>
       {purchaseError && <p className="text-xs text-red-400 mb-4 text-center">{purchaseError}</p>}
       {purchaseMessage && <p className="text-xs text-green-400 mb-4 text-center">{purchaseMessage}</p>}

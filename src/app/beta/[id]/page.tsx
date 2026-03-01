@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
+import { getVisitorCountryCode } from "@/lib/geo";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -23,9 +24,10 @@ export default async function BetaDetailPage({ params }: Props) {
   const { id } = await params;
   const { userId } = await auth();
 
-  const [betaTest, appliedIds] = await Promise.all([
+  const [betaTest, appliedIds, countryCode] = await Promise.all([
     getBetaTestById(id),
     userId ? getUserApplicationIds(userId) : Promise.resolve([]),
+    getVisitorCountryCode().catch(() => ""),
   ]);
 
   if (!betaTest) notFound();
@@ -42,6 +44,7 @@ export default async function BetaDetailPage({ params }: Props) {
     betaTest.reward.poolStatus !== "funded";
   const applyBlockedReason =
     !isCreator && fundingRequiredForApply ? "Creator must fund cash rewards before applications open." : undefined;
+  const paymentsEnabledForCountry = countryCode === "IN";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -112,6 +115,8 @@ export default async function BetaDetailPage({ params }: Props) {
             <FundingCard
               betaTestId={id}
               isCreator={isCreator}
+              countryCode={countryCode}
+              paymentsEnabledForCountry={paymentsEnabledForCountry}
               rewardType={betaTest.reward.type}
               rewardCurrency={betaTest.reward.currency}
               poolTotalMinor={betaTest.reward.poolTotalMinor}

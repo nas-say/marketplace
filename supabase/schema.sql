@@ -160,6 +160,25 @@ create policy "connects_balance_owner_all" on connects_balance using (clerk_user
 create policy "unlocked_listings_owner_all" on unlocked_listings using (clerk_user_id = auth.uid()::text);
 create policy "connects_transactions_owner_read" on connects_transactions for select using (clerk_user_id = auth.uid()::text);
 
+-- ─── PAYMENT INTEREST SIGNALS ────────────────────────────────────────────────
+create table if not exists payment_interest_signals (
+  id             uuid primary key default gen_random_uuid(),
+  clerk_user_id  text not null,
+  feature        text not null,
+  country_code   text,
+  currency       text,
+  metadata       jsonb default '{}'::jsonb,
+  created_at     timestamptz default now()
+);
+
+create index if not exists idx_payment_interest_signals_created_at
+  on payment_interest_signals(created_at desc);
+
+alter table payment_interest_signals enable row level security;
+create policy "payment_interest_signals_owner_read" on payment_interest_signals for select using (
+  clerk_user_id = auth.uid()::text
+);
+
 -- ─── BETA APPLICATIONS ───────────────────────────────────────────────────────
 create table if not exists beta_applications (
   id             uuid primary key default gen_random_uuid(),

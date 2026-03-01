@@ -19,10 +19,14 @@ const EU_COUNTRIES = new Set([
 // Vercel automatically sets x-vercel-ip-country on all requests.
 // Falls back to USD in local dev where the header is absent.
 export async function getVisitorCurrency(): Promise<Currency> {
-  const headersList = await headers();
-  const country = headersList.get("x-vercel-ip-country") ?? "";
+  const country = await getVisitorCountryCode();
   if (country === "IN") return "INR";
   if (country === "GB") return "GBP";
   if (EU_COUNTRIES.has(country)) return "EUR";
   return "USD";
+}
+
+export async function getVisitorCountryCode(): Promise<string> {
+  const headersList = await headers();
+  return (headersList.get("x-vercel-ip-country") ?? "").toUpperCase();
 }
