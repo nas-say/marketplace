@@ -13,8 +13,15 @@ import {
   payoutFiltersToSearchParams,
   sortPayoutRows,
 } from "@/lib/admin/payout-filters";
+import { getPayoutAgeHours, getPayoutSlaTier, summarizePayoutSla, type PayoutSlaTier } from "@/lib/admin/payout-sla";
 import { getAdminDashboardSnapshot } from "@/lib/db/admin";
-import { updateCashPayoutStatusAction } from "./actions";
+import {
+  createDailyPayoutSummaryNotificationAction,
+  reopenAdminNotificationAction,
+  resolveAdminNotificationAction,
+  snoozeAdminNotificationAction,
+  updateCashPayoutStatusAction,
+} from "./actions";
 
 type NotificationLevel = "critical" | "warning" | "info" | "success";
 
@@ -73,6 +80,26 @@ function notificationBadgeClass(level: NotificationLevel): string {
   return "bg-blue-500/10 text-blue-300 border-blue-500/40";
 }
 
+function notificationStatusClass(status: "open" | "snoozed" | "resolved"): string {
+  if (status === "snoozed") return "bg-zinc-500/10 text-zinc-300 border-zinc-500/40";
+  if (status === "resolved") return "bg-green-500/10 text-green-300 border-green-500/40";
+  return "bg-indigo-500/10 text-indigo-300 border-indigo-500/40";
+}
+
+function payoutSlaBadgeClass(tier: PayoutSlaTier): string {
+  if (tier === "over_72h") return "bg-red-500/10 text-red-300 border-red-500/40";
+  if (tier === "over_48h") return "bg-amber-500/10 text-amber-300 border-amber-500/40";
+  if (tier === "over_24h") return "bg-blue-500/10 text-blue-300 border-blue-500/40";
+  return "bg-green-500/10 text-green-300 border-green-500/40";
+}
+
+function payoutSlaLabel(tier: PayoutSlaTier): string {
+  if (tier === "over_72h") return ">72h";
+  if (tier === "over_48h") return ">48h";
+  if (tier === "over_24h") return ">24h";
+  return "<24h";
+}
+
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
@@ -110,40 +137,32 @@ export default async function AdminPage({ searchParams }: Props) {
   const connectPurchaseRows = snapshot.recentConnectPurchases.slice(0, 100);
   const interestRows = snapshot.recentInterestSignals.slice(0, 100);
   const recentUsers = snapshot.recentUsers.slice(0, 100);
-  const pendingPayoutRows = allPayoutRows.filter((row) => row.payoutStatus === "pending");
-  const failedPayoutRows = allPayoutRows.filter((row) => row.payoutStatus === "failed");
-  const snapshotNowEpoch = Date.parse(snapshot.generatedAt);
-  const stalePendingCutoff =
-    (Number.isFinite(snapshotNowEpoch) ? snapshotNowEpoch : 0) - 2 * 24 * 60 * 60 * 1000;
-  const stalePendingCount = pendingPayoutRows.filter((row) => {
-    const approvedEpoch = Date.parse(row.approvedAt);
-    return Number.isFinite(approvedEpoch) && approvedEpoch < stalePendingCutoff;
-  }).length;
+  const slaSummary = summarizePayoutSla(allPayoutRows, snapshot.generatedAt);
 
   const adminNotifications: AdminDashboardNotification[] = [];
-  if (pendingPayoutRows.length > 0) {
+  if (slaSummary.pendingCount > 0) {
     adminNotifications.push({
       id: "pending-payouts",
       level: "warning",
-      title: `${pendingPayoutRows.length} payout(s) pending`,
+      title: `${slaSummary.pendingCount} payout(s) pending`,
       message: "Review payout queue and mark paid/failed with reference note.",
       href: "/admin#payout-queue",
     });
   }
-  if (stalePendingCount > 0) {
+  if (slaSummary.over48h > 0) {
     adminNotifications.push({
       id: "stale-payouts",
       level: "critical",
-      title: `${stalePendingCount} payout(s) pending for over 48h`,
+      title: `${slaSummary.over48h} payout(s) pending for over 48h`,
       message: "These payouts are likely delayed and need immediate action.",
       href: "/admin#payout-queue",
     });
   }
-  if (failedPayoutRows.length > 0) {
+  if (slaSummary.failedCount > 0) {
     adminNotifications.push({
       id: "failed-payouts",
       level: "critical",
-      title: `${failedPayoutRows.length} payout(s) marked failed`,
+      title: `${slaSummary.failedCount} payout(s) marked failed`,
       message: "Check failed payout notes and retry once issue is resolved.",
       href: "/admin#payout-queue",
     });
@@ -247,6 +266,91 @@ export default async function AdminPage({ searchParams }: Props) {
 
       <section className="rounded-lg border border-zinc-800 bg-zinc-900">
         <div className="border-b border-zinc-800 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-zinc-100">Persistent Admin Inbox</h2>
+              <p className="text-xs text-zinc-500">Operational notifications with resolve/snooze controls.</p>
+            </div>
+            <form action={createDailyPayoutSummaryNotificationAction}>
+              <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300">
+                Create Daily Payout Summary
+              </Button>
+            </form>
+          </div>
+        </div>
+        {!snapshot.adminNotificationsAvailable && (
+          <div className="px-4 py-4 text-sm text-amber-200 bg-amber-500/10 border-t border-amber-500/30">
+            Admin notifications table is not available yet. Run the latest SQL migration in Supabase.
+          </div>
+        )}
+        {snapshot.adminNotificationsAvailable && (
+          <div className="divide-y divide-zinc-800">
+            {snapshot.activeAdminNotifications.length === 0 && (
+              <div className="px-4 py-4 text-sm text-zinc-500">No active persistent notifications.</div>
+            )}
+            {snapshot.activeAdminNotifications.map((item) => (
+              <div key={item.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={notificationBadgeClass(item.level)}>{item.level}</Badge>
+                    <Badge className={notificationStatusClass(item.status)}>{item.status}</Badge>
+                    <p className="text-sm font-medium text-zinc-100">{item.title}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-400">{item.message}</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Source: {item.source}
+                    {item.snoozedUntil ? ` • Snoozed until ${formatDate(item.snoozedUntil)}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  <span className="text-xs text-zinc-500">{formatDate(item.createdAt)}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {item.href && (
+                      <Link href={item.href} className="text-xs text-indigo-300 hover:text-indigo-200">
+                        Open
+                      </Link>
+                    )}
+                    <form action={resolveAdminNotificationAction}>
+                      <input type="hidden" name="notificationId" value={item.id} />
+                      <Button type="submit" size="sm" variant="outline" className="h-7 border-green-500/40 px-2 text-xs text-green-300">
+                        Resolve
+                      </Button>
+                    </form>
+                    {item.status === "snoozed" ? (
+                      <form action={reopenAdminNotificationAction}>
+                        <input type="hidden" name="notificationId" value={item.id} />
+                        <Button type="submit" size="sm" variant="outline" className="h-7 border-zinc-600 px-2 text-xs text-zinc-300">
+                          Reopen
+                        </Button>
+                      </form>
+                    ) : (
+                      <>
+                        <form action={snoozeAdminNotificationAction}>
+                          <input type="hidden" name="notificationId" value={item.id} />
+                          <input type="hidden" name="hours" value="24" />
+                          <Button type="submit" size="sm" variant="outline" className="h-7 border-zinc-600 px-2 text-xs text-zinc-300">
+                            Snooze 24h
+                          </Button>
+                        </form>
+                        <form action={snoozeAdminNotificationAction}>
+                          <input type="hidden" name="notificationId" value={item.id} />
+                          <input type="hidden" name="hours" value="72" />
+                          <Button type="submit" size="sm" variant="outline" className="h-7 border-zinc-600 px-2 text-xs text-zinc-300">
+                            Snooze 72h
+                          </Button>
+                        </form>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-zinc-800 bg-zinc-900">
+        <div className="border-b border-zinc-800 px-4 py-3">
           <h2 className="text-base font-semibold text-zinc-100">Admin Notifications</h2>
           <p className="text-xs text-zinc-500">Live operational alerts and recent payout activity.</p>
         </div>
@@ -280,6 +384,10 @@ export default async function AdminPage({ searchParams }: Props) {
               <h2 className="text-base font-semibold text-zinc-100">Cash Payout Queue</h2>
               <p className="text-xs text-zinc-500">
                 Approved cash applications. Add UTR/reason note, then mark each payout status.
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                SLA snapshot: &gt;24h {slaSummary.over24h} • &gt;48h {slaSummary.over48h} • &gt;72h{" "}
+                {slaSummary.over72h}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -392,6 +500,18 @@ export default async function AdminPage({ searchParams }: Props) {
                   </td>
                   <td className="px-3 py-3 align-top">
                     <Badge className={payoutStatusClass(row.payoutStatus)}>{row.payoutStatus}</Badge>
+                    {row.payoutStatus === "pending" && (() => {
+                      const ageHours = getPayoutAgeHours(row.approvedAt, snapshot.generatedAt);
+                      const tier = getPayoutSlaTier(ageHours);
+                      return (
+                        <div className="mt-1">
+                          <Badge className={payoutSlaBadgeClass(tier)}>
+                            SLA {payoutSlaLabel(tier)}
+                            {ageHours !== null ? ` • ${ageHours}h` : ""}
+                          </Badge>
+                        </div>
+                      );
+                    })()}
                     <p className="mt-1 text-xs text-zinc-500">
                       {row.payoutPaidAt ? `Paid at ${formatDate(row.payoutPaidAt)}` : "Not paid yet"}
                     </p>

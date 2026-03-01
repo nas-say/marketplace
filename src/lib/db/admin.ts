@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
+import { getActiveAdminNotifications, type AdminNotificationItem } from "@/lib/db/admin-notifications";
 
 type PayoutStatus = "pending" | "paid" | "failed";
 
@@ -175,6 +176,8 @@ export interface AdminPayoutAuditItem {
 
 export interface AdminDashboardSnapshot {
   generatedAt: string;
+  adminNotificationsAvailable: boolean;
+  activeAdminNotifications: AdminNotificationItem[];
   overview: AdminOverview;
   payoutStatusTrackingAvailable: boolean;
   cashPayoutQueue: AdminCashPayoutItem[];
@@ -231,6 +234,7 @@ async function exactCount(queryPromise: PromiseLike<unknown>): Promise<number> {
 
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
   const client = createServiceClient();
+  const adminNotificationsPromise = getActiveAdminNotifications(120);
 
   const [
     totalUsers,
@@ -605,9 +609,12 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     (sum, row) => sum + Math.max(0, row.payoutFeeMinor),
     0
   );
+  const persistedNotifications = await adminNotificationsPromise;
 
   return {
     generatedAt: new Date().toISOString(),
+    adminNotificationsAvailable: persistedNotifications.available,
+    activeAdminNotifications: persistedNotifications.items,
     overview: {
       totalUsers,
       totalListings,

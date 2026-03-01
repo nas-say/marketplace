@@ -299,6 +299,31 @@ create index if not exists idx_beta_payout_audit_log_created
 create index if not exists idx_beta_payout_audit_log_lookup
   on beta_payout_audit_log(beta_test_id, applicant_user_id, created_at desc);
 
+-- ─── ADMIN NOTIFICATIONS (PERSISTENT OPS INBOX) ─────────────────────────────
+create table if not exists admin_notifications (
+  id             uuid primary key default gen_random_uuid(),
+  dedupe_key     text unique,
+  source         text not null default 'manual',
+  level          text not null default 'info' check (level in ('critical', 'warning', 'info', 'success')),
+  title          text not null,
+  message        text not null,
+  href           text,
+  status         text not null default 'open' check (status in ('open', 'snoozed', 'resolved')),
+  snoozed_until  timestamptz,
+  resolved_at    timestamptz,
+  resolved_by    text,
+  metadata       jsonb default '{}'::jsonb,
+  created_at     timestamptz default now(),
+  updated_at     timestamptz default now()
+);
+
+create index if not exists idx_admin_notifications_status_created
+  on admin_notifications(status, created_at desc);
+create index if not exists idx_admin_notifications_source_created
+  on admin_notifications(source, created_at desc);
+
+alter table admin_notifications enable row level security;
+
 -- ─── BETA FEEDBACK ───────────────────────────────────────────────────────────
 create table if not exists beta_feedback (
   id             uuid primary key default gen_random_uuid(),
@@ -571,3 +596,69 @@ create index if not exists idx_beta_payout_audit_log_lookup
   on beta_payout_audit_log(beta_test_id, applicant_user_id, created_at desc);
 
 alter table profiles add column if not exists upi_id text;
+
+-- ─── MIGRATIONS: ADMIN NOTIFICATIONS ────────────────────────────────────────
+create table if not exists admin_notifications (
+  id             uuid primary key default gen_random_uuid(),
+  dedupe_key     text unique,
+  source         text not null default 'manual',
+  level          text not null default 'info',
+  title          text not null,
+  message        text not null,
+  href           text,
+  status         text not null default 'open',
+  snoozed_until  timestamptz,
+  resolved_at    timestamptz,
+  resolved_by    text,
+  metadata       jsonb default '{}'::jsonb,
+  created_at     timestamptz default now(),
+  updated_at     timestamptz default now()
+);
+
+alter table admin_notifications add column if not exists dedupe_key text;
+alter table admin_notifications add column if not exists source text default 'manual';
+alter table admin_notifications add column if not exists level text default 'info';
+alter table admin_notifications add column if not exists title text;
+alter table admin_notifications add column if not exists message text;
+alter table admin_notifications add column if not exists href text;
+alter table admin_notifications add column if not exists status text default 'open';
+alter table admin_notifications add column if not exists snoozed_until timestamptz;
+alter table admin_notifications add column if not exists resolved_at timestamptz;
+alter table admin_notifications add column if not exists resolved_by text;
+alter table admin_notifications add column if not exists metadata jsonb default '{}'::jsonb;
+alter table admin_notifications add column if not exists created_at timestamptz default now();
+alter table admin_notifications add column if not exists updated_at timestamptz default now();
+
+update admin_notifications set source = 'manual' where source is null;
+update admin_notifications set level = 'info' where level is null;
+update admin_notifications set status = 'open' where status is null;
+update admin_notifications set title = coalesce(title, 'Admin notification') where title is null;
+update admin_notifications set message = coalesce(message, '') where message is null;
+
+do $$ begin
+  alter table admin_notifications drop constraint if exists admin_notifications_level_check;
+  alter table admin_notifications add constraint admin_notifications_level_check check (
+    level in ('critical', 'warning', 'info', 'success')
+  );
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter table admin_notifications drop constraint if exists admin_notifications_status_check;
+  alter table admin_notifications add constraint admin_notifications_status_check check (
+    status in ('open', 'snoozed', 'resolved')
+  );
+exception
+  when duplicate_object then null;
+end $$;
+
+create unique index if not exists idx_admin_notifications_dedupe_key
+  on admin_notifications(dedupe_key)
+  where dedupe_key is not null;
+create index if not exists idx_admin_notifications_status_created
+  on admin_notifications(status, created_at desc);
+create index if not exists idx_admin_notifications_source_created
+  on admin_notifications(source, created_at desc);
+
+alter table admin_notifications enable row level security;
