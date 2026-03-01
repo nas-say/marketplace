@@ -6,12 +6,34 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { giftConnectsAction } from "./actions";
+import type { Currency } from "@/lib/geo";
 
-const BUNDLES = [
-  { connects: 10, price: "$5", description: "Good for 5 unlocks" },
-  { connects: 25, price: "$10", description: "Good for 12 unlocks", popular: true },
-  { connects: 60, price: "$20", description: "Good for 30 unlocks" },
-];
+const BUNDLES: Record<Currency, Array<{ connects: number; price: string; description: string; popular?: boolean }>> = {
+  USD: [
+    { connects: 5,  price: "$5",   description: "Good for 2 unlocks" },
+    { connects: 10, price: "$9",   description: "Good for 5 unlocks", popular: true },
+    { connects: 25, price: "$20",  description: "Good for 12 unlocks" },
+  ],
+  INR: [
+    { connects: 10, price: "₹200", description: "Good for 5 unlocks" },
+    { connects: 25, price: "₹380", description: "Good for 12 unlocks", popular: true },
+    { connects: 60, price: "₹820", description: "Good for 30 unlocks" },
+  ],
+  EUR: [
+    { connects: 5,  price: "€4.50", description: "Good for 2 unlocks" },
+    { connects: 10, price: "€8.50", description: "Good for 5 unlocks", popular: true },
+    { connects: 25, price: "€19",   description: "Good for 12 unlocks" },
+  ],
+  GBP: [
+    { connects: 5,  price: "£4",    description: "Good for 2 unlocks" },
+    { connects: 10, price: "£7.50", description: "Good for 5 unlocks", popular: true },
+    { connects: 25, price: "£17",   description: "Good for 12 unlocks" },
+  ],
+};
+
+const CURRENCY_LABELS: Record<Currency, string> = {
+  USD: "USD", INR: "INR", EUR: "EUR", GBP: "GBP",
+};
 
 interface Transaction {
   id: string;
@@ -24,18 +46,22 @@ interface Transaction {
 interface Props {
   balance: number;
   transactions: Transaction[];
+  currency: Currency;
 }
 
-export function ConnectsClient({ balance: initialBalance, transactions }: Props) {
+export function ConnectsClient({ balance: initialBalance, transactions, currency }: Props) {
   const [balance, setBalance] = useState(initialBalance);
   const [loading, setLoading] = useState(false);
   const [claimed, setClaimed] = useState(false);
 
+  const bundles = BUNDLES[currency];
+  const freeAmount = currency === "INR" ? 10 : 5;
+
   const handleClaim = async () => {
     setLoading(true);
-    const result = await giftConnectsAction(10);
+    const result = await giftConnectsAction(freeAmount);
     if (!result.error) {
-      setBalance((b) => b + 10);
+      setBalance((b) => b + freeAmount);
       setClaimed(true);
     }
     setLoading(false);
@@ -59,7 +85,7 @@ export function ConnectsClient({ balance: initialBalance, transactions }: Props)
           <div className="flex-1">
             <p className="font-semibold text-amber-300">Early Access Perk</p>
             <p className="text-sm text-amber-400/80 mt-0.5">
-              Payments are setting up. Claim 10 free connects now to unlock seller info and try the platform.
+              Payments are setting up. Claim {freeAmount} free connects now to unlock seller info and try the platform.
             </p>
             <Button
               size="sm"
@@ -71,9 +97,9 @@ export function ConnectsClient({ balance: initialBalance, transactions }: Props)
               {loading ? (
                 <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Claiming...</>
               ) : claimed ? (
-                "Claimed ✓ — check your balance above"
+                `Claimed ✓ — ${freeAmount} connects added`
               ) : (
-                "Claim 10 free connects"
+                `Claim ${freeAmount} free connects`
               )}
             </Button>
           </div>
@@ -81,9 +107,12 @@ export function ConnectsClient({ balance: initialBalance, transactions }: Props)
       </div>
 
       {/* Bundle options */}
-      <h2 className="text-lg font-semibold text-zinc-50 mb-4">Connect Bundles</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-zinc-50">Connect Bundles</h2>
+        <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">{CURRENCY_LABELS[currency]}</span>
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-3">
-        {BUNDLES.map((bundle) => (
+        {bundles.map((bundle) => (
           <div
             key={bundle.connects}
             className={`relative rounded-lg border bg-zinc-900 p-5 ${bundle.popular ? "border-indigo-500/50" : "border-zinc-800"}`}
@@ -97,6 +126,7 @@ export function ConnectsClient({ balance: initialBalance, transactions }: Props)
             <p className="text-sm text-zinc-500">connects</p>
             <p className="mt-2 text-xl font-semibold text-violet-400">{bundle.price}</p>
             <p className="text-xs text-zinc-500 mt-0.5">{bundle.description}</p>
+            {/* TODO: Replace with LemonSqueezy checkout URL for this currency+bundle when ready */}
             <Button className="mt-4 w-full bg-zinc-800 hover:bg-zinc-800 text-zinc-500 cursor-not-allowed" disabled>
               Coming Soon
             </Button>
@@ -104,7 +134,7 @@ export function ConnectsClient({ balance: initialBalance, transactions }: Props)
         ))}
       </div>
       <p className="text-xs text-zinc-600 mb-10 text-center">
-        Payments via LemonSqueezy — coming soon. Each listing unlock costs {2} connects.
+        Payments via LemonSqueezy — coming soon. Each listing unlock costs 2 connects.
       </p>
 
       {/* Transaction history */}

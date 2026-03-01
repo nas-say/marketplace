@@ -13,9 +13,10 @@ interface Props {
   website: string | null;
   userId: string | null;
   connectsBalance: number;
+  unlockCost: number;
 }
 
-export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, connectsBalance }: Props) {
+export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, connectsBalance, unlockCost }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -52,7 +53,7 @@ export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, conn
 
   return (
     <span className="flex items-center gap-2">
-      {connectsBalance >= 2 ? (
+      {connectsBalance >= unlockCost ? (
         <>
           <button
             onClick={handleUnlock}
@@ -61,7 +62,7 @@ export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, conn
           >
             {loading
               ? <><Loader2 className="h-3 w-3 animate-spin" /> Unlocking...</>
-              : <><Zap className="h-3 w-3" /> Unlock — 2 connects</>}
+              : <><Zap className="h-3 w-3" /> Unlock — {unlockCost} connects</>}
           </button>
           {error && <span className="text-red-400 text-[10px]">{error}</span>}
         </>

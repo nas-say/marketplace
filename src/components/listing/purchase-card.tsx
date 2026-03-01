@@ -19,6 +19,7 @@ interface PurchaseCardProps {
   isUnlocked: boolean;
   userId: string | null;
   connectsBalance: number;
+  unlockCost: number;
 }
 
 export function PurchaseCard({
@@ -32,6 +33,7 @@ export function PurchaseCard({
   isUnlocked,
   userId,
   connectsBalance,
+  unlockCost,
 }: PurchaseCardProps) {
   const router = useRouter();
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -79,14 +81,14 @@ export function PurchaseCard({
           <div className="mt-4 rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 text-center">
             <Lock className="h-5 w-5 text-zinc-500 mx-auto mb-2" />
             <p className="text-sm font-medium text-zinc-300 mb-1">Unlock to connect with seller</p>
-            <p className="text-xs text-zinc-500 mb-3">Costs 2 connects — one-time per listing</p>
+            <p className="text-xs text-zinc-500 mb-3">Costs {unlockCost} connects — one-time per listing</p>
             {!userId ? (
               <Link href="/sign-in">
                 <Button size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500">
                   Sign in to unlock
                 </Button>
               </Link>
-            ) : connectsBalance >= 2 ? (
+            ) : connectsBalance >= unlockCost ? (
               <>
                 <Button
                   size="sm"
@@ -96,7 +98,7 @@ export function PurchaseCard({
                 >
                   {unlocking
                     ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Unlocking...</>
-                    : <><Zap className="mr-1.5 h-3.5 w-3.5" />Unlock — 2 connects</>}
+                    : <><Zap className="mr-1.5 h-3.5 w-3.5" />Unlock — {unlockCost} connects</>}
                 </Button>
                 {unlockError && <p className="mt-2 text-xs text-red-400">{unlockError}</p>}
               </>

@@ -1,6 +1,6 @@
 import { getListingById, getSimilarListings, getListingsBySeller } from "@/lib/db/listings";
 import { getProfile } from "@/lib/db/profiles";
-import { getConnectsBalance, isListingUnlocked } from "@/lib/db/connects";
+import { getConnectsBalance, isListingUnlocked, getUnlockCost } from "@/lib/db/connects";
 import { getRevenueMultiple, formatPrice, formatNumber } from "@/lib/data";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { TechStackBadges } from "@/components/shared/tech-stack-badges";
@@ -73,6 +73,7 @@ export default async function ListingDetailPage({ params }: Props) {
   ]);
 
   const sellerOtherListings = sellerListings.filter((l) => l.id !== listing.id).slice(0, 2);
+  const unlockCost = getUnlockCost(listing.askingPrice);
 
   const TrendIcon = listing.metrics.revenueTrend === "up" ? TrendingUp : listing.metrics.revenueTrend === "down" ? TrendingDown : Minus;
   const trendColor = listing.metrics.revenueTrend === "up" ? "text-green-400" : listing.metrics.revenueTrend === "down" ? "text-red-400" : "text-zinc-400";
@@ -180,6 +181,7 @@ export default async function ListingDetailPage({ params }: Props) {
                       website={unlocked ? (seller.website ?? null) : null}
                       userId={userId ?? null}
                       connectsBalance={connectsBalance}
+                      unlockCost={unlockCost}
                     />
                   </div>
                 </div>
@@ -213,6 +215,7 @@ export default async function ListingDetailPage({ params }: Props) {
             isUnlocked={unlocked}
             userId={userId ?? null}
             connectsBalance={connectsBalance}
+            unlockCost={unlockCost}
           />
         </div>
       </div>
