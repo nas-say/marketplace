@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Zap, Gift, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,48 @@ interface Props {
   hasClaimedGift: boolean;
 }
 
+interface RazorpayOrderResponse {
+  keyId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  connects: number;
+  error?: string;
+}
+
+interface RazorpayHandlerPayload {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+type RazorpayInstance = {
+  open: () => void;
+  on: (event: string, handler: (response: unknown) => void) => void;
+};
+
+type RazorpayConstructor = new (options: Record<string, unknown>) => RazorpayInstance;
+
+declare global {
+  interface Window {
+    Razorpay?: RazorpayConstructor;
+  }
+}
+
+async function loadRazorpayCheckoutScript(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (window.Razorpay) return true;
+
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(!!window.Razorpay);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function ConnectsClient({
   balance: initialBalance,
   transactions,
@@ -58,10 +101,14 @@ export function ConnectsClient({
   signupGiftAmount,
   hasClaimedGift,
 }: Props) {
+  const router = useRouter();
   const [balance, setBalance] = useState(initialBalance);
   const [loading, setLoading] = useState(false);
   const [claimed, setClaimed] = useState(hasClaimedGift);
   const [claimError, setClaimError] = useState("");
+  const [buyingConnects, setBuyingConnects] = useState<number | null>(null);
+  const [purchaseError, setPurchaseError] = useState("");
+  const [purchaseMessage, setPurchaseMessage] = useState("");
 
   const bundles = BUNDLES[currency];
   const freeAmount = signupGiftAmount;
@@ -83,6 +130,90 @@ export function ConnectsClient({
       setClaimed(true);
     }
     setLoading(false);
+  };
+
+  const handleBuyBundle = async (connects: number) => {
+    if (currency !== "INR") return;
+
+    setPurchaseError("");
+    setPurchaseMessage("");
+    setBuyingConnects(connects);
+
+    try {
+      const checkoutLoaded = await loadRazorpayCheckoutScript();
+      if (!checkoutLoaded || !window.Razorpay) {
+        setPurchaseError("Could not load Razorpay checkout.");
+        setBuyingConnects(null);
+        return;
+      }
+
+      const orderRes = await fetch("/api/payments/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ connects }),
+      });
+      const orderJson = (await orderRes.json()) as RazorpayOrderResponse;
+      if (!orderRes.ok || orderJson.error) {
+        setPurchaseError(orderJson.error ?? "Could not create Razorpay order.");
+        setBuyingConnects(null);
+        return;
+      }
+
+      const razorpay = new window.Razorpay({
+        key: orderJson.keyId,
+        amount: orderJson.amount,
+        currency: orderJson.currency,
+        name: "SideFlip",
+        description: `${orderJson.connects} connects top-up`,
+        order_id: orderJson.orderId,
+        prefill: {},
+        theme: { color: "#4f46e5" },
+        modal: {
+          ondismiss: () => {
+            setBuyingConnects(null);
+          },
+        },
+        handler: async (payload: RazorpayHandlerPayload) => {
+          const verifyRes = await fetch("/api/payments/razorpay/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const verifyJson = (await verifyRes.json()) as {
+            success?: boolean;
+            credited?: boolean;
+            connectsAdded?: number;
+            error?: string;
+          };
+
+          if (!verifyRes.ok || verifyJson.error || !verifyJson.success) {
+            setPurchaseError(verifyJson.error ?? "Payment verification failed.");
+            setBuyingConnects(null);
+            return;
+          }
+
+          const added = verifyJson.connectsAdded ?? 0;
+          if (added > 0) {
+            setBalance((current) => current + added);
+            setPurchaseMessage(`${added} connects added to your balance.`);
+          } else {
+            setPurchaseMessage("Payment already processed for this order.");
+          }
+          setBuyingConnects(null);
+          router.refresh();
+        },
+      });
+
+      razorpay.on("payment.failed", () => {
+        setPurchaseError("Razorpay payment failed. Please try again.");
+        setBuyingConnects(null);
+      });
+
+      razorpay.open();
+    } catch {
+      setPurchaseError("Could not start Razorpay checkout. Please try again.");
+      setBuyingConnects(null);
+    }
   };
 
   return (
@@ -145,16 +276,33 @@ export function ConnectsClient({
             <p className="text-sm text-zinc-500">connects</p>
             <p className="mt-2 text-xl font-semibold text-violet-400">{bundle.price}</p>
             <p className="text-xs text-zinc-500 mt-0.5">{bundle.description}</p>
-            {/* TODO: Replace with LemonSqueezy checkout URL for this currency+bundle when ready */}
-            <Button className="mt-4 w-full bg-zinc-800 hover:bg-zinc-800 text-zinc-500 cursor-not-allowed" disabled>
-              Coming Soon
-            </Button>
+            {currency === "INR" ? (
+              <Button
+                className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500"
+                onClick={() => void handleBuyBundle(bundle.connects)}
+                disabled={buyingConnects === bundle.connects}
+              >
+                {buyingConnects === bundle.connects ? (
+                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Opening checkout...</>
+                ) : (
+                  "Buy with Razorpay"
+                )}
+              </Button>
+            ) : (
+              <Button className="mt-4 w-full bg-zinc-800 hover:bg-zinc-800 text-zinc-500 cursor-not-allowed" disabled>
+                Coming Soon
+              </Button>
+            )}
           </div>
         ))}
       </div>
       <p className="text-xs text-zinc-600 mb-10 text-center">
-        Payments via LemonSqueezy — coming soon. Unlock cost scales by listing price (starts at 2 connects).
+        {currency === "INR"
+          ? "INR payments are live via Razorpay. Unlock cost scales by listing price (starts at 2 connects)."
+          : "Payments via LemonSqueezy — coming soon. Unlock cost scales by listing price (starts at 2 connects)."}
       </p>
+      {purchaseError && <p className="text-xs text-red-400 mb-4 text-center">{purchaseError}</p>}
+      {purchaseMessage && <p className="text-xs text-green-400 mb-4 text-center">{purchaseMessage}</p>}
 
       {/* Transaction history */}
       {transactions.length > 0 && (

@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase";
 
 const BALANCE_RETRY_LIMIT = 5;
 const SIGNUP_GIFT_TX_NAMESPACE = "signup-gift-v1";
+const RAZORPAY_TOPUP_TX_NAMESPACE = "razorpay-topup-v1";
 const LEGACY_GIFT_DESCRIPTION_PREFIX = "Early access gift:";
 
 export const SIGNUP_GIFT_CONNECTS = 5;
@@ -96,6 +97,10 @@ export function getSignupGiftTransactionId(clerkUserId: string): string {
   return stableUuidFromText(`${SIGNUP_GIFT_TX_NAMESPACE}:${clerkUserId}`);
 }
 
+function getRazorpayTopupTransactionId(paymentId: string): string {
+  return stableUuidFromText(`${RAZORPAY_TOPUP_TX_NAMESPACE}:${paymentId}`);
+}
+
 export async function hasClaimedSignupGift(clerkUserId: string): Promise<boolean> {
   const client = createServiceClient();
   const transactionId = getSignupGiftTransactionId(clerkUserId);
@@ -169,6 +174,39 @@ export async function claimSignupGift(
   }
 
   return { claimed: true };
+}
+
+export async function creditRazorpayTopup(
+  clerkUserId: string,
+  connects: number,
+  orderId: string,
+  paymentId: string
+): Promise<{ credited: boolean; error?: string }> {
+  const client = createServiceClient();
+  const transactionId = getRazorpayTopupTransactionId(paymentId);
+
+  const { error: insertError } = await client.from("connects_transactions").insert({
+    id: transactionId,
+    clerk_user_id: clerkUserId,
+    amount: connects,
+    type: "purchase_razorpay",
+    description: `Razorpay top-up | connects:${connects} | order:${orderId} | payment:${paymentId}`,
+  });
+
+  if (insertError) {
+    if (isDuplicateKeyError(insertError)) {
+      return { credited: false };
+    }
+    return { credited: false, error: "Could not record Razorpay payment transaction." };
+  }
+
+  const credited = await mutateBalanceAtomic(clerkUserId, connects);
+  if (credited.error) {
+    await client.from("connects_transactions").delete().eq("id", transactionId);
+    return { credited: false, error: credited.error };
+  }
+
+  return { credited: true };
 }
 
 /**
