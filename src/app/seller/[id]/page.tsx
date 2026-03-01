@@ -5,7 +5,7 @@ import { formatPrice } from "@/lib/data";
 import { ListingCard } from "@/components/listing/listing-card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/shared/stat-card";
-import { User, MapPin, Globe, DollarSign, Package, Star } from "lucide-react";
+import { User, MapPin, DollarSign, Package, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -54,15 +54,11 @@ export default async function SellerPage({ params }: Props) {
               </div>
               <p className="mt-1 text-sm text-zinc-400">{seller.bio}</p>
             </div>
-            <div className="space-y-2 text-sm text-zinc-500 mb-6">
-              {seller.location && <div className="flex items-center gap-2"><MapPin className="h-4 w-4 shrink-0" /><span>{seller.location}</span></div>}
-              {seller.website && (
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 shrink-0" />
-                  <a href={seller.website} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 truncate">{seller.website.replace(/^https?:\/\//, "")}</a>
-                </div>
-              )}
-            </div>
+            {seller.location && (
+              <div className="mb-6 flex items-center gap-2 text-sm text-zinc-500">
+                <MapPin className="h-4 w-4 shrink-0" /><span>{seller.location}</span>
+              </div>
+            )}
             <div className="border-t border-zinc-800 pt-4 text-xs text-zinc-500 text-center">
               Member since {new Date(seller.stats.memberSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </div>

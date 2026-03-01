@@ -1,15 +1,18 @@
 import { getListingById, getSimilarListings, getListingsBySeller } from "@/lib/db/listings";
 import { getProfile } from "@/lib/db/profiles";
+import { getConnectsBalance, isListingUnlocked } from "@/lib/db/connects";
 import { getRevenueMultiple, formatPrice, formatNumber } from "@/lib/data";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { TechStackBadges } from "@/components/shared/tech-stack-badges";
 import { StatCard } from "@/components/shared/stat-card";
 import { PurchaseCard } from "@/components/listing/purchase-card";
 import { ListingCard } from "@/components/listing/listing-card";
+import { SellerWebsiteGate } from "./seller-section";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, CheckCircle, User, ExternalLink } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CheckCircle, User } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 
 interface Props { params: Promise<{ id: string }> }
@@ -59,10 +62,14 @@ export default async function ListingDetailPage({ params }: Props) {
   const listing = await getListingById(id);
   if (!listing) notFound();
 
-  const [seller, similarListings, sellerListings] = await Promise.all([
+  const { userId } = await auth();
+
+  const [seller, similarListings, sellerListings, unlocked, connectsBalance] = await Promise.all([
     getProfile(listing.sellerId),
     getSimilarListings(listing),
     getListingsBySeller(listing.sellerId),
+    userId ? isListingUnlocked(userId, listing.id) : Promise.resolve(false),
+    userId ? getConnectsBalance(userId) : Promise.resolve(0),
   ]);
 
   const sellerOtherListings = sellerListings.filter((l) => l.id !== listing.id).slice(0, 2);
@@ -164,14 +171,16 @@ export default async function ListingDetailPage({ params }: Props) {
                     {seller.verified && <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-xs">Verified</Badge>}
                   </div>
                   <p className="text-sm text-zinc-400 mt-0.5">{seller.bio}</p>
-                  <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500">
+                  <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500 flex-wrap">
                     <span>{seller.stats.totalSales} sales</span>
                     <span>Member since {new Date(seller.stats.memberSince).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
-                    {seller.website && (
-                      <a href={seller.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 hover:text-indigo-400">
-                        Website <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
+                    <SellerWebsiteGate
+                      listingId={listing.id}
+                      isUnlocked={unlocked}
+                      website={unlocked ? (seller.website ?? null) : null}
+                      userId={userId ?? null}
+                      connectsBalance={connectsBalance}
+                    />
                   </div>
                 </div>
               </div>
@@ -200,6 +209,10 @@ export default async function ListingDetailPage({ params }: Props) {
             revenueTrend={listing.metrics.revenueTrend}
             revenueMultiple={revenueMultiple}
             mrr={formatPrice(listing.metrics.mrr)}
+            listingId={listing.id}
+            isUnlocked={unlocked}
+            userId={userId ?? null}
+            connectsBalance={connectsBalance}
           />
         </div>
       </div>

@@ -51,6 +51,7 @@ export function Navbar() {
 
           <SignedIn>
             <Link href="/dashboard" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Dashboard</Link>
+            <Link href="/connects" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Connects</Link>
             <Link href="/settings" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Settings</Link>
             <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
           </SignedIn>
