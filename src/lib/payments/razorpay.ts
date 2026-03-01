@@ -34,14 +34,28 @@ export const INR_CONNECT_BUNDLES = [
 ] as const;
 
 function getRazorpayCredentials() {
-  const keyId = process.env.RazorpayLiveKeyId ?? process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RazorpayLiveKeySecret ?? process.env.RAZORPAY_KEY_SECRET;
+  const keyId = normalizeSecret(process.env.RazorpayLiveKeyId ?? process.env.RAZORPAY_KEY_ID);
+  const keySecret = normalizeSecret(
+    process.env.RazorpayLiveKeySecret ?? process.env.RAZORPAY_KEY_SECRET
+  );
 
   if (!keyId || !keySecret) {
     throw new Error("Razorpay credentials are missing.");
   }
 
   return { keyId, keySecret };
+}
+
+function normalizeSecret(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
 }
 
 function getRazorpayAuthHeader(): string {
