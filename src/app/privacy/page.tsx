@@ -195,7 +195,13 @@ export default function PrivacyPage() {
             <li>Object to processing of your data.</li>
           </ul>
           <p className="mt-3">
-            To exercise these rights, email us at{" "}
+            Users in India may also exercise rights under the{" "}
+            <strong className="text-zinc-300">Digital Personal Data Protection Act, 2023 (DPDPA)</strong>,
+            including the right to access, correct, and erase personal data processed by SideFlip,
+            and the right to nominate a representative for data-related requests.
+          </p>
+          <p className="mt-3">
+            To exercise any of these rights, email us at{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-indigo-400 hover:text-indigo-300">
               {CONTACT_EMAIL}
             </a>

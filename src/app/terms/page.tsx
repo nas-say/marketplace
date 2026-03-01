@@ -153,6 +153,11 @@ export default function TermsPage() {
             you also agree to Razorpay&apos;s terms of service. SideFlip does not store your payment
             card details. All payment data is handled by the respective processor.
           </p>
+          <p className="mt-3">
+            All prices shown are exclusive of applicable taxes. Goods and Services Tax (GST) or
+            other applicable taxes may apply to your purchase depending on your jurisdiction and
+            will be reflected at checkout where required by law.
+          </p>
         </section>
 
         <section>
@@ -207,7 +212,28 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-zinc-50 mb-3">15. Contact</h2>
+          <h2 className="text-lg font-semibold text-zinc-50 mb-3">15. Grievance Officer</h2>
+          <p className="mb-3">
+            In accordance with the Information Technology (Intermediary Guidelines and Digital
+            Media Ethics Code) Rules, 2021 and the Consumer Protection (E-Commerce) Rules, 2020,
+            a Grievance Officer has been designated for SideFlip:
+          </p>
+          <ul className="list-none space-y-1 text-zinc-300">
+            <li><strong className="text-zinc-400">Name:</strong> Sanas Kar</li>
+            <li><strong className="text-zinc-400">Email:</strong>{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-indigo-400 hover:text-indigo-300">
+                {CONTACT_EMAIL}
+              </a>
+            </li>
+          </ul>
+          <p className="mt-3">
+            The Grievance Officer will acknowledge any complaint within 24 hours and endeavour
+            to resolve it within 15 days of receipt.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-zinc-50 mb-3">16. Contact</h2>
           <p>
             For any questions about these Terms, contact us at:{" "}
             <a
