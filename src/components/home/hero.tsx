@@ -14,14 +14,14 @@ export async function Hero() {
     <section className="gradient-hero relative overflow-hidden py-24 sm:py-32">
       <HeroParallaxBackdrop />
       <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm text-indigo-400 mb-6">
+        <div className="animate-float-slow inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm text-indigo-400 mb-6">
           <Zap className="h-3.5 w-3.5" />
           The marketplace for indie hackers
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-zinc-50 sm:text-6xl">
           Buy, Sell &amp; Beta-Test
           <br />
-          <span className="text-indigo-500">Side Projects</span>
+          <span className="text-gradient-animated">Side Projects</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
           Profitable projects with real revenue, real users, and verified metrics.

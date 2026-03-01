@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, User as UserIcon, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 interface Props {
   betaTests: BetaTest[];
@@ -21,6 +22,7 @@ interface Props {
 const medalColors = ["text-yellow-400", "text-zinc-300", "text-amber-600", "text-zinc-400", "text-zinc-400"];
 
 export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTesters }: Props) {
+  const reduceMotion = useReducedMotion();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -36,6 +38,8 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
     }
     return result;
   }, [betaTests, draftBetaTests, search, statusFilter]);
+
+  const gridKey = `${statusFilter}:${search.trim().toLowerCase()}:${filtered.length}`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -77,17 +81,31 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
                 "closed",
                 ...(canViewDrafts ? ["draft"] : []),
               ].map((status) => (
-                <button key={status} onClick={() => setStatusFilter(status)}
-                  className={`rounded-full px-3 py-1 text-sm transition-colors ${statusFilter === status ? "bg-indigo-600 text-white" : "bg-zinc-800 text-zinc-400 hover:text-zinc-50"}`}>
-                  {status === ""
-                    ? "All"
-                    : status === "accepting"
-                    ? "Open"
-                    : status === "almost_full"
-                    ? "Almost Full"
-                    : status === "closed"
-                    ? "Closed"
-                    : "Drafts"}
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`relative overflow-hidden rounded-full px-3 py-1 text-sm transition-colors ${
+                    statusFilter === status ? "text-white" : "bg-zinc-800 text-zinc-400 hover:text-zinc-50"
+                  }`}
+                >
+                  {statusFilter === status && (
+                    <motion.span
+                      layoutId="beta-filter-pill"
+                      className="absolute inset-0 rounded-full bg-indigo-600"
+                      transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.7 }}
+                    />
+                  )}
+                  <span className="relative z-10">
+                    {status === ""
+                      ? "All"
+                      : status === "accepting"
+                      ? "Open"
+                      : status === "almost_full"
+                      ? "Almost Full"
+                      : status === "closed"
+                      ? "Closed"
+                      : "Drafts"}
+                  </span>
                 </button>
               ))}
             </div>
@@ -98,7 +116,17 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
               <p className="mt-1 text-sm text-zinc-500">Try a different search or filter.</p>
             </div>
           ) : (
-            <BetaGrid betaTests={filtered} />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={gridKey}
+                initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
+                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <BetaGrid betaTests={filtered} />
+              </motion.div>
+            </AnimatePresence>
           )}
         </div>
         <aside>
@@ -109,7 +137,14 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
             </div>
             <div className="space-y-3">
               {topTesters.map((user, i) => (
-                <div key={user.id} className="flex items-center gap-3">
+                <motion.div
+                  key={user.id}
+                  initial={reduceMotion ? undefined : { opacity: 0, x: 10 }}
+                  whileInView={reduceMotion ? undefined : { opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.4 }}
+                  transition={{ duration: 0.28, delay: reduceMotion ? 0 : i * 0.05 }}
+                  className="flex items-center gap-3"
+                >
                   <span className={`text-sm font-bold w-4 text-center ${medalColors[i]}`}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
                   </span>
@@ -126,7 +161,7 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
                   <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs shrink-0">
                     {user.stats.betaTestsCompleted} tests
                   </Badge>
-                </div>
+                </motion.div>
               ))}
             </div>
             <p className="mt-4 text-xs text-zinc-600 text-center">Rankings based on feedback submitted</p>
