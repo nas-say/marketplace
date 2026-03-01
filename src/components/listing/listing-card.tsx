@@ -46,6 +46,8 @@ const CATEGORY_TEXT_COLORS: Record<string, string> = {
 };
 
 const HOT_VISITOR_THRESHOLD = 4000;
+const NEW_LISTING_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+const NEW_LISTING_CUTOFF = Date.now() - NEW_LISTING_WINDOW_MS;
 
 interface ListingCardProps {
   listing: Listing;
@@ -68,8 +70,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       ? "text-red-500"
       : "text-zinc-500";
 
-  const isNew =
-    new Date(listing.createdAt) > new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const isNew = new Date(listing.createdAt).getTime() > NEW_LISTING_CUTOFF;
   const isHot = listing.metrics.monthlyVisitors >= HOT_VISITOR_THRESHOLD;
 
   const gradient = CATEGORY_GRADIENTS[listing.category] ?? "from-zinc-800 to-zinc-900";

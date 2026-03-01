@@ -47,21 +47,39 @@ interface Props {
   balance: number;
   transactions: Transaction[];
   currency: Currency;
+  signupGiftAmount: number;
+  hasClaimedGift: boolean;
 }
 
-export function ConnectsClient({ balance: initialBalance, transactions, currency }: Props) {
+export function ConnectsClient({
+  balance: initialBalance,
+  transactions,
+  currency,
+  signupGiftAmount,
+  hasClaimedGift,
+}: Props) {
   const [balance, setBalance] = useState(initialBalance);
   const [loading, setLoading] = useState(false);
-  const [claimed, setClaimed] = useState(false);
+  const [claimed, setClaimed] = useState(hasClaimedGift);
+  const [claimError, setClaimError] = useState("");
 
   const bundles = BUNDLES[currency];
-  const freeAmount = currency === "INR" ? 10 : 5;
+  const freeAmount = signupGiftAmount;
 
   const handleClaim = async () => {
+    if (claimed || loading) return;
     setLoading(true);
-    const result = await giftConnectsAction(freeAmount);
-    if (!result.error) {
-      setBalance((b) => b + freeAmount);
+    setClaimError("");
+    const result = await giftConnectsAction();
+    if (result.error) {
+      setClaimError(result.error);
+      setLoading(false);
+      return;
+    }
+    if (result.claimed) {
+      setBalance((b) => b + result.amount);
+      setClaimed(true);
+    } else {
       setClaimed(true);
     }
     setLoading(false);
@@ -102,6 +120,7 @@ export function ConnectsClient({ balance: initialBalance, transactions, currency
                 `Claim ${freeAmount} free connects`
               )}
             </Button>
+            {claimError && <p className="text-xs text-red-400 mt-2">{claimError}</p>}
           </div>
         </div>
       </div>
@@ -134,7 +153,7 @@ export function ConnectsClient({ balance: initialBalance, transactions, currency
         ))}
       </div>
       <p className="text-xs text-zinc-600 mb-10 text-center">
-        Payments via LemonSqueezy — coming soon. Each listing unlock costs 2 connects.
+        Payments via LemonSqueezy — coming soon. Unlock cost scales by listing price (starts at 2 connects).
       </p>
 
       {/* Transaction history */}

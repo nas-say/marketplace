@@ -5,7 +5,6 @@ import { Listing } from "@/types/listing";
 import { BetaTest } from "@/types/beta-test";
 import { StatCard } from "@/components/shared/stat-card";
 import { PageHeader } from "@/components/shared/page-header";
-import { ListingCard } from "@/components/listing/listing-card";
 import { BetaCard } from "@/components/beta/beta-card";
 import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye } from "lucide-react";
 import Link from "next/link";

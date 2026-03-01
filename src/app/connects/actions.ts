@@ -1,16 +1,32 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { addConnects, unlockListing, getUnlockCost } from "@/lib/db/connects";
+import {
+  claimSignupGift,
+  unlockListing,
+  getUnlockCost,
+  SIGNUP_GIFT_CONNECTS,
+} from "@/lib/db/connects";
 import { getListingById } from "@/lib/db/listings";
 import { revalidatePath } from "next/cache";
 
-export async function giftConnectsAction(amount: number): Promise<{ error?: string }> {
+export async function giftConnectsAction(): Promise<{
+  error?: string;
+  claimed: boolean;
+  amount: number;
+}> {
   const { userId } = await auth();
-  if (!userId) return { error: "Not authenticated" };
-  await addConnects(userId, amount, "gift", `Early access gift: ${amount} connects`);
+  if (!userId) {
+    return { error: "Not authenticated", claimed: false, amount: SIGNUP_GIFT_CONNECTS };
+  }
+
+  const result = await claimSignupGift(userId);
+  if (result.error) {
+    return { error: result.error, claimed: false, amount: SIGNUP_GIFT_CONNECTS };
+  }
+
   revalidatePath("/connects");
-  return {};
+  return { claimed: result.claimed, amount: SIGNUP_GIFT_CONNECTS };
 }
 
 export async function unlockListingAction(listingId: string): Promise<{ error?: string }> {

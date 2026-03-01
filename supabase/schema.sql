@@ -93,6 +93,41 @@ alter table watchlist enable row level security;
 
 create policy "watchlist_owner_all" on watchlist using (clerk_user_id = auth.uid()::text);
 
+-- ─── CONNECTS ────────────────────────────────────────────────────────────────
+create table if not exists connects_balance (
+  clerk_user_id  text primary key,
+  balance        integer not null default 0 check (balance >= 0),
+  updated_at     timestamptz default now()
+);
+
+create table if not exists unlocked_listings (
+  clerk_user_id  text not null,
+  listing_id     text references listings(id) on delete cascade,
+  created_at     timestamptz default now(),
+  primary key (clerk_user_id, listing_id)
+);
+
+create table if not exists connects_transactions (
+  id             uuid primary key default gen_random_uuid(),
+  clerk_user_id  text not null,
+  amount         integer not null,
+  type           text not null,
+  description    text,
+  listing_id     text references listings(id) on delete set null,
+  created_at     timestamptz default now()
+);
+
+create index if not exists idx_connects_transactions_user_created_at
+  on connects_transactions(clerk_user_id, created_at desc);
+
+alter table connects_balance enable row level security;
+alter table unlocked_listings enable row level security;
+alter table connects_transactions enable row level security;
+
+create policy "connects_balance_owner_all" on connects_balance using (clerk_user_id = auth.uid()::text);
+create policy "unlocked_listings_owner_all" on unlocked_listings using (clerk_user_id = auth.uid()::text);
+create policy "connects_transactions_owner_read" on connects_transactions for select using (clerk_user_id = auth.uid()::text);
+
 -- ─── BETA APPLICATIONS ───────────────────────────────────────────────────────
 create table if not exists beta_applications (
   id             uuid primary key default gen_random_uuid(),

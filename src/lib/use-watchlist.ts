@@ -19,6 +19,11 @@ function saveLocalWatchlist(ids: string[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
 }
 
+function loadLocalWatchlistAsync(setter: (ids: string[]) => void) {
+  const ids = getLocalWatchlist();
+  queueMicrotask(() => setter(ids));
+}
+
 export function useWatchlist(listingId: string) {
   const { userId, isLoaded } = useAuth();
   const [watchlist, setWatchlist] = useState<string[]>([]);
@@ -26,7 +31,7 @@ export function useWatchlist(listingId: string) {
   useEffect(() => {
     if (!isLoaded) return;
     if (!userId) {
-      setWatchlist(getLocalWatchlist());
+      loadLocalWatchlistAsync(setWatchlist);
     } else {
       getWatchlistIdsAction().then((ids) => {
         if (ids !== null) setWatchlist(ids);
@@ -63,7 +68,7 @@ export function useAllWatchlisted() {
   useEffect(() => {
     if (!isLoaded) return;
     if (!userId) {
-      setWatchlist(getLocalWatchlist());
+      loadLocalWatchlistAsync(setWatchlist);
     } else {
       getWatchlistIdsAction().then((ids) => {
         if (ids !== null) setWatchlist(ids);

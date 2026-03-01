@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, ExternalLink, Loader2, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { unlockListingAction } from "@/app/connects/actions";
 
