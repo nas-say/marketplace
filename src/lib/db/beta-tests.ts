@@ -120,26 +120,43 @@ export async function createBetaTest(
   const poolStatus: BetaTest["reward"]["poolStatus"] = poolTotalMinor > 0 ? "pending" : "not_required";
 
   const client = createServiceClient();
-  const { data, error } = await client
+  const baseInsert = {
+    title: payload.title,
+    description: payload.description,
+    spots_total: payload.spotsTotal,
+    reward_description: payload.rewardDescription,
+    testing_instructions: payload.testingInstructions,
+    deadline: payload.deadline,
+    creator_id: clerkUserId,
+    status: "accepting" as const,
+  };
+
+  const { data: enhancedData, error: enhancedError } = await client
     .from("beta_tests")
     .insert({
-      title: payload.title,
-      description: payload.description,
-      spots_total: payload.spotsTotal,
-      reward_description: payload.rewardDescription,
+      ...baseInsert,
       reward_type: rewardType,
       reward_currency: rewardCurrency,
       reward_amount_minor: rewardAmountMinor,
       reward_pool_total_minor: poolTotalMinor,
       reward_pool_funded_minor: 0,
       reward_pool_status: poolStatus,
-      testing_instructions: payload.testingInstructions,
-      deadline: payload.deadline,
-      creator_id: clerkUserId,
-      status: "accepting",
     })
     .select("id")
     .single();
-  if (error || !data) return null;
-  return { id: data.id };
+
+  if (!enhancedError && enhancedData) return { id: enhancedData.id };
+
+  // Graceful fallback when live DB has not yet applied reward-pool columns.
+  if (enhancedError?.code === "42703") {
+    const { data: fallbackData, error: fallbackError } = await client
+      .from("beta_tests")
+      .insert(baseInsert)
+      .select("id")
+      .single();
+    if (fallbackError || !fallbackData) return null;
+    return { id: fallbackData.id };
+  }
+
+  return null;
 }
