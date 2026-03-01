@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Lock, ExternalLink, Loader2, Zap } from "lucide-react";
 import Link from "next/link";
 import { unlockListingAction } from "@/app/connects/actions";
+import { toSafeWebsiteUrl } from "@/lib/validation/profile";
 
 interface Props {
   listingId: string;
@@ -42,9 +43,10 @@ export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, conn
   }
 
   if (isUnlocked) {
-    if (!website) return <span className="text-zinc-600">No website listed</span>;
+    const safeWebsite = toSafeWebsiteUrl(website);
+    if (!safeWebsite) return <span className="text-zinc-600">No website listed</span>;
     return (
-      <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 hover:text-indigo-400 transition-colors">
+      <a href={safeWebsite} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 hover:text-indigo-400 transition-colors">
         Website <ExternalLink className="h-3 w-3" />
       </a>
     );

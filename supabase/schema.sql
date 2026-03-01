@@ -222,6 +222,141 @@ begin
         when (spots_filled + 1) >= spots_total * 0.8 then 'almost_full'
         else status
       end
-  where id = beta_test_id;
+  where id = beta_test_id
+    and spots_filled < spots_total;
 end;
 $$ language plpgsql security definer;
+
+-- ─── ATOMIC BETA APPLY ───────────────────────────────────────────────────────
+create or replace function apply_to_beta_test_atomic(
+  p_clerk_user_id text,
+  p_beta_test_id text
+)
+returns text as $$
+declare
+  v_reward_type text;
+  v_pool_total_minor bigint;
+  v_pool_status text;
+  v_spots_filled integer;
+  v_spots_total integer;
+  v_status text;
+begin
+  select
+    reward_type,
+    coalesce(reward_pool_total_minor, 0),
+    coalesce(reward_pool_status, 'not_required'),
+    coalesce(spots_filled, 0),
+    coalesce(spots_total, 0),
+    coalesce(status, 'accepting')
+  into
+    v_reward_type,
+    v_pool_total_minor,
+    v_pool_status,
+    v_spots_filled,
+    v_spots_total,
+    v_status
+  from beta_tests
+  where id = p_beta_test_id
+  for update;
+
+  if not found then
+    return 'not_found';
+  end if;
+
+  if v_reward_type = 'cash' and v_pool_total_minor > 0 and v_pool_status <> 'funded' then
+    return 'funding_locked';
+  end if;
+
+  if v_status = 'closed' or v_spots_filled >= v_spots_total then
+    return 'full';
+  end if;
+
+  insert into beta_applications (clerk_user_id, beta_test_id)
+  values (p_clerk_user_id, p_beta_test_id)
+  on conflict (clerk_user_id, beta_test_id) do nothing;
+
+  if not found then
+    return 'already_applied';
+  end if;
+
+  update beta_tests
+  set spots_filled = spots_filled + 1,
+      status = case
+        when (spots_filled + 1) >= spots_total then 'closed'
+        when (spots_filled + 1) >= spots_total * 0.8 then 'almost_full'
+        else status
+      end
+  where id = p_beta_test_id
+    and spots_filled < spots_total;
+
+  if not found then
+    delete from beta_applications
+    where clerk_user_id = p_clerk_user_id
+      and beta_test_id = p_beta_test_id;
+    return 'full';
+  end if;
+
+  return 'applied';
+end;
+$$ language plpgsql security definer set search_path = public;
+
+-- ─── ATOMIC LISTING UNLOCK ───────────────────────────────────────────────────
+create or replace function unlock_listing_atomic(
+  p_clerk_user_id text,
+  p_listing_id text,
+  p_cost integer
+)
+returns text as $$
+declare
+  v_balance integer;
+begin
+  if p_cost <= 0 then
+    return 'already_unlocked';
+  end if;
+
+  if exists (
+    select 1
+    from unlocked_listings
+    where clerk_user_id = p_clerk_user_id
+      and listing_id = p_listing_id
+  ) then
+    return 'already_unlocked';
+  end if;
+
+  insert into connects_balance (clerk_user_id, balance, updated_at)
+  values (p_clerk_user_id, 0, now())
+  on conflict (clerk_user_id) do nothing;
+
+  select balance
+  into v_balance
+  from connects_balance
+  where clerk_user_id = p_clerk_user_id
+  for update;
+
+  if coalesce(v_balance, 0) < p_cost then
+    return 'insufficient';
+  end if;
+
+  update connects_balance
+  set balance = balance - p_cost,
+      updated_at = now()
+  where clerk_user_id = p_clerk_user_id;
+
+  insert into unlocked_listings (clerk_user_id, listing_id)
+  values (p_clerk_user_id, p_listing_id)
+  on conflict (clerk_user_id, listing_id) do nothing;
+
+  if not found then
+    update connects_balance
+    set balance = balance + p_cost,
+        updated_at = now()
+    where clerk_user_id = p_clerk_user_id;
+    return 'already_unlocked';
+  end if;
+
+  insert into connects_transactions (clerk_user_id, amount, type, description, listing_id)
+  values (p_clerk_user_id, -p_cost, 'unlock', 'Seller info unlocked', p_listing_id);
+
+  return 'unlocked';
+end;
+$$ language plpgsql security definer set search_path = public;

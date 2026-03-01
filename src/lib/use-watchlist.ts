@@ -50,13 +50,27 @@ export function useWatchlist(listingId: string) {
       saveLocalWatchlist(updated);
       setWatchlist(updated);
     } else {
-      // Optimistic update
-      setWatchlist((prev) =>
-        prev.includes(listingId) ? prev.filter((id) => id !== listingId) : [...prev, listingId]
+      const previous = watchlist;
+      const optimistic = previous.includes(listingId)
+        ? previous.filter((id) => id !== listingId)
+        : [...previous, listingId];
+      setWatchlist(optimistic);
+
+      const nextState = await toggleWatchlistAction(listingId);
+      if (nextState === null) {
+        setWatchlist(previous);
+        return;
+      }
+
+      setWatchlist((current) =>
+        nextState
+          ? current.includes(listingId)
+            ? current
+            : [...current, listingId]
+          : current.filter((id) => id !== listingId)
       );
-      await toggleWatchlistAction(listingId);
     }
-  }, [listingId, userId]);
+  }, [listingId, userId, watchlist]);
 
   return { isWatchlisted, toggle };
 }

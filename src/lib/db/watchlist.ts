@@ -16,23 +16,29 @@ export async function toggleWatchlist(
 ): Promise<boolean> {
   const client = createServiceClient();
 
-  // Check if exists
-  const { data: existing } = await client
+  // Delete-first toggle removes the explicit read-before-write race.
+  // If a row existed, it is removed; if not, we upsert it.
+  const { data: removedRows, error: deleteError } = await client
     .from("watchlist")
-    .select("listing_id")
+    .delete()
     .eq("clerk_user_id", clerkUserId)
     .eq("listing_id", listingId)
-    .maybeSingle();
+    .select("listing_id");
 
-  if (existing) {
-    await client
-      .from("watchlist")
-      .delete()
-      .eq("clerk_user_id", clerkUserId)
-      .eq("listing_id", listingId);
-    return false; // removed
-  } else {
-    await client.from("watchlist").insert({ clerk_user_id: clerkUserId, listing_id: listingId });
-    return true; // added
+  if (deleteError) {
+    throw new Error("Could not update watchlist state.");
   }
+
+  if ((removedRows ?? []).length > 0) {
+    return false;
+  }
+
+  const { error: upsertError } = await client.from("watchlist").upsert(
+    { clerk_user_id: clerkUserId, listing_id: listingId },
+    { onConflict: "clerk_user_id,listing_id", ignoreDuplicates: true }
+  );
+  if (upsertError) {
+    throw new Error("Could not update watchlist state.");
+  }
+  return true;
 }

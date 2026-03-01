@@ -2,6 +2,25 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+1. Create env file:
+
+```bash
+cp .env.example .env
+```
+
+2. Fill the required Clerk, Supabase, and Razorpay keys in `.env`.
+
+3. Run the development server:
+
+```bash
+npm install
+npm run dev
+```
+
+Or use yarn / pnpm / bun equivalents.
+
+---
+
 First, run the development server:
 
 ```bash

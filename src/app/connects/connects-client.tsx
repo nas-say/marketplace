@@ -6,7 +6,7 @@ import { Zap, Gift, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
-import { giftConnectsAction } from "./actions";
+import { getMoreConnectsTransactionsAction, giftConnectsAction } from "./actions";
 import type { Currency } from "@/lib/geo";
 
 const BUNDLES: Record<Currency, Array<{ connects: number; price: string; description: string; popular?: boolean }>> = {
@@ -47,6 +47,7 @@ interface Transaction {
 interface Props {
   balance: number;
   transactions: Transaction[];
+  hasMoreTransactions: boolean;
   currency: Currency;
   signupGiftAmount: number;
   hasClaimedGift: boolean;
@@ -96,13 +97,18 @@ async function loadRazorpayCheckoutScript(): Promise<boolean> {
 
 export function ConnectsClient({
   balance: initialBalance,
-  transactions,
+  transactions: initialTransactions,
+  hasMoreTransactions: initialHasMoreTransactions,
   currency,
   signupGiftAmount,
   hasClaimedGift,
 }: Props) {
   const router = useRouter();
   const [balance, setBalance] = useState(initialBalance);
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(initialHasMoreTransactions);
+  const [loadingMoreTransactions, setLoadingMoreTransactions] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   const [loading, setLoading] = useState(false);
   const [claimed, setClaimed] = useState(hasClaimedGift);
   const [claimError, setClaimError] = useState("");
@@ -214,6 +220,33 @@ export function ConnectsClient({
       setPurchaseError("Could not start Razorpay checkout. Please try again.");
       setBuyingConnects(null);
     }
+  };
+
+  const handleLoadMoreTransactions = async () => {
+    if (loadingMoreTransactions || !hasMoreTransactions) return;
+
+    setHistoryError("");
+    setLoadingMoreTransactions(true);
+    const result = await getMoreConnectsTransactionsAction(transactions.length);
+    setLoadingMoreTransactions(false);
+
+    if (result.error) {
+      setHistoryError(result.error);
+      return;
+    }
+
+    setTransactions((current) => {
+      const seen = new Set(current.map((tx) => tx.id));
+      const next = [...current];
+      for (const tx of result.transactions) {
+        if (!seen.has(tx.id)) {
+          next.push(tx);
+          seen.add(tx.id);
+        }
+      }
+      return next;
+    });
+    setHasMoreTransactions(result.hasMore);
   };
 
   return (
@@ -328,6 +361,23 @@ export function ConnectsClient({
               </div>
             ))}
           </div>
+          {hasMoreTransactions && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                disabled={loadingMoreTransactions}
+                onClick={() => void handleLoadMoreTransactions()}
+              >
+                {loadingMoreTransactions ? (
+                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Loading...</>
+                ) : (
+                  "Load more"
+                )}
+              </Button>
+            </div>
+          )}
+          {historyError && <p className="mt-3 text-center text-xs text-red-400">{historyError}</p>}
         </div>
       )}
     </div>

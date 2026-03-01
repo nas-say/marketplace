@@ -79,7 +79,13 @@ export function ProfileForm({ initialValues }: Props) {
 
       <div>
         <label className="block text-sm text-zinc-400 mb-1">Website</label>
-        <Input value={values.website} onChange={set("website")} placeholder="https://yoursite.com" className="bg-zinc-900 border-zinc-800" />
+        <Input
+          type="url"
+          value={values.website}
+          onChange={set("website")}
+          placeholder="https://yoursite.com"
+          className="bg-zinc-900 border-zinc-800"
+        />
       </div>
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
@@ -88,11 +94,23 @@ export function ProfileForm({ initialValues }: Props) {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <span className="text-sm text-zinc-500 w-16 shrink-0">Twitter</span>
-            <Input value={values.twitter} onChange={set("twitter")} placeholder="handle (no @)" className="bg-zinc-800 border-zinc-700" />
+            <Input
+              value={values.twitter}
+              onChange={set("twitter")}
+              placeholder="handle (no @)"
+              maxLength={15}
+              className="bg-zinc-800 border-zinc-700"
+            />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-zinc-500 w-16 shrink-0">GitHub</span>
-            <Input value={values.github} onChange={set("github")} placeholder="username" className="bg-zinc-800 border-zinc-700" />
+            <Input
+              value={values.github}
+              onChange={set("github")}
+              placeholder="username"
+              maxLength={39}
+              className="bg-zinc-800 border-zinc-700"
+            />
           </div>
         </div>
       </div>

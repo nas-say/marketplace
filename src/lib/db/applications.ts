@@ -1,9 +1,14 @@
 import { createServiceClient, createServerClient } from "@/lib/supabase";
 
-export async function applyToBetaTest(
-  clerkUserId: string,
-  betaTestId: string
-): Promise<{ success: boolean; alreadyApplied: boolean; blockedReason?: string }> {
+type ApplyResult = { success: boolean; alreadyApplied: boolean; blockedReason?: string };
+
+function isMissingRpcFunctionError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "42883" || error.code === "PGRST202") return true;
+  return typeof error.message === "string" && error.message.includes("Could not find the function");
+}
+
+async function applyToBetaTestLegacy(clerkUserId: string, betaTestId: string): Promise<ApplyResult> {
   const client = createServiceClient();
 
   const { data: betaTest } = await client
@@ -26,25 +31,55 @@ export async function applyToBetaTest(
     };
   }
 
-  const { data: existing } = await client
-    .from("beta_applications")
-    .select("id")
-    .eq("clerk_user_id", clerkUserId)
-    .eq("beta_test_id", betaTestId)
-    .maybeSingle();
-
-  if (existing) return { success: false, alreadyApplied: true };
+  if (
+    betaTest &&
+    typeof betaTest.spots_filled === "number" &&
+    typeof betaTest.spots_total === "number" &&
+    betaTest.spots_filled >= betaTest.spots_total
+  ) {
+    return { success: false, alreadyApplied: false, blockedReason: "This beta test is full." };
+  }
 
   const { error } = await client
     .from("beta_applications")
     .insert({ clerk_user_id: clerkUserId, beta_test_id: betaTestId });
 
+  if (error?.code === "23505") return { success: false, alreadyApplied: true };
+  if (error) return { success: false, alreadyApplied: false };
+
+  await client.rpc("increment_spots_filled", { beta_test_id: betaTestId });
+  return { success: true, alreadyApplied: false };
+}
+
+export async function applyToBetaTest(
+  clerkUserId: string,
+  betaTestId: string
+): Promise<ApplyResult> {
+  const client = createServiceClient();
+  const { data, error } = await client.rpc("apply_to_beta_test_atomic", {
+    p_clerk_user_id: clerkUserId,
+    p_beta_test_id: betaTestId,
+  });
+
   if (!error) {
-    // Increment spots_filled
-    await client.rpc("increment_spots_filled", { beta_test_id: betaTestId });
+    if (data === "applied") return { success: true, alreadyApplied: false };
+    if (data === "already_applied") return { success: false, alreadyApplied: true };
+    if (data === "funding_locked") {
+      return {
+        success: false,
+        alreadyApplied: false,
+        blockedReason: "Applications are locked until the creator funds the reward pool.",
+      };
+    }
+    if (data === "full") return { success: false, alreadyApplied: false, blockedReason: "This beta test is full." };
+    return { success: false, alreadyApplied: false };
   }
 
-  return { success: !error, alreadyApplied: false };
+  if (!isMissingRpcFunctionError(error)) {
+    return { success: false, alreadyApplied: false };
+  }
+
+  return applyToBetaTestLegacy(clerkUserId, betaTestId);
 }
 
 export async function getUserApplicationIds(clerkUserId: string): Promise<string[]> {

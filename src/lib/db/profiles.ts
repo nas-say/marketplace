@@ -53,9 +53,9 @@ export async function updateProfile(
     twitter: string;
     github: string;
   }
-): Promise<void> {
+): Promise<boolean> {
   const client = createServiceClient();
-  await client.from("profiles").update({
+  const { error } = await client.from("profiles").update({
     display_name: payload.displayName || null,
     bio: payload.bio || null,
     location: payload.location || null,
@@ -63,6 +63,7 @@ export async function updateProfile(
     twitter: payload.twitter || null,
     github: payload.github || null,
   }).eq("clerk_user_id", clerkUserId);
+  return !error;
 }
 
 // Called by Clerk webhook on user.created

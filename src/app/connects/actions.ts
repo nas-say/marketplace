@@ -3,6 +3,8 @@
 import { auth } from "@clerk/nextjs/server";
 import {
   claimSignupGift,
+  ConnectsTransaction,
+  getConnectsTransactions,
   unlockListing,
   getUnlockCost,
   SIGNUP_GIFT_CONNECTS,
@@ -44,4 +46,25 @@ export async function unlockListingAction(listingId: string): Promise<{ error?: 
     revalidatePath("/connects");
   }
   return result;
+}
+
+export async function getMoreConnectsTransactionsAction(
+  offset: number
+): Promise<{ transactions: ConnectsTransaction[]; hasMore: boolean; error?: string }> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { transactions: [], hasMore: false, error: "Not authenticated" };
+  }
+
+  const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.floor(offset)) : 0;
+  const pageSize = 20;
+  const rows = await getConnectsTransactions(userId, {
+    limit: pageSize + 1,
+    offset: safeOffset,
+  });
+
+  return {
+    transactions: rows.slice(0, pageSize),
+    hasMore: rows.length > pageSize,
+  };
 }

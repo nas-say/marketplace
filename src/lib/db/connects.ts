@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { createServiceClient } from "@/lib/supabase";
 
 const BALANCE_RETRY_LIMIT = 5;
+const BALANCE_RETRY_BASE_DELAY_MS = 25;
 const SIGNUP_GIFT_TX_NAMESPACE = "signup-gift-v1";
 const RAZORPAY_TOPUP_TX_NAMESPACE = "razorpay-topup-v1";
 const LEGACY_GIFT_DESCRIPTION_PREFIX = "Early access gift:";
@@ -14,6 +15,14 @@ interface BalanceMutationResult {
   error?: string;
 }
 
+export interface ConnectsTransaction {
+  id: string;
+  amount: number;
+  type: string;
+  description: string | null;
+  createdAt: string;
+}
+
 function stableUuidFromText(input: string): string {
   const hex = createHash("sha256").update(input).digest("hex").slice(0, 32);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
@@ -21,6 +30,22 @@ function stableUuidFromText(input: string): string {
 
 function isDuplicateKeyError(error: { code?: string } | null | undefined): boolean {
   return error?.code === "23505";
+}
+
+function isMissingRpcFunctionError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "42883" || error.code === "PGRST202") return true;
+  return typeof error.message === "string" && error.message.includes("Could not find the function");
+}
+
+function getRetryDelayMs(attempt: number): number {
+  const exponent = Math.min(attempt, 4);
+  const jitter = Math.floor(Math.random() * 25);
+  return BALANCE_RETRY_BASE_DELAY_MS * (2 ** exponent) + jitter;
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function ensureBalanceRow(
@@ -87,6 +112,10 @@ async function mutateBalanceAtomic(
 
     if (updatedRow) {
       return { balance: (updatedRow as { balance: number }).balance };
+    }
+
+    if (attempt < BALANCE_RETRY_LIMIT - 1) {
+      await sleep(getRetryDelayMs(attempt));
     }
   }
 
@@ -251,6 +280,26 @@ export async function unlockListing(
   listingId: string,
   cost: number
 ): Promise<{ error?: string }> {
+  const client = createServiceClient();
+  const { data, error } = await client.rpc("unlock_listing_atomic", {
+    p_clerk_user_id: clerkUserId,
+    p_listing_id: listingId,
+    p_cost: cost,
+  });
+
+  if (!error) {
+    if (data === "unlocked" || data === "already_unlocked") return {};
+    if (data === "insufficient") {
+      return { error: `Not enough connects. This listing requires ${cost} connects to unlock.` };
+    }
+    return { error: "Could not unlock listing right now. Please try again." };
+  }
+
+  if (!isMissingRpcFunctionError(error)) {
+    return { error: "Could not unlock listing right now. Please try again." };
+  }
+
+  // Fallback path for environments that have not run the latest SQL migration yet.
   const already = await isListingUnlocked(clerkUserId, listingId);
   if (already) return {};
 
@@ -261,8 +310,6 @@ export async function unlockListing(
   if (debited.error) {
     return { error: debited.error };
   }
-
-  const client = createServiceClient();
 
   const { error: unlockError } = await client.from("unlocked_listings").insert({
     clerk_user_id: clerkUserId,
@@ -327,22 +374,41 @@ export async function addConnects(
   return {};
 }
 
-export async function getConnectsTransactions(clerkUserId: string): Promise<
-  Array<{ id: string; amount: number; type: string; description: string | null; createdAt: string }>
-> {
+export async function getConnectsTransactions(
+  clerkUserId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<ConnectsTransaction[]> {
+  const limit = Math.min(Math.max(Math.floor(options?.limit ?? 20), 1), 100);
+  const offset = Math.max(Math.floor(options?.offset ?? 0), 0);
   const client = createServiceClient();
   const { data, error } = await client
     .from("connects_transactions")
     .select("id, amount, type, description, created_at")
     .eq("clerk_user_id", clerkUserId)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .range(offset, offset + limit - 1);
+
   if (error || !data) return [];
-  return (data as Record<string, unknown>[]).map((row) => ({
-    id: row.id as string,
-    amount: row.amount as number,
-    type: row.type as string,
-    description: row.description as string | null,
-    createdAt: row.created_at as string,
-  }));
+
+  return (data as Record<string, unknown>[])
+    .map((row) => {
+      const id = typeof row.id === "string" ? row.id : "";
+      const amount = Number(row.amount);
+      const type = typeof row.type === "string" ? row.type : "";
+      const createdAt = typeof row.created_at === "string" ? row.created_at : "";
+      const description = typeof row.description === "string" ? row.description : null;
+
+      if (!id || !type || !createdAt || !Number.isFinite(amount)) {
+        return null;
+      }
+
+      return {
+        id,
+        amount,
+        type,
+        description,
+        createdAt,
+      };
+    })
+    .filter((row): row is ConnectsTransaction => row !== null);
 }
