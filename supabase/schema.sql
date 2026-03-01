@@ -162,8 +162,16 @@ alter table beta_tests add column if not exists reward_pool_order_id text;
 alter table beta_tests add column if not exists reward_pool_payment_id text;
 alter table beta_tests add column if not exists reward_pool_funded_at timestamptz;
 
+-- Normalize legacy reward types from older schema variants.
+update beta_tests
+set reward_type = 'premium_access'
+where reward_type in ('credits', 'free_access');
+
 do $$ begin
-  alter table beta_tests add constraint beta_tests_reward_type_check check (reward_type in ('cash', 'premium_access'));
+  alter table beta_tests drop constraint if exists beta_tests_reward_type_check;
+  alter table beta_tests add constraint beta_tests_reward_type_check check (
+    reward_type in ('cash', 'premium_access')
+  );
 exception
   when duplicate_object then null;
 end $$;
@@ -251,6 +259,11 @@ create table if not exists beta_applications (
   clerk_user_id  text not null,
   beta_test_id   text references beta_tests(id) on delete cascade,
   status         text default 'pending' check (status in ('pending', 'accepted', 'rejected')),
+  upi_id         text,
+  applicant_email text,
+  payout_status  text default 'pending' check (payout_status in ('pending', 'paid', 'failed')),
+  payout_paid_at timestamptz,
+  payout_note    text,
   created_at     timestamptz default now(),
   unique (clerk_user_id, beta_test_id)
 );
@@ -261,6 +274,9 @@ create policy "applications_owner_all" on beta_applications using (clerk_user_id
 create policy "applications_creator_read" on beta_applications for select using (
   beta_test_id in (select id from beta_tests where creator_id = auth.uid()::text)
 );
+
+create index if not exists idx_beta_applications_status_payout_created
+  on beta_applications(beta_test_id, status, payout_status, created_at desc);
 
 -- ─── BETA FEEDBACK ───────────────────────────────────────────────────────────
 create table if not exists beta_feedback (
@@ -480,4 +496,21 @@ $$ language plpgsql security definer set search_path = public;
 -- Run these in Supabase SQL Editor if upgrading an existing database.
 alter table beta_applications add column if not exists upi_id text;
 alter table beta_applications add column if not exists applicant_email text;
+alter table beta_applications add column if not exists payout_status text default 'pending';
+alter table beta_applications add column if not exists payout_paid_at timestamptz;
+alter table beta_applications add column if not exists payout_note text;
+update beta_applications set payout_status = 'pending' where payout_status is null;
+
+do $$ begin
+  alter table beta_applications drop constraint if exists beta_applications_payout_status_check;
+  alter table beta_applications add constraint beta_applications_payout_status_check check (
+    payout_status in ('pending', 'paid', 'failed')
+  );
+exception
+  when duplicate_object then null;
+end $$;
+
+create index if not exists idx_beta_applications_status_payout_created
+  on beta_applications(beta_test_id, status, payout_status, created_at desc);
+
 alter table profiles add column if not exists upi_id text;

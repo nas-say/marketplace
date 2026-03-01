@@ -33,6 +33,7 @@ interface ApplicationRow {
 
 interface Props {
   displayName: string;
+  isAdmin: boolean;
   stats: { totalEarnings: string; activeListings: number; betaTests: number; feedbackGiven: number };
   listings: Listing[];
   betaTests: BetaTest[];
@@ -42,6 +43,7 @@ interface Props {
 
 export function DashboardClient({
   displayName,
+  isAdmin,
   stats,
   listings,
   betaTests,
@@ -99,11 +101,20 @@ export function DashboardClient({
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-start justify-between mb-8">
         <PageHeader title="Dashboard" description={`Welcome back, ${displayName}`} />
-        <Link href="/create">
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 shrink-0">
-            <PlusCircle className="mr-1.5 h-4 w-4" />New Listing
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link href="/admin">
+              <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-300 hover:text-amber-200">
+                Admin
+              </Button>
+            </Link>
+          )}
+          <Link href="/create">
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 shrink-0">
+              <PlusCircle className="mr-1.5 h-4 w-4" />New Listing
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="mb-8 flex gap-1 rounded-lg bg-zinc-900 p-1 overflow-x-auto">

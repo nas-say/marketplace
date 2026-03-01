@@ -5,6 +5,7 @@ import { getBetaTestsByCreator } from "@/lib/db/beta-tests";
 import { getProfile } from "@/lib/db/profiles";
 import { formatPrice } from "@/lib/data";
 import { getUserApplications } from "@/lib/db/applications";
+import { isAdminUser } from "@/lib/admin-access";
 import { DashboardClient } from "./dashboard-client";
 
 export default async function DashboardPage() {
@@ -39,6 +40,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       displayName={displayName}
+      isAdmin={isAdminUser(userId)}
       stats={stats}
       listings={listings}
       betaTests={myBetaTests}

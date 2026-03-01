@@ -9,7 +9,7 @@ cp .env.example .env
 ```
 
 2. Fill the required Clerk, Supabase, and Razorpay keys in `.env`.
-   Optional for interest notifications: `RESEND_API_KEY`, `INTEREST_NOTIFY_EMAIL`, `INTEREST_FROM_EMAIL`.
+   Optional: `RESEND_API_KEY`, `INTEREST_NOTIFY_EMAIL`, `INTEREST_FROM_EMAIL`, and `ADMIN_CLERK_USER_IDS` (comma-separated Clerk IDs allowed to access `/admin`).
 
 3. Run the development server:
 

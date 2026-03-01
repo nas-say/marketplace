@@ -14,7 +14,7 @@ const steps = [
   {
     icon: <HandCoins className="h-8 w-8 text-indigo-500" />,
     title: "Close the Deal",
-    description: "Secure escrow payment and transfer assets to the buyer.",
+    description: "Buyers unlock contact info with Connects and close the deal directly off-platform.",
   },
 ];
 

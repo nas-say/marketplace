@@ -81,9 +81,13 @@ export async function getSavedUpiId(clerkUserId: string): Promise<string | null>
   return (data?.upi_id as string | null) ?? null;
 }
 
-export async function saveUpiId(clerkUserId: string, upiId: string): Promise<void> {
+export async function saveUpiId(clerkUserId: string, upiId: string): Promise<boolean> {
   const client = createServiceClient();
-  await client.from("profiles").update({ upi_id: upiId }).eq("clerk_user_id", clerkUserId);
+  const { error } = await client
+    .from("profiles")
+    .update({ upi_id: upiId })
+    .eq("clerk_user_id", clerkUserId);
+  return !error;
 }
 
 // Called by Clerk webhook on user.created

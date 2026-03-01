@@ -8,6 +8,17 @@ import { getUserApplicationIds } from "@/lib/db/applications";
 import { saveUpiId } from "@/lib/db/profiles";
 import { revalidatePath } from "next/cache";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UPI_PATTERN = /^[A-Za-z0-9._-]{2,256}@[A-Za-z]{2,64}$/;
+
+function normalizeRewardType(value: unknown): "cash" | "premium_access" {
+  return value === "premium_access" ? "premium_access" : "cash";
+}
+
+function isMissingColumnError(error: { code?: string } | null | undefined): boolean {
+  return error?.code === "42703";
+}
+
 export async function applyAction(
   betaTestId: string,
   payload?: { upiId?: string; applicantEmail?: string }
@@ -15,11 +26,18 @@ export async function applyAction(
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const result = await applyToBetaTest(userId, betaTestId);
-  if (result.blockedReason) return { error: result.blockedReason };
-  if (result.alreadyApplied) return { error: "You've already applied to this beta test." };
-  if (!result.success) return { error: "Failed to apply. Please try again." };
+  const client = createServiceClient();
+  const { data: betaTest, error: betaTestError } = await client
+    .from("beta_tests")
+    .select("reward_type")
+    .eq("id", betaTestId)
+    .maybeSingle();
 
+  if (betaTestError || !betaTest) {
+    return { error: "Beta test not found." };
+  }
+
+  const rewardType = normalizeRewardType(betaTest.reward_type);
   const upiId = payload?.upiId?.trim() || undefined;
   let applicantEmail = payload?.applicantEmail?.trim() || undefined;
 
@@ -28,11 +46,26 @@ export async function applyAction(
     applicantEmail = clerkUser?.primaryEmailAddress?.emailAddress?.trim() || undefined;
   }
 
-  if (upiId || applicantEmail) {
-    const client = createServiceClient();
+  if (!applicantEmail || !EMAIL_PATTERN.test(applicantEmail) || applicantEmail.length > 320) {
+    return { error: "A valid email is required to apply." };
+  }
+
+  if (rewardType === "cash") {
+    if (!upiId) {
+      return { error: "UPI ID is required to receive your cash reward." };
+    }
+    if (!UPI_PATTERN.test(upiId) || upiId.length > 320) {
+      return { error: "Enter a valid UPI ID (for example, yourname@upi)." };
+    }
+  }
+
+  const persistDetails = async (): Promise<{ ok: boolean; error?: string }> => {
     const { error: updateError } = await client
       .from("beta_applications")
-      .update({ upi_id: upiId ?? null, applicant_email: applicantEmail ?? null })
+      .update({
+        applicant_email: applicantEmail ?? null,
+        upi_id: rewardType === "cash" ? upiId ?? null : null,
+      })
       .eq("clerk_user_id", userId)
       .eq("beta_test_id", betaTestId);
 
@@ -40,12 +73,50 @@ export async function applyAction(
       console.error("[applyAction] failed to store applicant payout/contact details", {
         userId,
         betaTestId,
-        hasUpiId: Boolean(upiId),
-        hasApplicantEmail: Boolean(applicantEmail),
+        code: updateError.code,
+        message: updateError.message,
       });
-    } else if (upiId) {
-      await saveUpiId(userId, upiId);
+
+      if (isMissingColumnError(updateError)) {
+        return {
+          ok: false,
+          error: "Database is missing applicant detail columns. Run the latest Supabase migration and retry.",
+        };
+      }
+
+      return {
+        ok: false,
+        error: "Application submitted, but we could not save your contact details. Please click apply again.",
+      };
     }
+
+    if (rewardType === "cash" && upiId) {
+      const upiSaved = await saveUpiId(userId, upiId);
+      if (!upiSaved) {
+        return {
+          ok: false,
+          error: "Application submitted, but we could not save your UPI ID for future payouts. Please retry.",
+        };
+      }
+    }
+
+    return { ok: true };
+  };
+
+  const result = await applyToBetaTest(userId, betaTestId);
+  if (result.blockedReason) return { error: result.blockedReason };
+
+  if (result.alreadyApplied) {
+    const persisted = await persistDetails();
+    if (!persisted.ok) return { error: persisted.error ?? "You've already applied to this beta test." };
+    return { success: true };
+  }
+
+  if (!result.success) return { error: "Failed to apply. Please try again." };
+
+  const persisted = await persistDetails();
+  if (!persisted.ok) {
+    return { error: persisted.error ?? "Application submitted but contact details were not saved." };
   }
 
   return { success: true };
