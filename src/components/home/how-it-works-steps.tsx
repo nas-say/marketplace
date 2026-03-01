@@ -9,7 +9,8 @@ const steps = [
   {
     icon: <Users className="h-8 w-8 text-indigo-500" />,
     title: "Get Beta Testers",
-    description: "Post your work-in-progress and get structured feedback from real users.",
+    description:
+      "Posting beta tests is free. For cash rewards, SideFlip deducts a 5% platform fee during tester payouts.",
   },
   {
     icon: <HandCoins className="h-8 w-8 text-indigo-500" />,

@@ -57,10 +57,15 @@ export async function Hero() {
           </div>
           <div className="hidden sm:block h-10 w-px bg-zinc-800" />
           <div className="text-center">
-            <p className="text-3xl font-bold text-zinc-50">5%</p>
-            <p className="mt-1 text-sm text-zinc-500">Platform fee</p>
+            <p className="text-3xl font-bold text-zinc-50">Connects</p>
+            <p className="mt-1 text-sm text-zinc-500">For project unlocks</p>
           </div>
         </div>
+
+        <p className="mx-auto mt-8 max-w-3xl text-sm text-zinc-500">
+          Beta testing is free to post with rewards. For cash-reward beta tests, SideFlip deducts a 5% platform fee
+          while paying testers.
+        </p>
       </div>
     </section>
   );
