@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { isAdminUser } from "@/lib/admin-access";
 import { getAdminDashboardSnapshot } from "@/lib/db/admin";
@@ -114,10 +115,19 @@ export default async function AdminPage() {
 
       <section className="rounded-lg border border-zinc-800 bg-zinc-900">
         <div className="border-b border-zinc-800 px-4 py-3">
-          <h2 className="text-base font-semibold text-zinc-100">Cash Payout Queue</h2>
-          <p className="text-xs text-zinc-500">
-            Approved cash applications. Mark each row as paid after manual transfer from the funded pool.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-zinc-100">Cash Payout Queue</h2>
+              <p className="text-xs text-zinc-500">
+                Approved cash applications. Add UTR/reason note, then mark each payout status.
+              </p>
+            </div>
+            <Link href="/admin/payouts-export" className="shrink-0">
+              <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300">
+                Export CSV
+              </Button>
+            </Link>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -168,33 +178,68 @@ export default async function AdminPage() {
                     </p>
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <div className="flex flex-col gap-2">
-                      <form action={updateCashPayoutStatusAction}>
-                        <input type="hidden" name="betaTestId" value={row.betaTestId} />
-                        <input type="hidden" name="applicantUserId" value={row.applicantUserId} />
-                        <input type="hidden" name="nextStatus" value="paid" />
-                        <Button size="sm" className="w-full bg-green-600 hover:bg-green-500">
-                          Mark Paid
-                        </Button>
-                      </form>
-                      <form action={updateCashPayoutStatusAction}>
-                        <input type="hidden" name="betaTestId" value={row.betaTestId} />
-                        <input type="hidden" name="applicantUserId" value={row.applicantUserId} />
-                        <input type="hidden" name="nextStatus" value="failed" />
-                        <Button size="sm" variant="outline" className="w-full border-red-500/40 text-red-300">
-                          Mark Failed
-                        </Button>
-                      </form>
-                      <form action={updateCashPayoutStatusAction}>
-                        <input type="hidden" name="betaTestId" value={row.betaTestId} />
-                        <input type="hidden" name="applicantUserId" value={row.applicantUserId} />
-                        <input type="hidden" name="nextStatus" value="pending" />
-                        <Button size="sm" variant="outline" className="w-full border-zinc-700 text-zinc-300">
-                          Reset Pending
-                        </Button>
-                      </form>
-                    </div>
+                    <form action={updateCashPayoutStatusAction} className="flex min-w-[220px] flex-col gap-2">
+                      <input type="hidden" name="betaTestId" value={row.betaTestId} />
+                      <input type="hidden" name="applicantUserId" value={row.applicantUserId} />
+                      <Input
+                        name="payoutNote"
+                        defaultValue={row.payoutNote ?? ""}
+                        placeholder="UTR / reference / reason"
+                        className="h-8 border-zinc-700 bg-zinc-950 text-xs"
+                      />
+                      <Button type="submit" name="nextStatus" value="paid" size="sm" className="w-full bg-green-600 hover:bg-green-500">
+                        Mark Paid
+                      </Button>
+                      <Button type="submit" name="nextStatus" value="failed" size="sm" variant="outline" className="w-full border-red-500/40 text-red-300">
+                        Mark Failed
+                      </Button>
+                      <Button type="submit" name="nextStatus" value="pending" size="sm" variant="outline" className="w-full border-zinc-700 text-zinc-300">
+                        Reset Pending
+                      </Button>
+                    </form>
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-zinc-800 bg-zinc-900">
+        <div className="border-b border-zinc-800 px-4 py-3">
+          <h2 className="text-base font-semibold text-zinc-100">Payout Audit Trail</h2>
+          <p className="text-xs text-zinc-500">Immutable log of payout-status changes made by admins.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-zinc-950 text-zinc-400">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium">When</th>
+                <th className="px-3 py-2 text-left font-medium">Beta Test</th>
+                <th className="px-3 py-2 text-left font-medium">Applicant</th>
+                <th className="px-3 py-2 text-left font-medium">Transition</th>
+                <th className="px-3 py-2 text-left font-medium">Admin</th>
+                <th className="px-3 py-2 text-left font-medium">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.recentPayoutAudit.length === 0 && (
+                <tr>
+                  <td className="px-3 py-4 text-zinc-500" colSpan={6}>
+                    No payout audit entries yet.
+                  </td>
+                </tr>
+              )}
+              {snapshot.recentPayoutAudit.map((row) => (
+                <tr key={row.id} className="border-t border-zinc-800">
+                  <td className="px-3 py-3 text-zinc-500">{formatDate(row.createdAt)}</td>
+                  <td className="px-3 py-3 text-zinc-200">{row.betaTestTitle}</td>
+                  <td className="px-3 py-3 text-zinc-200">{row.applicantName ?? row.applicantUserId}</td>
+                  <td className="px-3 py-3 text-zinc-300">
+                    {row.previousStatus} → {row.nextStatus}
+                  </td>
+                  <td className="px-3 py-3 text-zinc-400">{row.adminName ?? row.adminUserId}</td>
+                  <td className="px-3 py-3 text-zinc-500">{row.payoutNote ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

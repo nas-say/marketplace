@@ -3,9 +3,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BetaTest } from "@/types/beta-test";
 import { CATEGORY_LABELS } from "@/lib/constants";
+import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
 
 interface BetaCardProps {
   betaTest: BetaTest;
+}
+
+function formatCurrencyMinor(amountMinor: number, currency = "INR"): string {
+  const normalized = currency.toUpperCase();
+  const amount = amountMinor / 100;
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: normalized,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${normalized} ${(amountMinor / 100).toFixed(2)}`;
+  }
 }
 
 export function BetaCard({ betaTest }: BetaCardProps) {
@@ -29,6 +44,8 @@ export function BetaCard({ betaTest }: BetaCardProps) {
       : betaTest.status === "almost_full"
       ? "Almost Full"
       : "Closed";
+  const cashPayout =
+    betaTest.reward.type === "cash" ? calculateCashBetaPayout(Number(betaTest.reward.amount ?? 0)) : null;
 
   return (
     <Link href={`/beta/${betaTest.id}`}>
@@ -67,9 +84,16 @@ export function BetaCard({ betaTest }: BetaCardProps) {
           </div>
 
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-violet-400">
-              {betaTest.reward.description}
-            </span>
+            <div>
+              <span className="text-sm font-medium text-violet-400">
+                {betaTest.reward.description}
+              </span>
+              {cashPayout && (
+                <p className="text-[11px] text-zinc-500">
+                  Net after 5% fee: {formatCurrencyMinor(cashPayout.netMinor, betaTest.reward.currency)}
+                </p>
+              )}
+            </div>
             <span className="text-xs text-zinc-500">
               Due {new Date(betaTest.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>

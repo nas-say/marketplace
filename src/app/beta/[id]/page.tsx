@@ -14,8 +14,23 @@ import type { Metadata } from "next";
 import { getVisitorCountryCode } from "@/lib/geo";
 import { createServiceClient } from "@/lib/supabase";
 import { getBetaFeedback } from "./actions";
+import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
 
 interface Props { params: Promise<{ id: string }> }
+
+function formatCurrencyMinor(amountMinor: number, currency: string): string {
+  const normalized = (currency || "INR").toUpperCase();
+  const amount = amountMinor / 100;
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: normalized,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${normalized} ${(amountMinor / 100).toFixed(2)}`;
+  }
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -49,6 +64,8 @@ export default async function BetaDetailPage({ params }: Props) {
   const applyBlockedReason =
     !isCreator && fundingRequiredForApply ? "Creator must fund cash rewards before applications open." : undefined;
   const paymentsEnabledForCountry = countryCode === "IN";
+  const cashPayout =
+    betaTest.reward.type === "cash" ? calculateCashBetaPayout(Number(betaTest.reward.amount ?? 0)) : null;
 
   let isAcceptedTester = false;
   let hasSubmittedFeedback = false;
@@ -173,6 +190,15 @@ export default async function BetaDetailPage({ params }: Props) {
             <div className="mb-4 rounded bg-zinc-800 p-3 text-center">
               <p className="text-sm text-zinc-500">Reward</p>
               <p className="text-lg font-bold text-violet-400">{betaTest.reward.description}</p>
+              {cashPayout && (
+                <p className="mt-2 text-xs text-zinc-400">
+                  Gross {formatCurrencyMinor(cashPayout.grossMinor, betaTest.reward.currency)} • Fee (5%){" "}
+                  {formatCurrencyMinor(cashPayout.feeMinor, betaTest.reward.currency)} • You receive{" "}
+                  <span className="text-emerald-300">
+                    {formatCurrencyMinor(cashPayout.netMinor, betaTest.reward.currency)}
+                  </span>
+                </p>
+              )}
             </div>
 
             <FundingCard
@@ -204,6 +230,9 @@ export default async function BetaDetailPage({ params }: Props) {
               rewardType={betaTest.reward.type}
               savedUpiId={savedUpiId}
               savedEmail={savedEmail}
+              cashPayoutNetMinor={cashPayout?.netMinor}
+              cashPayoutFeeMinor={cashPayout?.feeMinor}
+              rewardCurrency={betaTest.reward.currency}
             />
 
             {creator && (

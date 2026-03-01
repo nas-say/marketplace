@@ -281,6 +281,24 @@ create policy "applications_creator_read" on beta_applications for select using 
 create index if not exists idx_beta_applications_status_payout_created
   on beta_applications(beta_test_id, status, payout_status, created_at desc);
 
+-- ─── BETA PAYOUT AUDIT LOG (IMMUTABLE) ─────────────────────────────────────
+create table if not exists beta_payout_audit_log (
+  id                 uuid primary key default gen_random_uuid(),
+  beta_test_id       text not null references beta_tests(id) on delete cascade,
+  applicant_user_id  text not null,
+  previous_status    text not null check (previous_status in ('pending', 'paid', 'failed')),
+  next_status        text not null check (next_status in ('pending', 'paid', 'failed')),
+  payout_note        text,
+  admin_user_id      text not null,
+  created_at         timestamptz default now()
+);
+alter table beta_payout_audit_log enable row level security;
+
+create index if not exists idx_beta_payout_audit_log_created
+  on beta_payout_audit_log(created_at desc);
+create index if not exists idx_beta_payout_audit_log_lookup
+  on beta_payout_audit_log(beta_test_id, applicant_user_id, created_at desc);
+
 -- ─── BETA FEEDBACK ───────────────────────────────────────────────────────────
 create table if not exists beta_feedback (
   id             uuid primary key default gen_random_uuid(),
@@ -534,5 +552,22 @@ end $$;
 
 create index if not exists idx_beta_applications_status_payout_created
   on beta_applications(beta_test_id, status, payout_status, created_at desc);
+
+create table if not exists beta_payout_audit_log (
+  id                 uuid primary key default gen_random_uuid(),
+  beta_test_id       text not null references beta_tests(id) on delete cascade,
+  applicant_user_id  text not null,
+  previous_status    text not null check (previous_status in ('pending', 'paid', 'failed')),
+  next_status        text not null check (next_status in ('pending', 'paid', 'failed')),
+  payout_note        text,
+  admin_user_id      text not null,
+  created_at         timestamptz default now()
+);
+alter table beta_payout_audit_log enable row level security;
+
+create index if not exists idx_beta_payout_audit_log_created
+  on beta_payout_audit_log(created_at desc);
+create index if not exists idx_beta_payout_audit_log_lookup
+  on beta_payout_audit_log(beta_test_id, applicant_user_id, created_at desc);
 
 alter table profiles add column if not exists upi_id text;

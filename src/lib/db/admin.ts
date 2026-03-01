@@ -48,6 +48,17 @@ interface RawVerificationRow {
   } | null;
 }
 
+interface RawPayoutAuditRow {
+  id?: string;
+  beta_test_id?: string;
+  applicant_user_id?: string;
+  previous_status?: string;
+  next_status?: string;
+  payout_note?: string | null;
+  admin_user_id?: string;
+  created_at?: string;
+}
+
 export interface AdminOverview {
   totalUsers: number;
   totalListings: number;
@@ -148,11 +159,26 @@ export interface AdminRecentUserItem {
   createdAt: string;
 }
 
+export interface AdminPayoutAuditItem {
+  id: string;
+  betaTestId: string;
+  betaTestTitle: string;
+  applicantUserId: string;
+  applicantName: string | null;
+  previousStatus: "pending" | "paid" | "failed";
+  nextStatus: "pending" | "paid" | "failed";
+  payoutNote: string | null;
+  adminUserId: string;
+  adminName: string | null;
+  createdAt: string;
+}
+
 export interface AdminDashboardSnapshot {
   overview: AdminOverview;
   payoutStatusTrackingAvailable: boolean;
   cashPayoutQueue: AdminCashPayoutItem[];
   premiumApprovalQueue: AdminPremiumApprovalItem[];
+  recentPayoutAudit: AdminPayoutAuditItem[];
   listingVerificationQueue: AdminListingVerificationItem[];
   recentBetaPayments: AdminBetaPaymentItem[];
   recentConnectPurchases: AdminConnectPurchaseItem[];
@@ -161,6 +187,12 @@ export interface AdminDashboardSnapshot {
 }
 
 function normalizePayoutStatus(input: unknown): PayoutStatus {
+  if (input === "paid") return "paid";
+  if (input === "failed") return "failed";
+  return "pending";
+}
+
+function normalizeStrictPayoutStatus(input: unknown): "pending" | "paid" | "failed" {
   if (input === "paid") return "paid";
   if (input === "failed") return "failed";
   return "pending";
@@ -291,7 +323,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     payoutRowsRaw = (fallbackResult.data ?? []) as RawCashPayoutRow[];
   }
 
-  const [premiumQueueResult, verificationQueueResult, betaPaymentsResult, connectPurchasesResult, signalsResult, recentUsersResult] =
+  const [premiumQueueResult, verificationQueueResult, betaPaymentsResult, connectPurchasesResult, signalsResult, recentUsersResult, payoutAuditResult] =
     await Promise.all([
       client
         .from("beta_applications")
@@ -324,6 +356,11 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
         .select("clerk_user_id, display_name, created_at")
         .order("created_at", { ascending: false })
         .limit(100),
+      client
+        .from("beta_payout_audit_log")
+        .select("id, beta_test_id, applicant_user_id, previous_status, next_status, payout_note, admin_user_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200),
     ]);
 
   const cashPayoutQueueBase = payoutRowsRaw
@@ -448,12 +485,41 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     }))
     .filter((row) => row.userId.length > 0);
 
+  const payoutAuditBase = ((payoutAuditResult.data ?? []) as RawPayoutAuditRow[])
+    .map((row): AdminPayoutAuditItem | null => {
+      if (
+        !row.id ||
+        !row.beta_test_id ||
+        !row.applicant_user_id ||
+        !row.admin_user_id ||
+        !row.created_at
+      ) {
+        return null;
+      }
+      return {
+        id: row.id,
+        betaTestId: row.beta_test_id,
+        betaTestTitle: row.beta_test_id,
+        applicantUserId: row.applicant_user_id,
+        applicantName: null,
+        previousStatus: normalizeStrictPayoutStatus(row.previous_status),
+        nextStatus: normalizeStrictPayoutStatus(row.next_status),
+        payoutNote: typeof row.payout_note === "string" ? row.payout_note : null,
+        adminUserId: row.admin_user_id,
+        adminName: null,
+        createdAt: row.created_at,
+      };
+    })
+    .filter((row): row is AdminPayoutAuditItem => row !== null);
+
   const allUserIds = Array.from(
     new Set([
       ...cashPayoutQueueBase.map((row) => row.applicantUserId),
       ...cashPayoutQueueBase.map((row) => row.creatorId),
       ...premiumQueueBase.map((row) => row.applicantUserId),
       ...premiumQueueBase.map((row) => row.creatorId),
+      ...payoutAuditBase.map((row) => row.applicantUserId),
+      ...payoutAuditBase.map((row) => row.adminUserId),
       ...listingVerificationQueueBase.map((row) => row.sellerId),
       ...betaPaymentsBase.map((row) => row.creatorId),
       ...connectPurchasesBase.map((row) => row.userId),
@@ -484,6 +550,29 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
   const premiumApprovalQueue = premiumQueueBase.map((row) => ({
     ...row,
     applicantName: nameByUserId.get(row.applicantUserId) ?? null,
+  }));
+
+  const payoutAuditBetaTestIds = Array.from(new Set(payoutAuditBase.map((row) => row.betaTestId)));
+  const titleByBetaTestId = new Map<string, string>();
+  if (payoutAuditBetaTestIds.length > 0) {
+    const { data: betaTestRows } = await client
+      .from("beta_tests")
+      .select("id, title")
+      .in("id", payoutAuditBetaTestIds);
+    for (const row of (betaTestRows ?? []) as Record<string, unknown>[]) {
+      const id = row.id;
+      const title = row.title;
+      if (typeof id === "string" && typeof title === "string" && title.trim().length > 0) {
+        titleByBetaTestId.set(id, title.trim());
+      }
+    }
+  }
+
+  const recentPayoutAudit = payoutAuditBase.map((row) => ({
+    ...row,
+    betaTestTitle: titleByBetaTestId.get(row.betaTestId) ?? row.betaTestId,
+    applicantName: nameByUserId.get(row.applicantUserId) ?? null,
+    adminName: nameByUserId.get(row.adminUserId) ?? null,
   }));
 
   const listingVerificationQueue = listingVerificationQueueBase.map((row) => ({
@@ -537,6 +626,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     payoutStatusTrackingAvailable,
     cashPayoutQueue,
     premiumApprovalQueue,
+    recentPayoutAudit,
     listingVerificationQueue,
     recentBetaPayments,
     recentConnectPurchases,

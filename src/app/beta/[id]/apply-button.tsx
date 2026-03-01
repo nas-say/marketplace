@@ -14,6 +14,23 @@ interface Props {
   rewardType: "cash" | "premium_access" | string;
   savedUpiId?: string | null;
   savedEmail?: string | null;
+  cashPayoutNetMinor?: number;
+  cashPayoutFeeMinor?: number;
+  rewardCurrency?: string;
+}
+
+function formatCurrencyMinor(amountMinor: number, currency = "INR"): string {
+  const normalized = currency.toUpperCase();
+  const amount = amountMinor / 100;
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: normalized,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${normalized} ${(amountMinor / 100).toFixed(2)}`;
+  }
 }
 
 export function ApplyButton({
@@ -24,6 +41,9 @@ export function ApplyButton({
   rewardType,
   savedUpiId,
   savedEmail,
+  cashPayoutNetMinor,
+  cashPayoutFeeMinor,
+  rewardCurrency,
 }: Props) {
   const [applied, setApplied] = useState(alreadyApplied);
   const [loading, setLoading] = useState(false);
@@ -95,6 +115,15 @@ export function ApplyButton({
           />
           {savedUpiId && (
             <p className="mt-1 text-xs text-zinc-500">Using your saved UPI ID — edit to change.</p>
+          )}
+          {typeof cashPayoutNetMinor === "number" && typeof cashPayoutFeeMinor === "number" && (
+            <p className="mt-1 text-xs text-zinc-400">
+              Net payout after 5% fee:{" "}
+              <span className="text-emerald-300">
+                {formatCurrencyMinor(cashPayoutNetMinor, rewardCurrency ?? "INR")}
+              </span>
+              {" "}({formatCurrencyMinor(cashPayoutFeeMinor, rewardCurrency ?? "INR")} fee).
+            </p>
           )}
         </div>
       )}

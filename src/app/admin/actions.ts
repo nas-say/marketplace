@@ -33,7 +33,7 @@ export async function updateCashPayoutStatusAction(
   const client = createServiceClient();
   const { data: appRow, error: appError } = await client
     .from("beta_applications")
-    .select("status, beta_tests!inner(reward_type)")
+    .select("status, payout_status, beta_tests!inner(reward_type)")
     .eq("beta_test_id", betaTestId)
     .eq("clerk_user_id", applicantUserId)
     .maybeSingle();
@@ -51,6 +51,8 @@ export async function updateCashPayoutStatusAction(
   if (applicationStatus !== "accepted" || rewardType !== "cash") {
     return;
   }
+  const previousPayoutStatus =
+    appRow.payout_status === "paid" || appRow.payout_status === "failed" ? appRow.payout_status : "pending";
 
   const updatePayload = {
     payout_status: nextStatus,
@@ -71,6 +73,25 @@ export async function updateCashPayoutStatusAction(
     }
     console.error("[admin] failed to update payout status", { betaTestId, applicantUserId, nextStatus });
     return;
+  }
+
+  const { error: auditError } = await client.from("beta_payout_audit_log").insert({
+    beta_test_id: betaTestId,
+    applicant_user_id: applicantUserId,
+    previous_status: previousPayoutStatus,
+    next_status: nextStatus,
+    payout_note: payoutNote,
+    admin_user_id: userId,
+  });
+  if (auditError) {
+    console.error("[admin] failed to insert payout audit log", {
+      betaTestId,
+      applicantUserId,
+      previousPayoutStatus,
+      nextStatus,
+      code: auditError.code,
+      message: auditError.message,
+    });
   }
 
   revalidatePath("/admin");

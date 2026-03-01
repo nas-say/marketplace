@@ -1,5 +1,3 @@
-import "server-only";
-
 export const CASH_BETA_PAYOUT_FEE_BPS = 500;
 
 export interface CashBetaPayoutBreakdown {
@@ -19,4 +17,3 @@ export function calculateCashBetaPayout(grossMinorInput: number): CashBetaPayout
     netMinor,
   };
 }
-
