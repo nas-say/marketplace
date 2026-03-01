@@ -116,7 +116,7 @@ export async function createListingAction(payload: {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     if (parsedDeadline < now) {
-      return { error: "Beta deadline must be today or later." };
+      return { error: "Beta test deadline must be today or in the future." };
     }
   }
 

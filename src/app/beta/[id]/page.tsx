@@ -3,6 +3,7 @@ import { getProfile } from "@/lib/db/profiles";
 import { getUserApplicationIds } from "@/lib/db/applications";
 import { ApplyButton } from "./apply-button";
 import { FundingCard } from "./funding-card";
+import { FeedbackSection } from "./feedback-section";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +11,8 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { getVisitorCountryCode } from "@/lib/geo";
+import { createServiceClient } from "@/lib/supabase";
+import { getBetaFeedback } from "./actions";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -45,6 +48,42 @@ export default async function BetaDetailPage({ params }: Props) {
   const applyBlockedReason =
     !isCreator && fundingRequiredForApply ? "Creator must fund cash rewards before applications open." : undefined;
   const paymentsEnabledForCountry = countryCode === "IN";
+
+  let isAcceptedTester = false;
+  let hasSubmittedFeedback = false;
+  let existingFeedback: Array<{
+    id: string;
+    rating: number;
+    comment: string | null;
+    feedbackType: string | null;
+    createdAt: string;
+  }> = [];
+
+  if (isCreator) {
+    existingFeedback = await getBetaFeedback(id);
+  }
+
+  if (userId) {
+    const client = createServiceClient();
+    const [feedbackData, appRow, feedbackRow] = await Promise.all([
+      existingFeedback.length > 0 ? Promise.resolve(existingFeedback) : getBetaFeedback(id),
+      client
+        .from("beta_applications")
+        .select("status")
+        .eq("clerk_user_id", userId)
+        .eq("beta_test_id", id)
+        .maybeSingle(),
+      client
+        .from("beta_feedback")
+        .select("id")
+        .eq("clerk_user_id", userId)
+        .eq("beta_test_id", id)
+        .maybeSingle(),
+    ]);
+    existingFeedback = feedbackData;
+    isAcceptedTester = appRow.data?.status === "accepted";
+    hasSubmittedFeedback = Boolean(feedbackRow.data?.id);
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -90,10 +129,13 @@ export default async function BetaDetailPage({ params }: Props) {
             </div>
           )}
 
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold text-zinc-50 mb-4">Feedback</h2>
-            <p className="text-zinc-500 text-sm">Feedback from testers will appear here.</p>
-          </div>
+          <FeedbackSection
+            betaTestId={id}
+            isAcceptedTester={isAcceptedTester}
+            existingFeedback={existingFeedback}
+            isCreator={isCreator}
+            hasSubmittedFeedback={hasSubmittedFeedback}
+          />
         </div>
 
         {/* Right column */}

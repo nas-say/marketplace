@@ -1,4 +1,6 @@
 import { createServiceClient, createServerClient } from "@/lib/supabase";
+import { rowToBetaTest } from "@/lib/db/beta-tests";
+import type { BetaTest } from "@/types/beta-test";
 
 type ApplyResult = { success: boolean; alreadyApplied: boolean; blockedReason?: string };
 
@@ -90,4 +92,26 @@ export async function getUserApplicationIds(clerkUserId: string): Promise<string
     .eq("clerk_user_id", clerkUserId);
   if (error || !data) return [];
   return data.map((row) => row.beta_test_id as string);
+}
+
+export async function getUserApplications(
+  clerkUserId: string
+): Promise<Array<{ betaTestId: string; status: string; createdAt: string; betaTest: BetaTest | null }>> {
+  const client = createServiceClient();
+  const { data, error } = await client
+    .from("beta_applications")
+    .select("beta_test_id, status, created_at, beta_tests(*)")
+    .eq("clerk_user_id", clerkUserId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as Record<string, unknown>[]).map((row) => ({
+    betaTestId: row.beta_test_id as string,
+    status: row.status as string,
+    createdAt: row.created_at as string,
+    betaTest: (row as { beta_tests: Record<string, unknown> | null }).beta_tests
+      ? rowToBetaTest((row as { beta_tests: Record<string, unknown> }).beta_tests)
+      : null,
+  }));
 }

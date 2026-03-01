@@ -334,6 +334,10 @@ export function ConnectsClient({
         <h2 className="text-lg font-semibold text-zinc-50">Connect Bundles</h2>
         <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">{CURRENCY_LABELS[currency]}</span>
       </div>
+      <p className="mb-3 text-xs text-amber-400/80">
+        ⚠ Connects are non-refundable once purchased. See our{" "}
+        <a href="/refund" className="underline hover:text-amber-300">Refund Policy</a>.
+      </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-3">
         {bundles.map((bundle) => (
           <div
@@ -386,9 +390,14 @@ export function ConnectsClient({
       {purchaseMessage && <p className="text-xs text-green-400 mb-4 text-center">{purchaseMessage}</p>}
 
       {/* Transaction history */}
-      {transactions.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-50 mb-4">Transaction History</h2>
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-50 mb-4">Transaction History</h2>
+        {transactions.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="text-sm text-zinc-500">No transactions yet.</p>
+            <p className="mt-1 text-xs text-zinc-600">Purchases and spends will appear here.</p>
+          </div>
+        ) : (
           <div className="space-y-2">
             {transactions.map((tx) => (
               <div key={tx.id} className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
@@ -409,25 +418,25 @@ export function ConnectsClient({
               </div>
             ))}
           </div>
-          {hasMoreTransactions && (
-            <div className="mt-4 flex justify-center">
-              <Button
-                variant="outline"
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-                disabled={loadingMoreTransactions}
-                onClick={() => void handleLoadMoreTransactions()}
-              >
-                {loadingMoreTransactions ? (
-                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Loading...</>
-                ) : (
-                  "Load more"
-                )}
-              </Button>
-            </div>
-          )}
-          {historyError && <p className="mt-3 text-center text-xs text-red-400">{historyError}</p>}
-        </div>
-      )}
+        )}
+        {hasMoreTransactions && (
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="outline"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              disabled={loadingMoreTransactions}
+              onClick={() => void handleLoadMoreTransactions()}
+            >
+              {loadingMoreTransactions ? (
+                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Loading...</>
+              ) : (
+                "Load more"
+              )}
+            </Button>
+          </div>
+        )}
+        {historyError && <p className="mt-3 text-center text-xs text-red-400">{historyError}</p>}
+      </div>
     </div>
   );
 }

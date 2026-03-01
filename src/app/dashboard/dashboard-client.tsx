@@ -6,7 +6,7 @@ import { BetaTest } from "@/types/beta-test";
 import { StatCard } from "@/components/shared/stat-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { BetaCard } from "@/components/beta/beta-card";
-import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye, ShieldCheck } from "lucide-react";
+import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye, ShieldCheck, Lock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,16 +22,32 @@ const MONTHLY_DATA = [
   { month: "Jan", value: 65, label: "$65K" }, { month: "Feb", value: 100, label: "$100K" },
 ];
 
-const tabs = ["Overview", "My Listings", "Beta Tests", "Earnings"];
+const tabs = ["Overview", "My Listings", "Beta Tests", "Earnings", "As Buyer"];
+
+interface ApplicationRow {
+  betaTestId: string;
+  status: string;
+  createdAt: string;
+  betaTest: { id: string; title: string; status: string } | null;
+}
 
 interface Props {
   displayName: string;
   stats: { totalEarnings: string; activeListings: number; betaTests: number; feedbackGiven: number };
   listings: Listing[];
   betaTests: BetaTest[];
+  unlockedListings: Listing[];
+  myApplications: ApplicationRow[];
 }
 
-export function DashboardClient({ displayName, stats, listings, betaTests }: Props) {
+export function DashboardClient({
+  displayName,
+  stats,
+  listings,
+  betaTests,
+  unlockedListings,
+  myApplications,
+}: Props) {
   const [activeTab, setActiveTab] = useState("Overview");
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [myListings, setMyListings] = useState(listings);
@@ -49,10 +65,34 @@ export function DashboardClient({ displayName, stats, listings, betaTests }: Pro
   };
 
   const recentActivity = [
-    { text: betaTests[0] ? `New feedback received on ${betaTests[0].title}` : "No recent beta test activity", time: "2 hours ago", dot: "bg-green-500" },
-    { text: listings[0] ? `${listings[0].title} viewed 45 times today` : "No recent listing views", time: "1 day ago", dot: "bg-indigo-500" },
-    { text: betaTests[1] ? `${betaTests[1].title} is almost full` : "Create a beta test to get started", time: "3 days ago", dot: "bg-amber-500" },
-    { text: listings[1] ? `${listings[1].title} price updated` : "Add more listings to track activity", time: "5 days ago", dot: "bg-zinc-500" },
+    listings[0]
+      ? {
+          text: `Listing "${listings[0].title}" is ${listings[0].status}`,
+          time: new Date(listings[0].createdAt).toLocaleDateString(),
+          dot: "bg-indigo-500",
+        }
+      : { text: "List your first project to start selling", time: "", dot: "bg-zinc-700" },
+    betaTests[0]
+      ? {
+          text: `Beta test "${betaTests[0].title}" — ${betaTests[0].spots.total - betaTests[0].spots.filled} spots remaining`,
+          time: new Date(betaTests[0].createdAt).toLocaleDateString(),
+          dot: "bg-green-500",
+        }
+      : { text: "Create a beta test to recruit testers", time: "", dot: "bg-zinc-700" },
+    listings[1]
+      ? {
+          text: `Listing "${listings[1].title}" — ${listings[1].status}`,
+          time: new Date(listings[1].createdAt).toLocaleDateString(),
+          dot: "bg-indigo-500",
+        }
+      : { text: "Add more listings to reach more buyers", time: "", dot: "bg-zinc-700" },
+    betaTests[1]
+      ? {
+          text: `Beta test "${betaTests[1].title}" — ${betaTests[1].spots.filled} of ${betaTests[1].spots.total} spots filled`,
+          time: new Date(betaTests[1].createdAt).toLocaleDateString(),
+          dot: "bg-amber-500",
+        }
+      : { text: "Multiple beta tests help you test faster", time: "", dot: "bg-zinc-700" },
   ];
 
   return (
@@ -207,6 +247,82 @@ export function DashboardClient({ displayName, stats, listings, betaTests }: Pro
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "As Buyer" && (
+        <div className="space-y-8">
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-50 mb-4">Unlocked Listings</h3>
+            {unlockedListings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-zinc-800 bg-zinc-900">
+                <Lock className="h-8 w-8 text-zinc-700 mb-3" />
+                <p className="font-medium text-zinc-400">No listings unlocked yet</p>
+                <p className="mt-1 text-sm text-zinc-600">Unlock a listing to see the seller&apos;s contact info.</p>
+                <Link href="/browse" className="mt-4">
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">Browse listings</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {unlockedListings.map((listing) => (
+                  <div key={listing.id} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-zinc-200 truncate">{listing.title}</p>
+                      <span className="text-sm text-zinc-400">{formatPrice(listing.askingPrice)}</span>
+                    </div>
+                    <Link href={`/listing/${listing.id}`}>
+                      <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-zinc-50 px-2">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-50 mb-4">My Beta Applications</h3>
+            {myApplications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-zinc-800 bg-zinc-900">
+                <TestTube className="h-8 w-8 text-zinc-700 mb-3" />
+                <p className="font-medium text-zinc-400">No applications yet</p>
+                <p className="mt-1 text-sm text-zinc-600">Apply to beta tests to earn rewards.</p>
+                <Link href="/beta" className="mt-4">
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">Browse beta tests</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myApplications.map((application) => (
+                  <div key={application.betaTestId} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-zinc-200 truncate">
+                        {application.betaTest?.title ?? application.betaTestId}
+                      </p>
+                      <Badge className={
+                        application.status === "accepted"
+                          ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : application.status === "rejected"
+                            ? "bg-red-500/10 text-red-400 border-red-500/20"
+                            : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                      }>
+                        {application.status}
+                      </Badge>
+                    </div>
+                    {application.betaTest && (
+                      <Link href={`/beta/${application.betaTestId}`}>
+                        <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-zinc-50 px-2">
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

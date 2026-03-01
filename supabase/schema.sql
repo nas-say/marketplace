@@ -262,6 +262,36 @@ create policy "applications_creator_read" on beta_applications for select using 
   beta_test_id in (select id from beta_tests where creator_id = auth.uid()::text)
 );
 
+-- ─── BETA FEEDBACK ───────────────────────────────────────────────────────────
+create table if not exists beta_feedback (
+  id             uuid primary key default gen_random_uuid(),
+  beta_test_id   text references beta_tests(id) on delete cascade,
+  clerk_user_id  text not null,
+  rating         integer check (rating >= 1 and rating <= 5),
+  comment        text,
+  feedback_type  text,
+  created_at     timestamptz default now()
+);
+
+create index if not exists idx_beta_feedback_test
+  on beta_feedback(beta_test_id, created_at desc);
+
+alter table beta_feedback enable row level security;
+drop policy if exists "beta_feedback_tester_insert" on beta_feedback;
+drop policy if exists "beta_feedback_tester_read" on beta_feedback;
+drop policy if exists "beta_feedback_creator_read" on beta_feedback;
+
+create policy "beta_feedback_tester_insert" on beta_feedback
+  for insert with check (clerk_user_id = auth.uid()::text);
+
+create policy "beta_feedback_tester_read" on beta_feedback
+  for select using (clerk_user_id = auth.uid()::text);
+
+create policy "beta_feedback_creator_read" on beta_feedback
+  for select using (
+    beta_test_id in (select id from beta_tests where creator_id = auth.uid()::text)
+  );
+
 -- ─── BETA REWARD PAYMENTS ─────────────────────────────────────────────────────
 create table if not exists beta_reward_payments (
   id             uuid primary key default gen_random_uuid(),

@@ -1,9 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getAllListingsBySeller } from "@/lib/db/listings";
+import { getAllListingsBySeller, getUnlockedListings } from "@/lib/db/listings";
 import { getBetaTestsByCreator } from "@/lib/db/beta-tests";
 import { getProfile } from "@/lib/db/profiles";
 import { formatPrice } from "@/lib/data";
+import { getUserApplications } from "@/lib/db/applications";
 import { DashboardClient } from "./dashboard-client";
 
 export default async function DashboardPage() {
@@ -12,10 +13,12 @@ export default async function DashboardPage() {
 
   const clerkUser = await currentUser();
 
-  const [profile, listings, allBetaTests] = await Promise.all([
+  const [profile, listings, allBetaTests, unlockedListings, myApplications] = await Promise.all([
     getProfile(userId),
     getAllListingsBySeller(userId),
     getBetaTestsByCreator(userId),
+    getUnlockedListings(userId),
+    getUserApplications(userId),
   ]);
 
   const myBetaTests = allBetaTests;
@@ -39,6 +42,8 @@ export default async function DashboardPage() {
       stats={stats}
       listings={listings}
       betaTests={myBetaTests}
+      unlockedListings={unlockedListings}
+      myApplications={myApplications}
     />
   );
 }

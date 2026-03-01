@@ -48,7 +48,7 @@ function mapStatusFromRow(
   return "accepting";
 }
 
-function rowToBetaTest(row: Record<string, unknown>): BetaTest {
+export function rowToBetaTest(row: Record<string, unknown>): BetaTest {
   const filled = Number(row.spots_filled ?? 0);
   const total = Number(row.spots_total ?? 20);
 

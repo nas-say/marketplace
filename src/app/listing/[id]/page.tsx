@@ -14,6 +14,7 @@ import { PurchaseCard } from "@/components/listing/purchase-card";
 import { ListingCard } from "@/components/listing/listing-card";
 import { SellerWebsiteGate } from "./seller-section";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Minus, CheckCircle, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -109,7 +110,7 @@ export default async function ListingDetailPage({ params }: Props) {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
         <div>
           <div className="flex items-start gap-3 mb-6">
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-zinc-50">{listing.title}</h1>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <Badge className="bg-indigo-600">{CATEGORY_LABELS[listing.category]}</Badge>
@@ -136,6 +137,17 @@ export default async function ListingDetailPage({ params }: Props) {
                 )}
               </div>
             </div>
+            {isSeller && (
+              <Link href={`/listing/${listing.id}/edit`} className="shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-zinc-700 text-zinc-400 hover:text-zinc-50"
+                >
+                  Edit listing
+                </Button>
+              </Link>
+            )}
           </div>
 
           {isSeller && listing.status === "pending_verification" && (

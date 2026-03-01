@@ -204,3 +204,22 @@ export async function createListing(
   if (error || !data) return null;
   return { id: data.id };
 }
+
+export async function getUnlockedListings(clerkUserId: string): Promise<Listing[]> {
+  const client = createServiceClient();
+  const { data, error } = await client
+    .from("unlocked_listings")
+    .select("listing_id, listings(*)")
+    .eq("clerk_user_id", clerkUserId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as Record<string, unknown>[])
+    .map((row) => {
+      const listing = (row as { listings: Record<string, unknown> | null }).listings;
+      if (!listing) return null;
+      return rowToListing(listing);
+    })
+    .filter((listing): listing is Listing => listing !== null);
+}

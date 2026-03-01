@@ -335,7 +335,12 @@ export function CreateForm() {
               </div>
               <div>
                 <label className="block text-sm text-zinc-400 mb-1">Deadline</label>
-                <Input name="betaDeadline" type="date" className="bg-zinc-900 border-zinc-700" />
+                <Input
+                  name="betaDeadline"
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  className="bg-zinc-900 border-zinc-700"
+                />
               </div>
             </div>
           )}
