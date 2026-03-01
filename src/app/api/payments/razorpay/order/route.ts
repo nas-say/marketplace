@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getVisitorCurrency } from "@/lib/geo";
+import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
 import {
   createRazorpayOrder,
   getInrBundleByConnects,
@@ -37,6 +38,46 @@ export async function POST(request: Request) {
   if (!bundle) {
     logOrderFailure("unsupported_bundle", { userId, connects });
     return NextResponse.json({ error: "Unsupported INR bundle." }, { status: 400 });
+  }
+
+  const rateLimit = await enforceUserRateLimit({
+    userId,
+    action: "connects_order",
+    request,
+    windowMs: 60_000,
+    maxRequests: 8,
+  });
+  if (!rateLimit.allowed) {
+    logOrderFailure("rate_limited", { userId, connects });
+    return NextResponse.json(
+      { error: "Too many order attempts. Please slow down and try again." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds ?? 60),
+        },
+      }
+    );
+  }
+
+  const cooldown = await enforceUserCooldown({
+    userId,
+    action: "connects_order_bundle",
+    scope: String(bundle.connects),
+    request,
+    cooldownMs: 15_000,
+  });
+  if (!cooldown.allowed) {
+    logOrderFailure("cooldown_blocked", { userId, connects: bundle.connects });
+    return NextResponse.json(
+      { error: "Please wait a few seconds before creating another order for this bundle." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(cooldown.retryAfterSeconds ?? 15),
+        },
+      }
+    );
   }
 
   const receipt = `ct_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;

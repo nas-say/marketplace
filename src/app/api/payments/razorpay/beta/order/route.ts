@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { getVisitorCountryCode } from "@/lib/geo";
+import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
 import { createRazorpayOrder, getRazorpayPublicKeyId } from "@/lib/payments/razorpay";
 
 export const runtime = "nodejs";
@@ -32,6 +33,46 @@ export async function POST(request: Request) {
   if (!betaTestId) {
     logBetaOrderFailure("missing_beta_test_id", { userId });
     return NextResponse.json({ error: "Missing beta test id." }, { status: 400 });
+  }
+
+  const rateLimit = await enforceUserRateLimit({
+    userId,
+    action: "beta_order",
+    request,
+    windowMs: 60_000,
+    maxRequests: 6,
+  });
+  if (!rateLimit.allowed) {
+    logBetaOrderFailure("rate_limited", { userId, betaTestId });
+    return NextResponse.json(
+      { error: "Too many reward-funding attempts. Please slow down and try again." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds ?? 60),
+        },
+      }
+    );
+  }
+
+  const cooldown = await enforceUserCooldown({
+    userId,
+    action: "beta_order_test",
+    scope: betaTestId,
+    request,
+    cooldownMs: 15_000,
+  });
+  if (!cooldown.allowed) {
+    logBetaOrderFailure("cooldown_blocked", { userId, betaTestId });
+    return NextResponse.json(
+      { error: "Please wait a few seconds before creating another funding order." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(cooldown.retryAfterSeconds ?? 15),
+        },
+      }
+    );
   }
 
   const client = createServiceClient();

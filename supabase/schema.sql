@@ -234,6 +234,8 @@ create table if not exists payment_interest_signals (
 
 create index if not exists idx_payment_interest_signals_created_at
   on payment_interest_signals(created_at desc);
+create index if not exists idx_payment_interest_signals_guard_lookup
+  on payment_interest_signals(clerk_user_id, feature, created_at desc);
 
 alter table payment_interest_signals enable row level security;
 create policy "payment_interest_signals_owner_read" on payment_interest_signals for select using (

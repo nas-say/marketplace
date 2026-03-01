@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
+import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
 import {
   captureRazorpayPayment,
   getRazorpayOrder,
@@ -37,6 +38,46 @@ export async function POST(request: Request) {
   if (!betaTestId || !orderId || !paymentId || !signature) {
     logBetaVerifyFailure("missing_fields", { userId, betaTestId, orderId, paymentId });
     return NextResponse.json({ error: "Missing payment verification fields." }, { status: 400 });
+  }
+
+  const rateLimit = await enforceUserRateLimit({
+    userId,
+    action: "beta_verify",
+    request,
+    windowMs: 60_000,
+    maxRequests: 12,
+  });
+  if (!rateLimit.allowed) {
+    logBetaVerifyFailure("rate_limited", { userId, betaTestId, paymentId });
+    return NextResponse.json(
+      { error: "Too many funding verification attempts. Please try again shortly." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds ?? 60),
+        },
+      }
+    );
+  }
+
+  const cooldown = await enforceUserCooldown({
+    userId,
+    action: "beta_verify_payment",
+    scope: paymentId,
+    request,
+    cooldownMs: 4_000,
+  });
+  if (!cooldown.allowed) {
+    logBetaVerifyFailure("cooldown_blocked", { userId, betaTestId, paymentId });
+    return NextResponse.json(
+      { error: "Verification already in progress. Please retry in a moment." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(cooldown.retryAfterSeconds ?? 4),
+        },
+      }
+    );
   }
 
   if (!verifyRazorpaySignature({ orderId, paymentId, signature })) {

@@ -130,6 +130,24 @@ function getRazorpayTopupTransactionId(paymentId: string): string {
   return stableUuidFromText(`${RAZORPAY_TOPUP_TX_NAMESPACE}:${paymentId}`);
 }
 
+export async function hasRazorpayTopupCredit(
+  clerkUserId: string,
+  paymentId: string
+): Promise<boolean> {
+  const client = createServiceClient();
+  const transactionId = getRazorpayTopupTransactionId(paymentId);
+
+  const { data, error } = await client
+    .from("connects_transactions")
+    .select("id")
+    .eq("id", transactionId)
+    .eq("clerk_user_id", clerkUserId)
+    .maybeSingle();
+
+  if (error) return false;
+  return !!data;
+}
+
 export async function hasClaimedSignupGift(clerkUserId: string): Promise<boolean> {
   const client = createServiceClient();
   const transactionId = getSignupGiftTransactionId(clerkUserId);

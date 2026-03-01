@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { creditRazorpayTopup } from "@/lib/db/connects";
+import { creditRazorpayTopup, hasRazorpayTopupCredit } from "@/lib/db/connects";
+import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
 import {
   captureRazorpayPayment,
   getInrBundleByConnects,
@@ -38,9 +39,58 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing payment verification fields." }, { status: 400 });
   }
 
+  const rateLimit = await enforceUserRateLimit({
+    userId,
+    action: "connects_verify",
+    request,
+    windowMs: 60_000,
+    maxRequests: 16,
+  });
+  if (!rateLimit.allowed) {
+    logVerifyFailure("rate_limited", { userId, orderId, paymentId });
+    return NextResponse.json(
+      { error: "Too many verification attempts. Please try again shortly." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds ?? 60),
+        },
+      }
+    );
+  }
+
+  const cooldown = await enforceUserCooldown({
+    userId,
+    action: "connects_verify_payment",
+    scope: paymentId,
+    request,
+    cooldownMs: 4_000,
+  });
+  if (!cooldown.allowed) {
+    logVerifyFailure("cooldown_blocked", { userId, paymentId });
+    return NextResponse.json(
+      { error: "Verification already in progress. Please retry in a moment." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(cooldown.retryAfterSeconds ?? 4),
+        },
+      }
+    );
+  }
+
   if (!verifyRazorpaySignature({ orderId, paymentId, signature })) {
     logVerifyFailure("invalid_signature", { userId, orderId, paymentId });
     return NextResponse.json({ error: "Invalid Razorpay signature." }, { status: 400 });
+  }
+
+  const alreadyCredited = await hasRazorpayTopupCredit(userId, paymentId);
+  if (alreadyCredited) {
+    return NextResponse.json({
+      success: true,
+      credited: false,
+      connectsAdded: 0,
+    });
   }
 
   try {
