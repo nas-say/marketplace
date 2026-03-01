@@ -53,20 +53,21 @@ export function BetaCard({ betaTest }: BetaCardProps) {
 
   return (
     <motion.div
+      className="h-full"
       whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 280, damping: 24, mass: 0.85 }}
     >
       <Link href={`/beta/${betaTest.id}`}>
-        <Card className="card-hover cursor-pointer border-zinc-800 bg-zinc-900">
-        <CardContent className="p-5">
+        <Card className="card-hover flex h-full min-h-[360px] cursor-pointer flex-col border-zinc-800 bg-zinc-900">
+        <CardContent className="flex flex-1 flex-col p-5">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-semibold text-zinc-50">{betaTest.title}</h3>
-              <p className="mt-1 text-sm text-zinc-400 line-clamp-2">{betaTest.description}</p>
+              <h3 className="line-clamp-2 min-h-[56px] font-semibold text-zinc-50">{betaTest.title}</h3>
+              <p className="mt-1 line-clamp-2 min-h-10 text-sm text-zinc-400">{betaTest.description}</p>
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-1">
+          <div className="mt-3 flex min-h-[56px] max-h-[56px] flex-wrap content-start gap-1 overflow-hidden">
             <Badge className={statusColor}>{statusLabel}</Badge>
             <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs">
               {CATEGORY_LABELS[betaTest.category]}
@@ -91,9 +92,9 @@ export function BetaCard({ betaTest }: BetaCardProps) {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between">
-            <div>
-              <span className="text-sm font-medium text-violet-400">
+          <div className="mt-auto flex items-end justify-between pt-3">
+            <div className="max-w-[78%]">
+              <span className="line-clamp-2 text-sm font-medium text-violet-400">
                 {betaTest.reward.description}
               </span>
               {cashPayout && (
@@ -102,7 +103,7 @@ export function BetaCard({ betaTest }: BetaCardProps) {
                 </p>
               )}
             </div>
-            <span className="text-xs text-zinc-500">
+            <span className="text-right text-xs text-zinc-500">
               Due {new Date(betaTest.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           </div>

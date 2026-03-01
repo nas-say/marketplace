@@ -81,12 +81,12 @@ export function ListingCard({ listing }: ListingCardProps) {
 
   return (
     <motion.div
-      className="relative group"
+      className="relative group h-full"
       whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 300, damping: 24, mass: 0.8 }}
     >
       <Link href={`/listing/${listing.id}`}>
-        <Card className="card-hover cursor-pointer border-zinc-800 bg-zinc-900">
+        <Card className="card-hover flex h-full min-h-[360px] cursor-pointer flex-col border-zinc-800 bg-zinc-900">
           {/* Gradient thumbnail */}
           <div
             className={`relative h-40 bg-gradient-to-br ${gradient} rounded-t-lg flex flex-col items-center justify-center gap-1`}
@@ -118,11 +118,11 @@ export function ListingCard({ listing }: ListingCardProps) {
             </div>
           </div>
 
-          <CardContent className="p-4">
+          <CardContent className="flex flex-1 flex-col p-4">
             <h3 className="font-semibold text-zinc-50 truncate">{listing.title}</h3>
             <p className="mt-1 text-sm text-zinc-400 line-clamp-1">{listing.pitch}</p>
 
-            <div className="mt-3 flex items-center gap-3 text-xs text-zinc-500">
+            <div className="mt-3 min-h-4 flex items-center gap-3 text-xs text-zinc-500">
               <span className="flex items-center gap-1">
                 <TrendIcon className={`h-3 w-3 ${trendColor}`} />
                 {formatPrice(listing.metrics.mrr)}/mo
@@ -130,11 +130,11 @@ export function ListingCard({ listing }: ListingCardProps) {
               <span>{formatNumber(listing.metrics.monthlyVisitors)} visitors</span>
             </div>
 
-            <div className="mt-3">
+            <div className="mt-3 min-h-6">
               <TechStackBadges stack={listing.techStack} max={3} />
             </div>
 
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-auto flex items-center justify-between pt-3">
               <span className="text-lg font-bold text-violet-400">
                 {formatPrice(listing.askingPrice)}
               </span>

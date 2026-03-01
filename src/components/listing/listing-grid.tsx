@@ -21,7 +21,7 @@ export function ListingGrid({ listings }: ListingGridProps) {
 
   return (
     <motion.div
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       initial={reduceMotion ? undefined : "hidden"}
       animate={reduceMotion ? undefined : "visible"}
       variants={
@@ -40,6 +40,7 @@ export function ListingGrid({ listings }: ListingGridProps) {
       {listings.map((listing) => (
         <motion.div
           key={listing.id}
+          className="h-full"
           variants={
             reduceMotion
               ? undefined

@@ -21,7 +21,7 @@ export function BetaGrid({ betaTests }: BetaGridProps) {
 
   return (
     <motion.div
-      className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+      className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
       initial={reduceMotion ? undefined : "hidden"}
       animate={reduceMotion ? undefined : "visible"}
       variants={
@@ -40,6 +40,7 @@ export function BetaGrid({ betaTests }: BetaGridProps) {
       {betaTests.map((bt) => (
         <motion.div
           key={bt.id}
+          className="h-full"
           variants={
             reduceMotion
               ? undefined

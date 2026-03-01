@@ -4,14 +4,16 @@ import { ArrowRight, Zap } from "lucide-react";
 import { getListings } from "@/lib/db/listings";
 import { getActiveBetaTests } from "@/lib/db/beta-tests";
 import { formatPrice } from "@/lib/data";
+import { HeroParallaxBackdrop } from "./hero-parallax-backdrop";
 
 export async function Hero() {
   const [listings, betaTests] = await Promise.all([getListings(), getActiveBetaTests()]);
   const totalSalesValue = listings.reduce((sum, l) => sum + l.askingPrice, 0);
 
   return (
-    <section className="gradient-hero py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+    <section className="gradient-hero relative overflow-hidden py-24 sm:py-32">
+      <HeroParallaxBackdrop />
+      <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm text-indigo-400 mb-6">
           <Zap className="h-3.5 w-3.5" />
           The marketplace for indie hackers

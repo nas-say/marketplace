@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Menu, X, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
+import { AnimatePresence, motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 import {
   SignedIn,
   SignedOut,
@@ -15,6 +17,10 @@ import {
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    pathname === href || (href !== "/" && pathname.startsWith(href));
 
   return (
     <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
@@ -30,9 +36,17 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm text-zinc-400 transition-colors hover:text-zinc-50"
+              className={`relative pb-1 text-sm transition-colors ${
+                isActive(link.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-50"
+              }`}
             >
               {link.label}
+              {isActive(link.href) && (
+                <motion.span
+                  layoutId="desktop-nav-underline"
+                  className="absolute -bottom-[5px] left-0 right-0 h-0.5 rounded-full bg-indigo-500"
+                />
+              )}
             </Link>
           ))}
 
@@ -50,10 +64,28 @@ export function Navbar() {
           </SignedOut>
 
           <SignedIn>
-            <Link href="/dashboard" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Dashboard</Link>
-            <Link href="/connects" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Connects</Link>
-            <Link href="/how-it-works" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">How It Works</Link>
-            <Link href="/settings" className="text-sm text-zinc-400 transition-colors hover:text-zinc-50">Settings</Link>
+            {[
+              { href: "/dashboard", label: "Dashboard" },
+              { href: "/connects", label: "Connects" },
+              { href: "/how-it-works", label: "How It Works" },
+              { href: "/settings", label: "Settings" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`relative pb-1 text-sm transition-colors ${
+                  isActive(link.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-50"
+                }`}
+              >
+                {link.label}
+                {isActive(link.href) && (
+                  <motion.span
+                    layoutId="desktop-nav-underline"
+                    className="absolute -bottom-[5px] left-0 right-0 h-0.5 rounded-full bg-indigo-500"
+                  />
+                )}
+              </Link>
+            ))}
             <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
           </SignedIn>
         </div>
@@ -63,73 +95,96 @@ export function Navbar() {
           className="md:hidden text-zinc-400"
           onClick={() => setMobileOpen(!mobileOpen)}
         >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <AnimatePresence mode="wait" initial={false}>
+            {mobileOpen ? (
+              <motion.span
+                key="close"
+                initial={{ opacity: 0, rotate: -80 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: 80 }}
+                transition={{ duration: 0.16 }}
+                className="block"
+              >
+                <X className="h-6 w-6" />
+              </motion.span>
+            ) : (
+              <motion.span
+                key="menu"
+                initial={{ opacity: 0, rotate: 80 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: -80 }}
+                transition={{ duration: 0.16 }}
+                className="block"
+              >
+                <Menu className="h-6 w-6" />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
       </div>
 
       {/* Mobile nav */}
-      {mobileOpen && (
-        <div className="border-t border-zinc-800 bg-zinc-950 px-4 pb-4 md:hidden">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="block py-3 text-sm text-zinc-400 hover:text-zinc-50"
-              onClick={() => setMobileOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="mt-3 flex flex-col gap-2">
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button size="sm" variant="outline" className="w-full border-zinc-700 text-zinc-300">
-                  Sign In
-                </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500">
-                  Sign Up
-                </Button>
-              </SignUpButton>
-            </SignedOut>
-            <SignedIn>
+      <AnimatePresence initial={false}>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden border-t border-zinc-800 bg-zinc-950 px-4 pb-4 md:hidden"
+          >
+            {NAV_LINKS.map((link) => (
               <Link
-                href="/dashboard"
-                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
+                key={link.href}
+                href={link.href}
+                className={`block py-3 text-sm transition-colors ${
+                  isActive(link.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-50"
+                }`}
                 onClick={() => setMobileOpen(false)}
               >
-                Dashboard
+                {link.label}
               </Link>
-              <Link
-                href="/connects"
-                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
-                onClick={() => setMobileOpen(false)}
-              >
-                Connects
-              </Link>
-              <Link
-                href="/how-it-works"
-                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
-                onClick={() => setMobileOpen(false)}
-              >
-                How It Works
-              </Link>
-              <Link
-                href="/settings"
-                className="block py-2 text-sm text-zinc-400 hover:text-zinc-50"
-                onClick={() => setMobileOpen(false)}
-              >
-                Settings
-              </Link>
-              <div className="flex items-center gap-3 py-2">
-                <UserButton />
-                <span className="text-sm text-zinc-400">My Account</span>
-              </div>
-            </SignedIn>
-          </div>
-        </div>
-      )}
+            ))}
+            <div className="mt-3 flex flex-col gap-2">
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button size="sm" variant="outline" className="w-full border-zinc-700 text-zinc-300">
+                    Sign In
+                  </Button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <Button size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500">
+                    Sign Up
+                  </Button>
+                </SignUpButton>
+              </SignedOut>
+              <SignedIn>
+                {[
+                  { href: "/dashboard", label: "Dashboard" },
+                  { href: "/connects", label: "Connects" },
+                  { href: "/how-it-works", label: "How It Works" },
+                  { href: "/settings", label: "Settings" },
+                ].map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`block py-2 text-sm transition-colors ${
+                      isActive(link.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-50"
+                    }`}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <div className="flex items-center gap-3 py-2">
+                  <UserButton />
+                  <span className="text-sm text-zinc-400">My Account</span>
+                </div>
+              </SignedIn>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
