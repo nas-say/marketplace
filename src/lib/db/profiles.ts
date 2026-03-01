@@ -36,9 +36,14 @@ export async function getProfile(clerkUserId: string): Promise<User | null> {
   return rowToUser(data);
 }
 
-export async function getProfiles(): Promise<User[]> {
+export async function getTopTesters(limit = 5): Promise<User[]> {
   const client = await createServerClient();
-  const { data, error } = await client.from("profiles").select("*");
+  const { data, error } = await client
+    .from("profiles")
+    .select("*")
+    .gt("feedback_given", 0)
+    .order("feedback_given", { ascending: false })
+    .limit(limit);
   if (error || !data) return [];
   return data.map(rowToUser);
 }

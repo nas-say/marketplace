@@ -213,6 +213,9 @@ create table if not exists connects_transactions (
 create index if not exists idx_connects_transactions_user_created_at
   on connects_transactions(clerk_user_id, created_at desc);
 
+create index if not exists idx_listings_seller_id
+  on listings(seller_id);
+
 alter table connects_balance enable row level security;
 alter table unlocked_listings enable row level security;
 alter table connects_transactions enable row level security;
