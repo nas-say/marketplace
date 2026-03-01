@@ -1,0 +1,77 @@
+[
+  {
+    "id": "bt_mock_inr_001",
+    "slug": "pitchpilot-founder-deck-generator",
+    "title": "PitchPilot - Founder Deck Builder",
+    "description": "Deck generation tool for Indian founders raising pre-seed rounds. Need testers to validate deck templates, data-room links, and export quality across devices.",
+    "category": "saas",
+    "platform": ["web"],
+    "screenshots": ["/images/placeholder-screenshot-1.png"],
+    "testingInstructions": "1. Create an account.\n2. Generate one pitch deck using the SaaS template.\n3. Edit traction slide and export to PDF.\n4. Share via public link and verify mobile readability.\n5. Report any formatting issues.",
+    "requirements": "Laptop browser, 20 minutes",
+    "feedbackTypes": ["bug_report", "ux_rating", "feature_suggestion"],
+    "spots": { "total": 25, "filled": 9 },
+    "reward": {
+      "type": "cash",
+      "currency": "INR",
+      "amountMinor": 35000,
+      "description": "₹350 payout per completed test",
+      "poolStatus": "funded"
+    },
+    "creatorId": "usr_001",
+    "status": "accepting",
+    "deadline": "2026-03-28T23:59:00Z",
+    "createdAt": "2026-03-01T08:10:00Z",
+    "updatedAt": "2026-03-01T08:10:00Z"
+  },
+  {
+    "id": "bt_mock_inr_002",
+    "slug": "shipfast-mobile-deployment-assistant",
+    "title": "ShipFast Mobile - CI/CD Assistant",
+    "description": "A workflow tool for Android/iOS app releases. Looking for indie app devs to test changelog generation, release checklist automation, and crash rollback prompts.",
+    "category": "mobile-app",
+    "platform": ["ios", "android"],
+    "screenshots": ["/images/placeholder-screenshot-1.png"],
+    "testingInstructions": "1. Connect one demo project.\n2. Generate release checklist and changelog.\n3. Simulate a failed release and test rollback suggestions.\n4. Submit final feedback form.",
+    "requirements": "Mobile device + browser, 30 minutes",
+    "feedbackTypes": ["bug_report", "feature_suggestion"],
+    "spots": { "total": 18, "filled": 13 },
+    "reward": {
+      "type": "cash",
+      "currency": "INR",
+      "amountMinor": 50000,
+      "description": "₹500 payout per completed test",
+      "poolStatus": "funded"
+    },
+    "creatorId": "usr_003",
+    "status": "almost_full",
+    "deadline": "2026-03-18T23:59:00Z",
+    "createdAt": "2026-02-28T15:30:00Z",
+    "updatedAt": "2026-03-01T09:20:00Z"
+  },
+  {
+    "id": "bt_mock_inr_003",
+    "slug": "stackscope-api-observability",
+    "title": "StackScope - API Observability",
+    "description": "Developer-focused API monitor with request traces and latency alerts. Need testers for onboarding flow, alert tuning, and dashboard readability.",
+    "category": "api",
+    "platform": ["web"],
+    "screenshots": ["/images/placeholder-screenshot-1.png"],
+    "testingInstructions": "1. Add two API endpoints.\n2. Configure alert threshold and email destination.\n3. Trigger one timeout to validate alerting.\n4. Review traces and suggest dashboard improvements.",
+    "requirements": "Any API endpoint and 20 minutes",
+    "feedbackTypes": ["bug_report", "ux_rating"],
+    "spots": { "total": 30, "filled": 6 },
+    "reward": {
+      "type": "cash",
+      "currency": "INR",
+      "amountMinor": 25000,
+      "description": "₹250 payout per completed test",
+      "poolStatus": "funded"
+    },
+    "creatorId": "usr_006",
+    "status": "accepting",
+    "deadline": "2026-04-05T23:59:00Z",
+    "createdAt": "2026-03-01T10:40:00Z",
+    "updatedAt": "2026-03-01T10:40:00Z"
+  }
+]

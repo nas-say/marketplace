@@ -3,12 +3,53 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { isAdminUser } from "@/lib/admin-access";
+import { getClerkPrimaryEmail, sendPayoutStatusNotifications } from "@/lib/notifications/payout-status";
 import { createServiceClient } from "@/lib/supabase";
 
 const ALLOWED_PAYOUT_STATUSES = new Set(["pending", "paid", "failed"]);
 
+interface JoinedBetaTestRow {
+  id?: string;
+  title?: string;
+  reward_type?: string;
+  reward_currency?: string;
+  creator_id?: string;
+}
+
+interface ApplicationLookupRow {
+  status?: string;
+  payout_status?: string | null;
+  payout_gross_minor?: number | string | null;
+  payout_fee_minor?: number | string | null;
+  payout_net_minor?: number | string | null;
+  applicant_email?: string | null;
+  beta_tests?: JoinedBetaTestRow | JoinedBetaTestRow[] | null;
+}
+
 function isMissingColumnError(error: { code?: string } | null | undefined): boolean {
   return error?.code === "42703";
+}
+
+function toMinorNumber(input: unknown): number | null {
+  if (typeof input === "number" && Number.isFinite(input)) return Math.max(0, Math.round(input));
+  if (typeof input === "string" && input.trim().length > 0) {
+    const parsed = Number(input);
+    if (Number.isFinite(parsed)) return Math.max(0, Math.round(parsed));
+  }
+  return null;
+}
+
+function normalizePayoutStatus(input: unknown): "pending" | "paid" | "failed" {
+  if (input === "paid") return "paid";
+  if (input === "failed") return "failed";
+  return "pending";
+}
+
+function firstJoinedBetaTest(
+  value: ApplicationLookupRow["beta_tests"]
+): JoinedBetaTestRow | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
 }
 
 export async function updateCashPayoutStatusAction(
@@ -33,26 +74,27 @@ export async function updateCashPayoutStatusAction(
   const client = createServiceClient();
   const { data: appRow, error: appError } = await client
     .from("beta_applications")
-    .select("status, payout_status, beta_tests!inner(reward_type)")
+    .select(
+      "status, payout_status, payout_gross_minor, payout_fee_minor, payout_net_minor, applicant_email, beta_tests!inner(id, title, reward_type, reward_currency, creator_id)"
+    )
     .eq("beta_test_id", betaTestId)
     .eq("clerk_user_id", applicantUserId)
     .maybeSingle();
 
-  if (appError || !appRow) {
+  const app = appRow as ApplicationLookupRow | null;
+  if (appError || !app) {
     return;
   }
 
-  const applicationStatus = String(appRow.status ?? "pending");
-  const joinedBetaTest = appRow.beta_tests as { reward_type?: string } | { reward_type?: string }[] | null;
-  const rewardType = Array.isArray(joinedBetaTest)
-    ? String(joinedBetaTest[0]?.reward_type ?? "cash")
-    : String(joinedBetaTest?.reward_type ?? "cash");
+  const applicationStatus = String(app.status ?? "pending");
+  const joinedBetaTest = firstJoinedBetaTest(app.beta_tests);
+  const rewardType = String(joinedBetaTest?.reward_type ?? "cash");
 
   if (applicationStatus !== "accepted" || rewardType !== "cash") {
     return;
   }
-  const previousPayoutStatus =
-    appRow.payout_status === "paid" || appRow.payout_status === "failed" ? appRow.payout_status : "pending";
+  const previousPayoutStatus = normalizePayoutStatus(app.payout_status);
+  const normalizedNextStatus = normalizePayoutStatus(nextStatus);
 
   const updatePayload = {
     payout_status: nextStatus,
@@ -92,6 +134,41 @@ export async function updateCashPayoutStatusAction(
       code: auditError.code,
       message: auditError.message,
     });
+  }
+
+  if (previousPayoutStatus !== normalizedNextStatus) {
+    const creatorUserId = String(joinedBetaTest?.creator_id ?? "");
+    const creatorEmail = creatorUserId ? await getClerkPrimaryEmail(creatorUserId) : null;
+    const testerEmail =
+      typeof app.applicant_email === "string" && app.applicant_email.includes("@")
+        ? app.applicant_email.trim()
+        : null;
+
+    const emailResult = await sendPayoutStatusNotifications({
+      betaTestId,
+      betaTestTitle: String(joinedBetaTest?.title ?? betaTestId),
+      applicantUserId,
+      testerEmail,
+      creatorEmail,
+      previousStatus: previousPayoutStatus,
+      nextStatus: normalizedNextStatus,
+      payoutNote,
+      payoutGrossMinor: toMinorNumber(app.payout_gross_minor),
+      payoutFeeMinor: toMinorNumber(app.payout_fee_minor),
+      payoutNetMinor: toMinorNumber(app.payout_net_minor),
+      currency: String(joinedBetaTest?.reward_currency ?? "INR"),
+    });
+
+    if (!emailResult.testerSent && !emailResult.creatorSent) {
+      console.info("[admin] payout status email notification skipped/not sent", {
+        betaTestId,
+        applicantUserId,
+        previousPayoutStatus,
+        nextStatus: normalizedNextStatus,
+        hasTesterEmail: Boolean(testerEmail),
+        hasCreatorEmail: Boolean(creatorEmail),
+      });
+    }
   }
 
   revalidatePath("/admin");

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { isAdminUser } from "@/lib/admin-access";
+import { applyPayoutFilters, parsePayoutFilters, sortPayoutRows } from "@/lib/admin/payout-filters";
 import { getAdminDashboardSnapshot } from "@/lib/db/admin";
 
 export const runtime = "nodejs";
@@ -12,16 +13,25 @@ function csvEscape(value: string): string {
   return value;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { userId } = await auth();
   if (!isAdminUser(userId)) {
     return new NextResponse("Not found", { status: 404 });
   }
 
   const snapshot = await getAdminDashboardSnapshot();
+  const { searchParams } = new URL(request.url);
+  const filters = parsePayoutFilters({
+    status: searchParams.get("status"),
+    betaTest: searchParams.get("betaTest"),
+    from: searchParams.get("from"),
+    to: searchParams.get("to"),
+  });
+  const rows = applyPayoutFilters(sortPayoutRows(snapshot.cashPayoutQueue), filters);
 
   const headers = [
     "betaTestId",
+    "betaTestTitle",
     "userId",
     "email",
     "upi",
@@ -35,10 +45,11 @@ export async function GET() {
   ];
 
   const lines = [headers.join(",")];
-  for (const row of snapshot.cashPayoutQueue) {
+  for (const row of rows) {
     lines.push(
       [
         row.betaTestId,
+        row.betaTestTitle,
         row.applicantUserId,
         row.applicantEmail ?? "",
         row.upiId ?? "",
@@ -56,7 +67,8 @@ export async function GET() {
   }
 
   const csv = `${lines.join("\n")}\n`;
-  const filename = `sideflip-payouts-${new Date().toISOString().slice(0, 10)}.csv`;
+  const dateTag = new Date().toISOString().slice(0, 10);
+  const filename = `sideflip-payouts-${dateTag}.csv`;
 
   return new NextResponse(csv, {
     status: 200,
@@ -67,4 +79,3 @@ export async function GET() {
     },
   });
 }
-

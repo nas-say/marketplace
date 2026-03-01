@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { isAdminUser } from "@/lib/admin-access";
+import {
+  applyPayoutFilters,
+  hasActivePayoutFilters,
+  parsePayoutFilters,
+  payoutFiltersToSearchParams,
+  sortPayoutRows,
+} from "@/lib/admin/payout-filters";
 import { getAdminDashboardSnapshot } from "@/lib/db/admin";
 import { updateCashPayoutStatusAction } from "./actions";
 
@@ -48,18 +55,35 @@ function verificationStatusClass(status: string): string {
   return "bg-zinc-500/10 text-zinc-300 border-zinc-500/30";
 }
 
-export default async function AdminPage() {
+interface Props {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function AdminPage({ searchParams }: Props) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
   if (!isAdminUser(userId)) notFound();
 
-  const snapshot = await getAdminDashboardSnapshot();
-  const payoutRows = [...snapshot.cashPayoutQueue].sort((a, b) => {
-    const rank = (status: string) => (status === "pending" ? 0 : status === "failed" ? 1 : 2);
-    const byStatus = rank(a.payoutStatus) - rank(b.payoutStatus);
-    if (byStatus !== 0) return byStatus;
-    return new Date(b.approvedAt).getTime() - new Date(a.approvedAt).getTime();
+  const query = await searchParams;
+  const payoutFilters = parsePayoutFilters({
+    status: query.status,
+    betaTest: query.betaTest,
+    from: query.from,
+    to: query.to,
   });
+  const hasActiveFilters = hasActivePayoutFilters(payoutFilters);
+
+  const snapshot = await getAdminDashboardSnapshot();
+  const payoutRows = applyPayoutFilters(sortPayoutRows(snapshot.cashPayoutQueue), payoutFilters);
+
+  const payoutFilterParams = payoutFiltersToSearchParams(payoutFilters);
+  const payoutFilterQuery = payoutFilterParams.toString();
+  const payoutExportHref = payoutFilterQuery
+    ? `/admin/payouts-export?${payoutFilterQuery}`
+    : "/admin/payouts-export";
+  const reconciliationExportHref = payoutFilterQuery
+    ? `/admin/payouts-reconciliation-export?${payoutFilterQuery}`
+    : "/admin/payouts-reconciliation-export";
 
   const verificationRows = snapshot.listingVerificationQueue.slice(0, 100);
   const premiumRows = snapshot.premiumApprovalQueue.slice(0, 100);
@@ -122,12 +146,71 @@ export default async function AdminPage() {
                 Approved cash applications. Add UTR/reason note, then mark each payout status.
               </p>
             </div>
-            <Link href="/admin/payouts-export" className="shrink-0">
-              <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300">
-                Export CSV
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href={payoutExportHref} className="shrink-0">
+                <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300">
+                  Export Queue CSV
+                </Button>
+              </Link>
+              <Link href={reconciliationExportHref} className="shrink-0">
+                <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300">
+                  Export Monthly Reconciliation
+                </Button>
+              </Link>
+            </div>
           </div>
+          <form method="get" className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+              Status
+              <select
+                name="status"
+                defaultValue={payoutFilters.status === "all" ? "" : payoutFilters.status}
+                className="h-8 rounded-md border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+              >
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+                <option value="paid">Paid</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+              Beta Test
+              <Input
+                name="betaTest"
+                defaultValue={payoutFilters.betaTestQuery}
+                placeholder="Title or ID"
+                className="h-8 w-48 border-zinc-700 bg-zinc-950 text-xs"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+              From
+              <Input
+                type="date"
+                name="from"
+                defaultValue={payoutFilters.fromDate}
+                className="h-8 border-zinc-700 bg-zinc-950 text-xs"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+              To
+              <Input
+                type="date"
+                name="to"
+                defaultValue={payoutFilters.toDate}
+                className="h-8 border-zinc-700 bg-zinc-950 text-xs"
+              />
+            </label>
+            <Button type="submit" size="sm">
+              Apply Filters
+            </Button>
+            {hasActiveFilters && (
+              <Link href="/admin">
+                <Button type="button" size="sm" variant="outline" className="border-zinc-700 text-zinc-300">
+                  Clear
+                </Button>
+              </Link>
+            )}
+          </form>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -145,7 +228,7 @@ export default async function AdminPage() {
               {payoutRows.length === 0 && (
                 <tr>
                   <td className="px-3 py-4 text-zinc-500" colSpan={6}>
-                    No approved cash applications yet.
+                    {hasActiveFilters ? "No payout rows match current filters." : "No approved cash applications yet."}
                   </td>
                 </tr>
               )}
