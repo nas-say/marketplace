@@ -2,6 +2,7 @@ import { getBetaTestById } from "@/lib/db/beta-tests";
 import { getProfile } from "@/lib/db/profiles";
 import { getUserApplicationIds } from "@/lib/db/applications";
 import { ApplyButton } from "./apply-button";
+import { FundingCard } from "./funding-card";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
 import Link from "next/link";
@@ -33,6 +34,13 @@ export default async function BetaDetailPage({ params }: Props) {
   const alreadyApplied = appliedIds.includes(id);
   const spotsRemaining = betaTest.spots.total - betaTest.spots.filled;
   const fillPercent = (betaTest.spots.filled / betaTest.spots.total) * 100;
+  const isCreator = userId === betaTest.creatorId;
+  const fundingRequiredForApply =
+    betaTest.reward.type === "cash" &&
+    betaTest.reward.poolTotalMinor > 0 &&
+    betaTest.reward.poolStatus !== "funded";
+  const applyBlockedReason =
+    !isCreator && fundingRequiredForApply ? "Creator must fund cash rewards before applications open." : undefined;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -100,6 +108,16 @@ export default async function BetaDetailPage({ params }: Props) {
               <p className="text-lg font-bold text-violet-400">{betaTest.reward.description}</p>
             </div>
 
+            <FundingCard
+              betaTestId={id}
+              isCreator={isCreator}
+              rewardType={betaTest.reward.type}
+              rewardCurrency={betaTest.reward.currency}
+              poolTotalMinor={betaTest.reward.poolTotalMinor}
+              poolFundedMinor={betaTest.reward.poolFundedMinor}
+              poolStatus={betaTest.reward.poolStatus}
+            />
+
             <p className="mb-4 text-sm text-zinc-500">
               Deadline:{" "}
               {new Date(betaTest.deadline).toLocaleDateString("en-US", {
@@ -113,6 +131,7 @@ export default async function BetaDetailPage({ params }: Props) {
               betaTestId={id}
               alreadyApplied={alreadyApplied}
               closed={betaTest.status === "closed"}
+              blockedReason={applyBlockedReason}
             />
 
             {creator && (

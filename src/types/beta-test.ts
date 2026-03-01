@@ -19,6 +19,10 @@ export interface BetaTest {
     type: "cash" | "credits" | "free_access";
     amount: number;
     description: string;
+    currency: "INR" | "USD" | "EUR" | "GBP";
+    poolTotalMinor: number;
+    poolFundedMinor: number;
+    poolStatus: "not_required" | "pending" | "partial" | "funded";
   };
   creatorId: string;
   status: "accepting" | "almost_full" | "closed";

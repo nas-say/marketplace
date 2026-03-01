@@ -9,15 +9,27 @@ interface Props {
   betaTestId: string;
   alreadyApplied: boolean;
   closed: boolean;
+  blockedReason?: string;
 }
 
-export function ApplyButton({ betaTestId, alreadyApplied, closed }: Props) {
+export function ApplyButton({ betaTestId, alreadyApplied, closed, blockedReason }: Props) {
   const [applied, setApplied] = useState(alreadyApplied);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   if (closed) {
     return <Button disabled className="w-full">Testing Closed</Button>;
+  }
+
+  if (blockedReason) {
+    return (
+      <div>
+        <Button disabled className="w-full">
+          Applications Locked
+        </Button>
+        <p className="mt-2 text-xs text-amber-400 text-center">{blockedReason}</p>
+      </div>
+    );
   }
 
   if (applied) {

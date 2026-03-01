@@ -67,6 +67,15 @@ create table if not exists beta_tests (
   spots_total           integer default 20,
   spots_filled          integer default 0,
   reward_description    text,
+  reward_type           text default 'cash' check (reward_type in ('cash', 'credits', 'free_access')),
+  reward_currency       text default 'INR',
+  reward_amount_minor   bigint default 0,
+  reward_pool_total_minor bigint default 0,
+  reward_pool_funded_minor bigint default 0,
+  reward_pool_status    text default 'not_required' check (reward_pool_status in ('not_required', 'pending', 'partial', 'funded')),
+  reward_pool_order_id  text,
+  reward_pool_payment_id text,
+  reward_pool_funded_at timestamptz,
   testing_instructions  text,
   requirements          text,
   deadline              date,
@@ -80,6 +89,29 @@ alter table beta_tests enable row level security;
 create policy "beta_tests_public_read" on beta_tests for select using (true);
 create policy "beta_tests_owner_insert" on beta_tests for insert with check (creator_id = auth.uid()::text);
 create policy "beta_tests_owner_update" on beta_tests for update using (creator_id = auth.uid()::text);
+
+-- Backfill columns for existing projects where beta_tests table already exists
+alter table beta_tests add column if not exists reward_type text default 'cash';
+alter table beta_tests add column if not exists reward_currency text default 'INR';
+alter table beta_tests add column if not exists reward_amount_minor bigint default 0;
+alter table beta_tests add column if not exists reward_pool_total_minor bigint default 0;
+alter table beta_tests add column if not exists reward_pool_funded_minor bigint default 0;
+alter table beta_tests add column if not exists reward_pool_status text default 'not_required';
+alter table beta_tests add column if not exists reward_pool_order_id text;
+alter table beta_tests add column if not exists reward_pool_payment_id text;
+alter table beta_tests add column if not exists reward_pool_funded_at timestamptz;
+
+do $$ begin
+  alter table beta_tests add constraint beta_tests_reward_type_check check (reward_type in ('cash', 'credits', 'free_access'));
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter table beta_tests add constraint beta_tests_reward_pool_status_check check (reward_pool_status in ('not_required', 'pending', 'partial', 'funded'));
+exception
+  when duplicate_object then null;
+end $$;
 
 -- ─── WATCHLIST ───────────────────────────────────────────────────────────────
 create table if not exists watchlist (
@@ -143,6 +175,27 @@ alter table beta_applications enable row level security;
 create policy "applications_owner_all" on beta_applications using (clerk_user_id = auth.uid()::text);
 create policy "applications_creator_read" on beta_applications for select using (
   beta_test_id in (select id from beta_tests where creator_id = auth.uid()::text)
+);
+
+-- ─── BETA REWARD PAYMENTS ─────────────────────────────────────────────────────
+create table if not exists beta_reward_payments (
+  id             uuid primary key default gen_random_uuid(),
+  beta_test_id   text references beta_tests(id) on delete cascade,
+  creator_id     text not null,
+  order_id       text not null,
+  payment_id     text not null unique,
+  amount_minor   bigint not null,
+  currency       text not null default 'INR',
+  status         text not null default 'captured',
+  created_at     timestamptz default now()
+);
+
+create index if not exists idx_beta_reward_payments_test
+  on beta_reward_payments(beta_test_id, created_at desc);
+
+alter table beta_reward_payments enable row level security;
+create policy "beta_reward_payments_creator_read" on beta_reward_payments for select using (
+  creator_id = auth.uid()::text
 );
 
 -- ─── UPDATED_AT TRIGGER ──────────────────────────────────────────────────────

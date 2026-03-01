@@ -23,6 +23,7 @@ export function CreateBetaForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [platforms, setPlatforms] = useState<string[]>(["web"]);
+  const [rewardType, setRewardType] = useState<"cash" | "credits" | "free_access">("cash");
 
   const togglePlatform = (id: string) =>
     setPlatforms((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -41,6 +42,8 @@ export function CreateBetaForm() {
       description: fd.get("description") as string,
       spotsTotal: Number(fd.get("spotsTotal")) || 20,
       rewardDescription: fd.get("rewardDescription") as string,
+      rewardType,
+      rewardAmountInr: Number(fd.get("rewardAmountInr")) || 0,
       testingInstructions: fd.get("testingInstructions") as string,
       requirements: (fd.get("requirements") as string) || "",
       deadline: fd.get("deadline") as string,
@@ -140,6 +143,43 @@ export function CreateBetaForm() {
               />
             </div>
           </div>
+          <div className="mt-4">
+            <label className="block text-sm text-zinc-400 mb-2">Reward Type *</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "cash", label: "Cash (INR)" },
+                { id: "credits", label: "Credits" },
+                { id: "free_access", label: "Free Access" },
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setRewardType(option.id as "cash" | "credits" | "free_access")}
+                  className={`rounded-full px-3 py-1 text-sm border transition-colors ${
+                    rewardType === option.id
+                      ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300"
+                      : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {rewardType === "cash" && (
+            <div className="mt-4">
+              <label className="block text-sm text-zinc-400 mb-1">Cash Reward per Tester (INR) *</label>
+              <Input
+                name="rewardAmountInr"
+                type="number"
+                min="1"
+                step="1"
+                required={rewardType === "cash"}
+                placeholder="e.g., 300"
+                className="bg-zinc-900 border-zinc-800"
+              />
+            </div>
+          )}
           <div className="mt-4">
             <label className="block text-sm text-zinc-400 mb-1">Reward for Testers *</label>
             <Input

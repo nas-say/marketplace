@@ -78,6 +78,7 @@ export default function HowItWorksPage() {
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center">
             <p className="text-3xl font-bold text-zinc-50">100%</p>
             <p className="mt-2 text-sm text-zinc-400">Testers keep all rewards</p>
+            <p className="mt-1 text-xs text-zinc-500">Cash rewards are pre-funded by creators.</p>
           </div>
         </div>
       </section>

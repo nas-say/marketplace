@@ -3,8 +3,28 @@ import { createServiceClient, createServerClient } from "@/lib/supabase";
 export async function applyToBetaTest(
   clerkUserId: string,
   betaTestId: string
-): Promise<{ success: boolean; alreadyApplied: boolean }> {
+): Promise<{ success: boolean; alreadyApplied: boolean; blockedReason?: string }> {
   const client = createServiceClient();
+
+  const { data: betaTest } = await client
+    .from("beta_tests")
+    .select("reward_type, reward_pool_total_minor, reward_pool_status")
+    .eq("id", betaTestId)
+    .maybeSingle();
+
+  const fundingRequired =
+    betaTest &&
+    betaTest.reward_type === "cash" &&
+    Number(betaTest.reward_pool_total_minor ?? 0) > 0 &&
+    betaTest.reward_pool_status !== "funded";
+
+  if (fundingRequired) {
+    return {
+      success: false,
+      alreadyApplied: false,
+      blockedReason: "Applications are locked until the creator funds the reward pool.",
+    };
+  }
 
   const { data: existing } = await client
     .from("beta_applications")
