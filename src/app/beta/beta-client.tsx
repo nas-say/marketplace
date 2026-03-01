@@ -13,34 +13,55 @@ import { Button } from "@/components/ui/button";
 
 interface Props {
   betaTests: BetaTest[];
+  draftBetaTests: BetaTest[];
+  canViewDrafts: boolean;
   topTesters: User[];
 }
 
 const medalColors = ["text-yellow-400", "text-zinc-300", "text-amber-600", "text-zinc-400", "text-zinc-400"];
 
-export function BetaPageClient({ betaTests, topTesters }: Props) {
+export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTesters }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
   const filtered = useMemo(() => {
-    let result = [...betaTests];
+    const source = statusFilter === "draft" ? draftBetaTests : betaTests;
+    let result = [...source];
     if (search) {
       const q = search.toLowerCase();
       result = result.filter((bt) => bt.title.toLowerCase().includes(q) || bt.description.toLowerCase().includes(q));
     }
-    if (statusFilter) result = result.filter((bt) => bt.status === statusFilter);
+    if (statusFilter && statusFilter !== "draft") {
+      result = result.filter((bt) => bt.status === statusFilter);
+    }
     return result;
-  }, [betaTests, search, statusFilter]);
+  }, [betaTests, draftBetaTests, search, statusFilter]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-start justify-between mb-8">
         <PageHeader title="Beta Test Board" description="Find projects to test and earn rewards" />
-        <Link href="/beta/create">
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 shrink-0">
-            <PlusCircle className="mr-1.5 h-4 w-4" />New Beta Test
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/beta/create">
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 shrink-0">
+              <PlusCircle className="mr-1.5 h-4 w-4" />New Beta Test
+            </Button>
+          </Link>
+          {canViewDrafts && (
+            <Button
+              size="sm"
+              variant={statusFilter === "draft" ? "default" : "outline"}
+              className={
+                statusFilter === "draft"
+                  ? "bg-violet-600 hover:bg-violet-500"
+                  : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              }
+              onClick={() => setStatusFilter("draft")}
+            >
+              Drafts ({draftBetaTests.length})
+            </Button>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
         <div>
@@ -49,10 +70,24 @@ export function BetaPageClient({ betaTests, topTesters }: Props) {
               <SearchBar value={search} onChange={setSearch} placeholder="Search beta tests..." />
             </div>
             <div className="flex gap-2 flex-wrap">
-              {["", "accepting", "almost_full", "closed"].map((status) => (
+              {[
+                "",
+                "accepting",
+                "almost_full",
+                "closed",
+                ...(canViewDrafts ? ["draft"] : []),
+              ].map((status) => (
                 <button key={status} onClick={() => setStatusFilter(status)}
                   className={`rounded-full px-3 py-1 text-sm transition-colors ${statusFilter === status ? "bg-indigo-600 text-white" : "bg-zinc-800 text-zinc-400 hover:text-zinc-50"}`}>
-                  {status === "" ? "All" : status === "accepting" ? "Open" : status === "almost_full" ? "Almost Full" : "Closed"}
+                  {status === ""
+                    ? "All"
+                    : status === "accepting"
+                    ? "Open"
+                    : status === "almost_full"
+                    ? "Almost Full"
+                    : status === "closed"
+                    ? "Closed"
+                    : "Drafts"}
                 </button>
               ))}
             </div>
