@@ -39,8 +39,10 @@ export async function createListingAction(payload: {
   registeredUsers: number;
   assetsIncluded: string[];
   includeBeta: boolean;
+  betaRewardType: "cash" | "premium_access";
   betaSpots: number;
   betaRewardInr: number;
+  betaAccessDescription: string;
   betaInstructions: string;
   betaDeadline: string;
 }): Promise<{ error?: string; listingId?: string; requiresVerification?: boolean }> {
@@ -91,18 +93,26 @@ export async function createListingAction(payload: {
     .slice(0, 50);
 
   const includeBeta = Boolean(payload.includeBeta);
+  const betaRewardType = payload.betaRewardType === "premium_access" ? "premium_access" : "cash";
   const betaRewardInr = Number.isFinite(payload.betaRewardInr) ? payload.betaRewardInr : 0;
   const betaRewardMinor = Math.round(betaRewardInr * 100);
+  const betaAccessDescription = payload.betaAccessDescription.trim();
   const betaInstructions = payload.betaInstructions.trim();
   const betaDeadline = payload.betaDeadline.trim();
   const betaSpots = Number.isFinite(payload.betaSpots) ? Math.floor(payload.betaSpots) : 0;
 
   if (includeBeta) {
-    if (betaRewardMinor <= 0) {
-      return { error: "Cash reward per tester (INR) is required when beta testing is enabled." };
-    }
-    if (betaRewardInr > MAX_BETA_REWARD_INR) {
-      return { error: "Cash reward per tester is too large." };
+    if (betaRewardType === "cash") {
+      if (betaRewardMinor <= 0) {
+        return { error: "Cash reward per tester (INR) is required when beta testing is enabled." };
+      }
+      if (betaRewardInr > MAX_BETA_REWARD_INR) {
+        return { error: "Cash reward per tester is too large." };
+      }
+    } else {
+      if (!betaAccessDescription) {
+        return { error: "Access description is required for premium access rewards." };
+      }
     }
     if (!betaDeadline) return { error: "Beta deadline is required when beta testing is enabled." };
     if (!Number.isInteger(betaSpots) || betaSpots < 1 || betaSpots > 1000) {
@@ -138,19 +148,25 @@ export async function createListingAction(payload: {
   if (!result) return { error: "Failed to create listing. Please try again." };
 
   if (includeBeta) {
-    const rewardDisplay = (betaRewardMinor / 100).toLocaleString("en-IN", {
-      minimumFractionDigits: betaRewardMinor % 100 === 0 ? 0 : 2,
-      maximumFractionDigits: 2,
-    });
+    let rewardDescription: string;
+    if (betaRewardType === "cash") {
+      const rewardDisplay = (betaRewardMinor / 100).toLocaleString("en-IN", {
+        minimumFractionDigits: betaRewardMinor % 100 === 0 ? 0 : 2,
+        maximumFractionDigits: 2,
+      });
+      rewardDescription = `INR ${rewardDisplay} cash per completed test`;
+    } else {
+      rewardDescription = betaAccessDescription;
+    }
 
     const betaResult = await createBetaTest(userId, {
       title,
       description,
       spotsTotal: betaSpots || 20,
-      rewardDescription: `INR ${rewardDisplay} cash per completed test`,
-      rewardType: "cash",
+      rewardDescription,
+      rewardType: betaRewardType,
       rewardCurrency: "INR",
-      rewardAmountMinor: betaRewardMinor,
+      rewardAmountMinor: betaRewardType === "cash" ? betaRewardMinor : 0,
       testingInstructions: betaInstructions,
       deadline: betaDeadline,
     });

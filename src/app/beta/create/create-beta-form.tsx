@@ -23,7 +23,7 @@ export function CreateBetaForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [platforms, setPlatforms] = useState<string[]>(["web"]);
-  const [rewardType, setRewardType] = useState<"cash" | "credits" | "free_access">("cash");
+  const [rewardType, setRewardType] = useState<"cash" | "premium_access">("cash");
 
   const togglePlatform = (id: string) =>
     setPlatforms((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -43,7 +43,7 @@ export function CreateBetaForm() {
       spotsTotal: Number(fd.get("spotsTotal")) || 20,
       rewardDescription: fd.get("rewardDescription") as string,
       rewardType,
-      rewardAmountInr: Number(fd.get("rewardAmountInr")) || 0,
+      rewardAmountInr: rewardType === "cash" ? Number(fd.get("rewardAmountInr")) || 0 : 0,
       testingInstructions: fd.get("testingInstructions") as string,
       requirements: (fd.get("requirements") as string) || "",
       deadline: fd.get("deadline") as string,
@@ -145,17 +145,16 @@ export function CreateBetaForm() {
           </div>
           <div className="mt-4">
             <label className="block text-sm text-zinc-400 mb-2">Reward Type *</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               {[
                 { id: "cash", label: "Cash (INR)" },
-                { id: "credits", label: "Credits" },
-                { id: "free_access", label: "Free Access" },
+                { id: "premium_access", label: "Premium Access" },
               ].map((option) => (
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => setRewardType(option.id as "cash" | "credits" | "free_access")}
-                  className={`rounded-full px-3 py-1 text-sm border transition-colors ${
+                  onClick={() => setRewardType(option.id as "cash" | "premium_access")}
+                  className={`flex-1 rounded-md px-3 py-2 text-sm border transition-colors ${
                     rewardType === option.id
                       ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300"
                       : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
@@ -166,7 +165,7 @@ export function CreateBetaForm() {
               ))}
             </div>
           </div>
-          {rewardType === "cash" && (
+          {rewardType === "cash" ? (
             <div className="mt-4">
               <label className="block text-sm text-zinc-400 mb-1">Cash Reward per Tester (INR) *</label>
               <Input
@@ -179,19 +178,35 @@ export function CreateBetaForm() {
                 className="bg-zinc-900 border-zinc-800"
               />
               <p className="mt-1 text-xs text-amber-400">
-                Beta reward funding payments are final and non-refundable once paid.
+                Cash rewards are funded via Razorpay and are non-refundable once paid.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <label className="block text-sm text-zinc-400 mb-1">Access Description *</label>
+              <Input
+                name="rewardDescription"
+                required
+                placeholder="e.g., 3 months Pro access"
+                maxLength={120}
+                className="bg-zinc-900 border-zinc-800"
+              />
+              <p className="mt-1 text-xs text-zinc-500">
+                You&apos;ll grant access manually to accepted testers via their provided email.
               </p>
             </div>
           )}
-          <div className="mt-4">
-            <label className="block text-sm text-zinc-400 mb-1">Reward for Testers *</label>
-            <Input
-              name="rewardDescription"
-              required
-              placeholder="e.g., $15 gift card, 3 months free Pro, public credits"
-              className="bg-zinc-900 border-zinc-800"
-            />
-          </div>
+          {rewardType === "cash" && (
+            <div className="mt-4">
+              <label className="block text-sm text-zinc-400 mb-1">Reward Description *</label>
+              <Input
+                name="rewardDescription"
+                required
+                placeholder="e.g., ₹300 cash per completed test"
+                className="bg-zinc-900 border-zinc-800"
+              />
+            </div>
+          )}
         </section>
 
         {/* Instructions */}

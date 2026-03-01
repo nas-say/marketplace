@@ -16,7 +16,7 @@ export interface BetaTest {
     filled: number;
   };
   reward: {
-    type: "cash" | "credits" | "free_access";
+    type: "cash" | "premium_access";
     amount: number;
     description: string;
     currency: "INR" | "USD" | "EUR" | "GBP";

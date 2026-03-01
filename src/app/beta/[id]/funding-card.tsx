@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 type PoolStatus = "not_required" | "pending" | "partial" | "funded";
-type RewardType = "cash" | "credits" | "free_access";
+type RewardType = "cash" | "premium_access";
 type Currency = "INR" | "USD" | "EUR" | "GBP";
 
 interface Props {

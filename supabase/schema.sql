@@ -128,7 +128,7 @@ create table if not exists beta_tests (
   spots_total           integer default 20,
   spots_filled          integer default 0,
   reward_description    text,
-  reward_type           text default 'cash' check (reward_type in ('cash', 'credits', 'free_access')),
+  reward_type           text default 'cash' check (reward_type in ('cash', 'premium_access')),
   reward_currency       text default 'INR',
   reward_amount_minor   bigint default 0,
   reward_pool_total_minor bigint default 0,
@@ -163,7 +163,7 @@ alter table beta_tests add column if not exists reward_pool_payment_id text;
 alter table beta_tests add column if not exists reward_pool_funded_at timestamptz;
 
 do $$ begin
-  alter table beta_tests add constraint beta_tests_reward_type_check check (reward_type in ('cash', 'credits', 'free_access'));
+  alter table beta_tests add constraint beta_tests_reward_type_check check (reward_type in ('cash', 'premium_access'));
 exception
   when duplicate_object then null;
 end $$;
@@ -475,3 +475,9 @@ begin
   return 'unlocked';
 end;
 $$ language plpgsql security definer set search_path = public;
+
+-- ─── MIGRATIONS: UPI / EMAIL ON APPLICATIONS ─────────────────────────────────
+-- Run these in Supabase SQL Editor if upgrading an existing database.
+alter table beta_applications add column if not exists upi_id text;
+alter table beta_applications add column if not exists applicant_email text;
+alter table profiles add column if not exists upi_id text;

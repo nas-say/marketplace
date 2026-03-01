@@ -29,6 +29,7 @@ export function CreateForm() {
   const [techInput, setTechInput] = useState("");
   const [techStack, setTechStack] = useState<string[]>([]);
   const [includeBeta, setIncludeBeta] = useState(false);
+  const [betaRewardType, setBetaRewardType] = useState<"cash" | "premium_access">("cash");
   const [assets, setAssets] = useState<string[]>(["source_code", "documentation"]);
   const [mrr, setMrr] = useState("");
   const [askingPrice, setAskingPrice] = useState("");
@@ -80,8 +81,10 @@ export function CreateForm() {
       registeredUsers: Number(fd.get("registeredUsers")) || 0,
       assetsIncluded: assets,
       includeBeta,
+      betaRewardType,
       betaSpots: Number(fd.get("betaSpots")) || 20,
       betaRewardInr: Number(fd.get("betaRewardInr")) || 0,
+      betaAccessDescription: (fd.get("betaAccessDescription") as string) || "",
       betaInstructions: (fd.get("betaInstructions") as string) || "",
       betaDeadline: (fd.get("betaDeadline") as string) || "",
     });
@@ -311,19 +314,53 @@ export function CreateForm() {
                 <Input name="betaSpots" type="number" min="1" placeholder="20" className="bg-zinc-900 border-zinc-700" />
               </div>
               <div>
-                <label className="block text-sm text-zinc-400 mb-1">Cash Reward per Tester (INR)</label>
-                <Input
-                  name="betaRewardInr"
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="e.g., 300"
-                  className="bg-zinc-900 border-zinc-700"
-                />
-                <p className="mt-1 text-xs text-amber-400">
-                  Cash rewards are funded via Razorpay and are non-refundable once paid.
-                </p>
+                <label className="block text-sm text-zinc-400 mb-2">Reward Type</label>
+                <div className="flex gap-2">
+                  {(["cash", "premium_access"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setBetaRewardType(type)}
+                      className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
+                        betaRewardType === type
+                          ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300"
+                          : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
+                      }`}
+                    >
+                      {type === "cash" ? "Cash" : "Premium Access"}
+                    </button>
+                  ))}
+                </div>
               </div>
+              {betaRewardType === "cash" ? (
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1">Cash Reward per Tester (INR)</label>
+                  <Input
+                    name="betaRewardInr"
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="e.g., 300"
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                  <p className="mt-1 text-xs text-amber-400">
+                    Cash rewards are funded via Razorpay and are non-refundable once paid.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1">Access Description</label>
+                  <Input
+                    name="betaAccessDescription"
+                    placeholder="e.g., 3 months Pro access"
+                    maxLength={120}
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                  <p className="mt-1 text-xs text-zinc-500">
+                    You&apos;ll grant access manually to accepted testers via their provided email.
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-zinc-400 mb-1">Testing Instructions</label>
                 <Textarea

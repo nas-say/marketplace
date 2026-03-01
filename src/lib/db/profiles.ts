@@ -71,6 +71,21 @@ export async function updateProfile(
   return !error;
 }
 
+export async function getSavedUpiId(clerkUserId: string): Promise<string | null> {
+  const client = await createServerClient();
+  const { data } = await client
+    .from("profiles")
+    .select("upi_id")
+    .eq("clerk_user_id", clerkUserId)
+    .single();
+  return (data?.upi_id as string | null) ?? null;
+}
+
+export async function saveUpiId(clerkUserId: string, upiId: string): Promise<void> {
+  const client = createServiceClient();
+  await client.from("profiles").update({ upi_id: upiId }).eq("clerk_user_id", clerkUserId);
+}
+
 // Called by Clerk webhook on user.created
 export async function upsertProfile(payload: {
   clerkUserId: string;

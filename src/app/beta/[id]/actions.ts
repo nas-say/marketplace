@@ -1,14 +1,16 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { applyToBetaTest } from "@/lib/db/applications";
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase";
 import { getUserApplicationIds } from "@/lib/db/applications";
+import { saveUpiId } from "@/lib/db/profiles";
 import { revalidatePath } from "next/cache";
 
 export async function applyAction(
-  betaTestId: string
+  betaTestId: string,
+  payload?: { upiId?: string; applicantEmail?: string }
 ): Promise<{ error?: string; success?: boolean }> {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
@@ -17,7 +19,100 @@ export async function applyAction(
   if (result.blockedReason) return { error: result.blockedReason };
   if (result.alreadyApplied) return { error: "You've already applied to this beta test." };
   if (!result.success) return { error: "Failed to apply. Please try again." };
+
+  const upiId = payload?.upiId?.trim() || undefined;
+  let applicantEmail = payload?.applicantEmail?.trim() || undefined;
+
+  if (!applicantEmail) {
+    const clerkUser = await currentUser();
+    applicantEmail = clerkUser?.primaryEmailAddress?.emailAddress?.trim() || undefined;
+  }
+
+  if (upiId || applicantEmail) {
+    const client = createServiceClient();
+    const { error: updateError } = await client
+      .from("beta_applications")
+      .update({ upi_id: upiId ?? null, applicant_email: applicantEmail ?? null })
+      .eq("clerk_user_id", userId)
+      .eq("beta_test_id", betaTestId);
+
+    if (updateError) {
+      console.error("[applyAction] failed to store applicant payout/contact details", {
+        userId,
+        betaTestId,
+        hasUpiId: Boolean(upiId),
+        hasApplicantEmail: Boolean(applicantEmail),
+      });
+    } else if (upiId) {
+      await saveUpiId(userId, upiId);
+    }
+  }
+
   return { success: true };
+}
+
+export async function approveApplicationAction(
+  betaTestId: string,
+  applicantUserId: string
+): Promise<{ error?: string; success?: boolean; notice?: string }> {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
+  const client = createServiceClient();
+
+  const { data: betaTest, error: betaError } = await client
+    .from("beta_tests")
+    .select("creator_id, reward_type, reward_pool_status, reward_pool_total_minor")
+    .eq("id", betaTestId)
+    .maybeSingle();
+
+  if (betaError || !betaTest || betaTest.creator_id !== userId) {
+    return { error: "You are not authorized to approve applications for this beta test." };
+  }
+
+  if (
+    String(betaTest.reward_type ?? "cash") === "cash" &&
+    Number(betaTest.reward_pool_total_minor ?? 0) > 0 &&
+    String(betaTest.reward_pool_status ?? "pending") !== "funded"
+  ) {
+    return { error: "Fund the reward pool before approving cash-reward applicants." };
+  }
+
+  const { data: application, error: applicationError } = await client
+    .from("beta_applications")
+    .select("status, applicant_email")
+    .eq("beta_test_id", betaTestId)
+    .eq("clerk_user_id", applicantUserId)
+    .maybeSingle();
+
+  if (applicationError || !application) {
+    return { error: "Applicant record not found." };
+  }
+
+  if (application.status !== "accepted") {
+    const { error: updateError } = await client
+      .from("beta_applications")
+      .update({ status: "accepted" })
+      .eq("beta_test_id", betaTestId)
+      .eq("clerk_user_id", applicantUserId);
+
+    if (updateError) {
+      return { error: "Could not approve applicant right now." };
+    }
+  }
+
+  revalidatePath(`/beta/${betaTestId}`);
+
+  const rewardType = String(betaTest.reward_type ?? "cash");
+  const applicantEmail = typeof application.applicant_email === "string" ? application.applicant_email : null;
+  const notice =
+    rewardType === "premium_access"
+      ? applicantEmail
+        ? `Approved. Give premium access to ${applicantEmail}.`
+        : "Approved. Give this user premium access and collect their email if missing."
+      : "Approved. SideFlip will process the tester payout from the funded reward pool.";
+
+  return { success: true, notice };
 }
 
 export async function submitFeedbackAction(

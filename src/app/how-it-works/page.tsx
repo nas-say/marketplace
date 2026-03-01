@@ -95,7 +95,7 @@ export default function HowItWorksPage() {
             { icon: <Search className="h-6 w-6" />, title: "Browse", desc: "Find projects looking for beta testers." },
             { icon: <ArrowRight className="h-6 w-6" />, title: "Apply", desc: "Sign up and get access to the project." },
             { icon: <MessageSquare className="h-6 w-6" />, title: "Test & Feedback", desc: "Test the product and submit structured feedback." },
-            { icon: <Trophy className="h-6 w-6" />, title: "Earn", desc: "Get paid in cash, credits, or free access." },
+            { icon: <Trophy className="h-6 w-6" />, title: "Earn", desc: "Get paid in cash or premium access rewards." },
           ].map((step) => (
             <div key={step.title} className="text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500">

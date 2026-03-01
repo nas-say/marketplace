@@ -1,14 +1,15 @@
 import { getBetaTestById } from "@/lib/db/beta-tests";
-import { getProfile } from "@/lib/db/profiles";
-import { getUserApplicationIds } from "@/lib/db/applications";
+import { getProfile, getSavedUpiId } from "@/lib/db/profiles";
+import { getUserApplicationIds, getBetaApplicationsForCreator, type CreatorBetaApplication } from "@/lib/db/applications";
 import { ApplyButton } from "./apply-button";
 import { FundingCard } from "./funding-card";
 import { FeedbackSection } from "./feedback-section";
+import { CreatorApplicantsSection } from "./creator-applicants-section";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { getVisitorCountryCode } from "@/lib/geo";
 import { createServiceClient } from "@/lib/supabase";
@@ -51,6 +52,9 @@ export default async function BetaDetailPage({ params }: Props) {
 
   let isAcceptedTester = false;
   let hasSubmittedFeedback = false;
+  let savedUpiId: string | null = null;
+  let savedEmail: string | null = null;
+  let creatorApplicants: CreatorBetaApplication[] = [];
   let existingFeedback: Array<{
     id: string;
     rating: number;
@@ -59,13 +63,18 @@ export default async function BetaDetailPage({ params }: Props) {
     createdAt: string;
   }> = [];
 
-  if (isCreator) {
-    existingFeedback = await getBetaFeedback(id);
+  if (isCreator && userId) {
+    const [feedbackData, applicantData] = await Promise.all([
+      getBetaFeedback(id),
+      getBetaApplicationsForCreator(id, userId),
+    ]);
+    existingFeedback = feedbackData;
+    creatorApplicants = applicantData;
   }
 
   if (userId) {
     const client = createServiceClient();
-    const [feedbackData, appRow, feedbackRow] = await Promise.all([
+    const [feedbackData, appRow, feedbackRow, clerkUser, upiId] = await Promise.all([
       existingFeedback.length > 0 ? Promise.resolve(existingFeedback) : getBetaFeedback(id),
       client
         .from("beta_applications")
@@ -79,10 +88,14 @@ export default async function BetaDetailPage({ params }: Props) {
         .eq("clerk_user_id", userId)
         .eq("beta_test_id", id)
         .maybeSingle(),
+      betaTest.reward.type === "premium_access" ? currentUser() : Promise.resolve(null),
+      betaTest.reward.type === "cash" ? getSavedUpiId(userId) : Promise.resolve(null),
     ]);
     existingFeedback = feedbackData;
     isAcceptedTester = appRow.data?.status === "accepted";
     hasSubmittedFeedback = Boolean(feedbackRow.data?.id);
+    savedUpiId = upiId;
+    savedEmail = clerkUser?.primaryEmailAddress?.emailAddress ?? null;
   }
 
   return (
@@ -127,6 +140,14 @@ export default async function BetaDetailPage({ params }: Props) {
             <div className="mt-4 text-sm text-zinc-500">
               <strong className="text-zinc-300">Requirements:</strong> {betaTest.requirements}
             </div>
+          )}
+
+          {isCreator && (
+            <CreatorApplicantsSection
+              betaTestId={id}
+              rewardType={betaTest.reward.type}
+              applicants={creatorApplicants}
+            />
           )}
 
           <FeedbackSection
@@ -180,6 +201,9 @@ export default async function BetaDetailPage({ params }: Props) {
               alreadyApplied={alreadyApplied}
               closed={betaTest.status === "closed"}
               blockedReason={applyBlockedReason}
+              rewardType={betaTest.reward.type}
+              savedUpiId={savedUpiId}
+              savedEmail={savedEmail}
             />
 
             {creator && (

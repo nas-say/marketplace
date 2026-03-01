@@ -13,7 +13,7 @@ function toRewardCurrency(value: unknown): BetaTest["reward"]["currency"] {
 }
 
 function toRewardType(value: unknown): BetaTest["reward"]["type"] {
-  if (value === "cash" || value === "credits" || value === "free_access") return value;
+  if (value === "cash" || value === "premium_access") return value;
   return "cash";
 }
 
@@ -153,7 +153,7 @@ export async function createBetaTest(
 ): Promise<{ id: string } | null> {
   const rewardType = payload.rewardType ?? "cash";
   const rewardCurrency = payload.rewardCurrency ?? "INR";
-  const rewardAmountMinor = Math.max(0, payload.rewardAmountMinor ?? 0);
+  const rewardAmountMinor = rewardType === "cash" ? Math.max(0, payload.rewardAmountMinor ?? 0) : 0;
   const poolTotalMinor =
     rewardType === "cash" && rewardCurrency === "INR" && rewardAmountMinor > 0
       ? rewardAmountMinor * payload.spotsTotal

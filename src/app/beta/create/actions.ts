@@ -8,7 +8,7 @@ export async function createBetaTestAction(payload: {
   description: string;
   spotsTotal: number;
   rewardDescription: string;
-  rewardType: "cash" | "credits" | "free_access";
+  rewardType: "cash" | "premium_access";
   rewardAmountInr: number;
   testingInstructions: string;
   requirements: string;
