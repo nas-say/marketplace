@@ -40,9 +40,7 @@ export async function POST(request: Request) {
   const client = createServiceClient();
   const { data: betaTest, error: betaError } = await client
     .from("beta_tests")
-    .select(
-      "id, creator_id, reward_type, reward_currency, reward_pool_total_minor, reward_pool_funded_minor, reward_pool_status, reward_pool_order_id, reward_pool_funded_at"
-    )
+    .select("*")
     .eq("id", betaTestId)
     .maybeSingle();
 

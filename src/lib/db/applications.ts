@@ -8,7 +8,7 @@ export async function applyToBetaTest(
 
   const { data: betaTest } = await client
     .from("beta_tests")
-    .select("reward_type, reward_pool_total_minor, reward_pool_status")
+    .select("*")
     .eq("id", betaTestId)
     .maybeSingle();
 
