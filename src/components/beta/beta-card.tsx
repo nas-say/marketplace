@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BetaTest } from "@/types/beta-test";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface BetaCardProps {
   betaTest: BetaTest;
@@ -24,6 +27,7 @@ function formatCurrencyMinor(amountMinor: number, currency = "INR"): string {
 }
 
 export function BetaCard({ betaTest }: BetaCardProps) {
+  const reduceMotion = useReducedMotion();
   const spotsRemaining = betaTest.spots.total - betaTest.spots.filled;
   const fillPercent = (betaTest.spots.filled / betaTest.spots.total) * 100;
 
@@ -48,8 +52,12 @@ export function BetaCard({ betaTest }: BetaCardProps) {
     betaTest.reward.type === "cash" ? calculateCashBetaPayout(Number(betaTest.reward.amount ?? 0)) : null;
 
   return (
-    <Link href={`/beta/${betaTest.id}`}>
-      <Card className="card-hover cursor-pointer border-zinc-800 bg-zinc-900">
+    <motion.div
+      whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 280, damping: 24, mass: 0.85 }}
+    >
+      <Link href={`/beta/${betaTest.id}`}>
+        <Card className="card-hover cursor-pointer border-zinc-800 bg-zinc-900">
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -99,7 +107,8 @@ export function BetaCard({ betaTest }: BetaCardProps) {
             </span>
           </div>
         </CardContent>
-      </Card>
-    </Link>
+        </Card>
+      </Link>
+    </motion.div>
   );
 }

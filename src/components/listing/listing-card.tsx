@@ -9,6 +9,7 @@ import { TechStackBadges } from "@/components/shared/tech-stack-badges";
 import { formatPrice, formatNumber } from "@/lib/data";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { useWatchlist } from "@/lib/use-watchlist";
+import { motion, useReducedMotion } from "framer-motion";
 
 // Category gradient backgrounds
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -55,6 +56,7 @@ interface ListingCardProps {
 
 export function ListingCard({ listing }: ListingCardProps) {
   const { isWatchlisted, toggle } = useWatchlist(listing.id);
+  const reduceMotion = useReducedMotion();
 
   const TrendIcon =
     listing.metrics.revenueTrend === "up"
@@ -78,7 +80,11 @@ export function ListingCard({ listing }: ListingCardProps) {
   const textColor = CATEGORY_TEXT_COLORS[listing.category] ?? "text-zinc-400";
 
   return (
-    <div className="relative group">
+    <motion.div
+      className="relative group"
+      whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24, mass: 0.8 }}
+    >
       <Link href={`/listing/${listing.id}`}>
         <Card className="card-hover cursor-pointer border-zinc-800 bg-zinc-900">
           {/* Gradient thumbnail */}
@@ -166,6 +172,6 @@ export function ListingCard({ listing }: ListingCardProps) {
           <Bookmark className="h-3.5 w-3.5 text-zinc-400" />
         )}
       </button>
-    </div>
+    </motion.div>
   );
 }

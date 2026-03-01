@@ -8,12 +8,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 interface BrowseClientProps {
   initialListings: Listing[];
 }
 
 export function BrowseClient({ initialListings }: BrowseClientProps) {
+  const reduceMotion = useReducedMotion();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -74,20 +76,37 @@ export function BrowseClient({ initialListings }: BrowseClientProps) {
         </Button>
       </div>
 
-      {mobileFiltersOpen && (
-        <div className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900 p-4 lg:hidden">
-          <ListingFilters {...filtersProps} />
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {mobileFiltersOpen && (
+          <motion.div
+            initial={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900 p-4 lg:hidden"
+          >
+            <ListingFilters {...filtersProps} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {activeFilters.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          {activeFilters.map((f) => (
-            <span key={f.label} className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs text-indigo-300">
-              {f.label}
-              <button onClick={f.onRemove}><X className="h-3 w-3" /></button>
-            </span>
-          ))}
+          <AnimatePresence initial={false}>
+            {activeFilters.map((f) => (
+              <motion.span
+                key={f.label}
+                initial={reduceMotion ? undefined : { opacity: 0, scale: 0.92 }}
+                animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
+                exit={reduceMotion ? undefined : { opacity: 0, scale: 0.92 }}
+                transition={{ duration: 0.18 }}
+                className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs text-indigo-300"
+              >
+                {f.label}
+                <button onClick={f.onRemove}><X className="h-3 w-3" /></button>
+              </motion.span>
+            ))}
+          </AnimatePresence>
           <button onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2">Clear all</button>
         </div>
       )}
