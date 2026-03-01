@@ -25,6 +25,10 @@ function rowToListing(row: Record<string, unknown>): Listing {
     assetsIncluded: (row.assets_included as string[]) ?? [],
     sellerId: (row.seller_id as string) ?? "",
     status: (row.status as Listing["status"]) ?? "active",
+    ownershipVerified: Boolean(row.ownership_verified),
+    ownershipVerificationMethod:
+      (row.ownership_verification_method as Listing["ownershipVerificationMethod"]) ?? null,
+    ownershipVerifiedAt: (row.ownership_verified_at as string) ?? null,
     featured: Boolean(row.featured),
     createdAt: row.created_at as string,
     updatedAt: (row.updated_at as string) ?? (row.created_at as string),
@@ -126,7 +130,7 @@ export async function updateListing(
 export async function updateListingStatus(
   clerkUserId: string,
   listingId: string,
-  status: "active" | "sold" | "draft"
+  status: "active" | "sold" | "draft" | "pending_verification"
 ): Promise<boolean> {
   const client = createServiceClient();
   const { error } = await client.from("listings").update({ status })
@@ -178,7 +182,7 @@ export async function createListing(
       registered_users: payload.registeredUsers,
       assets_included: payload.assetsIncluded,
       seller_id: clerkUserId,
-      status: "active",
+      status: "pending_verification",
     })
     .select("id")
     .single();

@@ -92,6 +92,10 @@ export function CreateForm() {
       return;
     }
 
+    if (result.requiresVerification) {
+      router.push(`/listing/${result.listingId}/verify`);
+      return;
+    }
     router.push(`/listing/${result.listingId}`);
   };
 

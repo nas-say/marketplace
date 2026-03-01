@@ -43,7 +43,10 @@ create table if not exists listings (
   revenue_trend      text default 'flat' check (revenue_trend in ('up', 'flat', 'down')),
   assets_included    text[] default '{}',
   seller_id          text references profiles(clerk_user_id) on delete cascade,
-  status             text default 'active' check (status in ('active', 'sold', 'draft')),
+  status             text default 'pending_verification' check (status in ('active', 'sold', 'draft', 'pending_verification')),
+  ownership_verified boolean default false,
+  ownership_verification_method text check (ownership_verification_method in ('repo', 'domain', 'manual')),
+  ownership_verified_at timestamptz,
   featured           boolean default false,
   created_at         timestamptz default now(),
   updated_at         timestamptz default now()
@@ -55,6 +58,62 @@ create policy "listings_public_read" on listings for select using (status = 'act
 create policy "listings_owner_insert" on listings for insert with check (seller_id = auth.uid()::text);
 create policy "listings_owner_update" on listings for update using (seller_id = auth.uid()::text);
 create policy "listings_owner_delete" on listings for delete using (seller_id = auth.uid()::text);
+
+-- Backfill columns / checks for existing projects where listings table already exists
+alter table listings add column if not exists ownership_verified boolean default false;
+alter table listings add column if not exists ownership_verification_method text;
+alter table listings add column if not exists ownership_verified_at timestamptz;
+
+do $$ begin
+  alter table listings drop constraint if exists listings_status_check;
+  alter table listings add constraint listings_status_check check (
+    status in ('active', 'sold', 'draft', 'pending_verification')
+  );
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter table listings drop constraint if exists listings_ownership_verification_method_check;
+  alter table listings add constraint listings_ownership_verification_method_check check (
+    ownership_verification_method in ('repo', 'domain', 'manual') or ownership_verification_method is null
+  );
+exception
+  when duplicate_object then null;
+end $$;
+
+-- ─── LISTING OWNERSHIP VERIFICATION ───────────────────────────────────────────
+create table if not exists listing_ownership_verifications (
+  id               uuid primary key default gen_random_uuid(),
+  listing_id       text not null references listings(id) on delete cascade,
+  seller_id        text not null references profiles(clerk_user_id) on delete cascade,
+  method           text not null check (method in ('repo', 'domain', 'manual')),
+  target           text,
+  challenge_token  text,
+  status           text not null default 'pending' check (status in ('pending', 'verified', 'manual_requested', 'rejected')),
+  note             text,
+  last_error       text,
+  created_at       timestamptz default now(),
+  verified_at      timestamptz
+);
+
+create index if not exists idx_listing_ownership_verifications_listing_created
+  on listing_ownership_verifications(listing_id, created_at desc);
+
+alter table listing_ownership_verifications enable row level security;
+drop policy if exists "listing_ownership_verifications_owner_select" on listing_ownership_verifications;
+drop policy if exists "listing_ownership_verifications_owner_insert" on listing_ownership_verifications;
+drop policy if exists "listing_ownership_verifications_owner_update" on listing_ownership_verifications;
+drop policy if exists "listing_ownership_verifications_owner_delete" on listing_ownership_verifications;
+
+create policy "listing_ownership_verifications_owner_select" on listing_ownership_verifications
+  for select using (seller_id = auth.uid()::text);
+create policy "listing_ownership_verifications_owner_insert" on listing_ownership_verifications
+  for insert with check (seller_id = auth.uid()::text);
+create policy "listing_ownership_verifications_owner_update" on listing_ownership_verifications
+  for update using (seller_id = auth.uid()::text);
+create policy "listing_ownership_verifications_owner_delete" on listing_ownership_verifications
+  for delete using (seller_id = auth.uid()::text);
 
 -- ─── BETA TESTS ─────────────────────────────────────────────────────────────
 create table if not exists beta_tests (

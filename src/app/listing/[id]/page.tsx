@@ -9,7 +9,7 @@ import { PurchaseCard } from "@/components/listing/purchase-card";
 import { ListingCard } from "@/components/listing/listing-card";
 import { SellerWebsiteGate } from "./seller-section";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, CheckCircle, User } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CheckCircle, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
@@ -63,6 +63,10 @@ export default async function ListingDetailPage({ params }: Props) {
   if (!listing) notFound();
 
   const { userId } = await auth();
+  const isSeller = userId === listing.sellerId;
+
+  // Pending listings must stay private until the owner verifies ownership.
+  if (listing.status === "pending_verification" && !isSeller) notFound();
 
   const [seller, similarListings, sellerListings, unlocked, connectsBalance] = await Promise.all([
     getProfile(listing.sellerId),
@@ -101,6 +105,20 @@ export default async function ListingDetailPage({ params }: Props) {
               <h1 className="text-3xl font-bold text-zinc-50">{listing.title}</h1>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <Badge className="bg-indigo-600">{CATEGORY_LABELS[listing.category]}</Badge>
+                {listing.ownershipVerified && (
+                  <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">
+                    {listing.ownershipVerificationMethod === "repo"
+                      ? "Repo Verified"
+                      : listing.ownershipVerificationMethod === "domain"
+                        ? "Domain Verified"
+                        : "Manually Reviewed"}
+                  </Badge>
+                )}
+                {listing.status === "pending_verification" && isSeller && (
+                  <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/20">
+                    Pending Verification
+                  </Badge>
+                )}
                 <span className="text-sm text-zinc-500">Listed {new Date(listing.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                 {listing.metrics.revenueTrend !== "flat" && (
                   <span className={`flex items-center gap-1 text-sm font-medium ${trendColor}`}>
@@ -111,6 +129,21 @@ export default async function ListingDetailPage({ params }: Props) {
               </div>
             </div>
           </div>
+
+          {isSeller && listing.status === "pending_verification" && (
+            <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+              <p className="text-sm text-amber-300">
+                This listing is hidden from buyers until ownership verification is completed.
+              </p>
+              <Link
+                href={`/listing/${listing.id}/verify`}
+                className="mt-2 inline-flex items-center gap-1 text-sm text-indigo-300 hover:text-indigo-200"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Verify ownership now
+              </Link>
+            </div>
+          )}
 
           <div className="mb-8 flex h-64 flex-col items-center justify-center rounded-lg border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-800">
             <span className="text-4xl font-black tracking-wider text-zinc-700">
@@ -204,19 +237,30 @@ export default async function ListingDetailPage({ params }: Props) {
         </div>
 
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <PurchaseCard
-            askingPrice={formatPrice(listing.askingPrice)}
-            openToOffers={listing.openToOffers}
-            age={listing.metrics.age}
-            revenueTrend={listing.metrics.revenueTrend}
-            revenueMultiple={revenueMultiple}
-            mrr={formatPrice(listing.metrics.mrr)}
-            listingId={listing.id}
-            isUnlocked={unlocked}
-            userId={userId ?? null}
-            connectsBalance={connectsBalance}
-            unlockCost={unlockCost}
-          />
+          {isSeller && listing.status === "pending_verification" ? (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+              <p className="text-sm text-amber-300">
+                Complete ownership verification to publish this listing.
+              </p>
+              <Link href={`/listing/${listing.id}/verify`} className="mt-2 inline-flex text-sm text-indigo-300 hover:text-indigo-200">
+                Go to verification →
+              </Link>
+            </div>
+          ) : (
+            <PurchaseCard
+              askingPrice={formatPrice(listing.askingPrice)}
+              openToOffers={listing.openToOffers}
+              age={listing.metrics.age}
+              revenueTrend={listing.metrics.revenueTrend}
+              revenueMultiple={revenueMultiple}
+              mrr={formatPrice(listing.metrics.mrr)}
+              listingId={listing.id}
+              isUnlocked={unlocked}
+              userId={userId ?? null}
+              connectsBalance={connectsBalance}
+              unlockCost={unlockCost}
+            />
+          )}
         </div>
       </div>
 

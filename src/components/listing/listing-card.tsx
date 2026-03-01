@@ -132,9 +132,20 @@ export function ListingCard({ listing }: ListingCardProps) {
               <span className="text-lg font-bold text-violet-400">
                 {formatPrice(listing.askingPrice)}
               </span>
-              {listing.openToOffers && (
-                <span className="text-xs text-zinc-500">Open to offers</span>
-              )}
+              <div className="flex items-center gap-2">
+                {listing.ownershipVerified && (
+                  <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5">
+                    {listing.ownershipVerificationMethod === "repo"
+                      ? "Repo verified"
+                      : listing.ownershipVerificationMethod === "domain"
+                        ? "Domain verified"
+                        : "Reviewed"}
+                  </span>
+                )}
+                {listing.openToOffers && (
+                  <span className="text-xs text-zinc-500">Open to offers</span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

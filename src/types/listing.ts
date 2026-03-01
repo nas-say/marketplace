@@ -31,7 +31,10 @@ export interface Listing {
   metrics: ListingMetrics;
   assetsIncluded: string[];
   sellerId: string;
-  status: "active" | "sold" | "draft";
+  status: "active" | "sold" | "draft" | "pending_verification";
+  ownershipVerified: boolean;
+  ownershipVerificationMethod: "repo" | "domain" | "manual" | null;
+  ownershipVerifiedAt: string | null;
   featured: boolean;
   createdAt: string;
   updatedAt: string;

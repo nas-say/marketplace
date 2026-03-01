@@ -6,7 +6,7 @@ import { BetaTest } from "@/types/beta-test";
 import { StatCard } from "@/components/shared/stat-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { BetaCard } from "@/components/beta/beta-card";
-import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye } from "lucide-react";
+import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -114,10 +114,25 @@ export function DashboardClient({ displayName, stats, listings, betaTests }: Pro
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-sm text-zinc-400">{formatPrice(listing.askingPrice)}</span>
                       <Badge className={
-                        listing.status === "active" ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                        listing.status === "sold" ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20" :
-                        "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      }>{listing.status}</Badge>
+                        listing.status === "active"
+                          ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : listing.status === "sold"
+                            ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                            : listing.status === "pending_verification"
+                              ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                      }>
+                        {listing.status === "pending_verification" ? "pending verification" : listing.status}
+                      </Badge>
+                      {listing.ownershipVerified && (
+                        <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">
+                          {listing.ownershipVerificationMethod === "repo"
+                            ? "repo verified"
+                            : listing.ownershipVerificationMethod === "domain"
+                              ? "domain verified"
+                              : "manually reviewed"}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -131,6 +146,13 @@ export function DashboardClient({ displayName, stats, listings, betaTests }: Pro
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
+                    {listing.status === "pending_verification" && (
+                      <Link href={`/listing/${listing.id}/verify`}>
+                        <Button size="sm" variant="outline" className="border-indigo-500/40 text-indigo-300 hover:text-indigo-200 px-2">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    )}
                     {listing.status === "active" && (
                       <Button size="sm" variant="outline" className="border-zinc-700 text-amber-400 hover:text-amber-300 px-2" onClick={() => handleMarkSold(listing.id)}>
                         <CheckCheck className="h-3.5 w-3.5" />

@@ -42,7 +42,7 @@ export async function createListingAction(payload: {
   betaReward: string;
   betaInstructions: string;
   betaDeadline: string;
-}): Promise<{ error?: string; listingId?: string }> {
+}): Promise<{ error?: string; listingId?: string; requiresVerification?: boolean }> {
   const { userId } = await auth();
   if (!userId) return { error: "Not authenticated" };
 
@@ -154,5 +154,5 @@ export async function createListingAction(payload: {
     }
   }
 
-  return { listingId: result.id };
+  return { listingId: result.id, requiresVerification: true };
 }
