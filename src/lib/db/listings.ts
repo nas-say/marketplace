@@ -69,6 +69,21 @@ export async function getListingById(id: string): Promise<Listing | null> {
   return rowToListing(data);
 }
 
+export async function getListingByIdForSeller(
+  clerkUserId: string,
+  id: string
+): Promise<Listing | null> {
+  const client = createServiceClient();
+  const { data, error } = await client
+    .from("listings")
+    .select("*")
+    .eq("id", id)
+    .eq("seller_id", clerkUserId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return rowToListing(data);
+}
+
 export async function getListingsBySeller(sellerId: string): Promise<Listing[]> {
   const client = await createServerClient();
   const { data, error } = await client

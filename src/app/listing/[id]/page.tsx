@@ -1,4 +1,9 @@
-import { getListingById, getSimilarListings, getListingsBySeller } from "@/lib/db/listings";
+import {
+  getListingById,
+  getListingByIdForSeller,
+  getSimilarListings,
+  getListingsBySeller,
+} from "@/lib/db/listings";
 import { getProfile } from "@/lib/db/profiles";
 import { getConnectsBalance, isListingUnlocked, getUnlockCost } from "@/lib/db/connects";
 import { getRevenueMultiple, formatPrice, formatNumber } from "@/lib/data";
@@ -59,10 +64,13 @@ function renderDescription(text: string) {
 
 export default async function ListingDetailPage({ params }: Props) {
   const { id } = await params;
-  const listing = await getListingById(id);
+  const { userId } = await auth();
+  let listing = await getListingById(id);
+  if (!listing && userId) {
+    listing = await getListingByIdForSeller(userId, id);
+  }
   if (!listing) notFound();
 
-  const { userId } = await auth();
   const isSeller = userId === listing.sellerId;
 
   // Pending listings must stay private until the owner verifies ownership.

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
-import { getListingById } from "@/lib/db/listings";
+import { getListingById, getListingByIdForSeller } from "@/lib/db/listings";
 import { getListingVerificationsForSeller } from "@/lib/db/listing-verifications";
 import { VerifyListingClient } from "./verify-client";
 import type { Metadata } from "next";
@@ -24,9 +24,8 @@ export default async function VerifyListingPage({ params }: Props) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const listing = await getListingById(id);
+  const listing = await getListingByIdForSeller(userId, id);
   if (!listing) notFound();
-  if (listing.sellerId !== userId) redirect(`/listing/${id}`);
 
   const verifications = await getListingVerificationsForSeller(userId, id);
   return <VerifyListingClient listing={listing} verifications={verifications} />;
