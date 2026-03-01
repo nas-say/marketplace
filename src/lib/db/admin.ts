@@ -174,6 +174,7 @@ export interface AdminPayoutAuditItem {
 }
 
 export interface AdminDashboardSnapshot {
+  generatedAt: string;
   overview: AdminOverview;
   payoutStatusTrackingAvailable: boolean;
   cashPayoutQueue: AdminCashPayoutItem[];
@@ -606,6 +607,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
   );
 
   return {
+    generatedAt: new Date().toISOString(),
     overview: {
       totalUsers,
       totalListings,

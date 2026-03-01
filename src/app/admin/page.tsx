@@ -16,6 +16,17 @@ import {
 import { getAdminDashboardSnapshot } from "@/lib/db/admin";
 import { updateCashPayoutStatusAction } from "./actions";
 
+type NotificationLevel = "critical" | "warning" | "info" | "success";
+
+interface AdminDashboardNotification {
+  id: string;
+  level: NotificationLevel;
+  title: string;
+  message: string;
+  href?: string;
+  createdAt?: string;
+}
+
 function formatDate(value: string): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -55,6 +66,13 @@ function verificationStatusClass(status: string): string {
   return "bg-zinc-500/10 text-zinc-300 border-zinc-500/30";
 }
 
+function notificationBadgeClass(level: NotificationLevel): string {
+  if (level === "critical") return "bg-red-500/10 text-red-300 border-red-500/40";
+  if (level === "warning") return "bg-amber-500/10 text-amber-300 border-amber-500/40";
+  if (level === "success") return "bg-green-500/10 text-green-300 border-green-500/40";
+  return "bg-blue-500/10 text-blue-300 border-blue-500/40";
+}
+
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
@@ -74,7 +92,8 @@ export default async function AdminPage({ searchParams }: Props) {
   const hasActiveFilters = hasActivePayoutFilters(payoutFilters);
 
   const snapshot = await getAdminDashboardSnapshot();
-  const payoutRows = applyPayoutFilters(sortPayoutRows(snapshot.cashPayoutQueue), payoutFilters);
+  const allPayoutRows = sortPayoutRows(snapshot.cashPayoutQueue);
+  const payoutRows = applyPayoutFilters(allPayoutRows, payoutFilters);
 
   const payoutFilterParams = payoutFiltersToSearchParams(payoutFilters);
   const payoutFilterQuery = payoutFilterParams.toString();
@@ -91,6 +110,95 @@ export default async function AdminPage({ searchParams }: Props) {
   const connectPurchaseRows = snapshot.recentConnectPurchases.slice(0, 100);
   const interestRows = snapshot.recentInterestSignals.slice(0, 100);
   const recentUsers = snapshot.recentUsers.slice(0, 100);
+  const pendingPayoutRows = allPayoutRows.filter((row) => row.payoutStatus === "pending");
+  const failedPayoutRows = allPayoutRows.filter((row) => row.payoutStatus === "failed");
+  const snapshotNowEpoch = Date.parse(snapshot.generatedAt);
+  const stalePendingCutoff =
+    (Number.isFinite(snapshotNowEpoch) ? snapshotNowEpoch : 0) - 2 * 24 * 60 * 60 * 1000;
+  const stalePendingCount = pendingPayoutRows.filter((row) => {
+    const approvedEpoch = Date.parse(row.approvedAt);
+    return Number.isFinite(approvedEpoch) && approvedEpoch < stalePendingCutoff;
+  }).length;
+
+  const adminNotifications: AdminDashboardNotification[] = [];
+  if (pendingPayoutRows.length > 0) {
+    adminNotifications.push({
+      id: "pending-payouts",
+      level: "warning",
+      title: `${pendingPayoutRows.length} payout(s) pending`,
+      message: "Review payout queue and mark paid/failed with reference note.",
+      href: "/admin#payout-queue",
+    });
+  }
+  if (stalePendingCount > 0) {
+    adminNotifications.push({
+      id: "stale-payouts",
+      level: "critical",
+      title: `${stalePendingCount} payout(s) pending for over 48h`,
+      message: "These payouts are likely delayed and need immediate action.",
+      href: "/admin#payout-queue",
+    });
+  }
+  if (failedPayoutRows.length > 0) {
+    adminNotifications.push({
+      id: "failed-payouts",
+      level: "critical",
+      title: `${failedPayoutRows.length} payout(s) marked failed`,
+      message: "Check failed payout notes and retry once issue is resolved.",
+      href: "/admin#payout-queue",
+    });
+  }
+  if (snapshot.overview.pendingVerificationListings > 0) {
+    adminNotifications.push({
+      id: "pending-verifications",
+      level: "info",
+      title: `${snapshot.overview.pendingVerificationListings} listing(s) pending verification`,
+      message: "Review repo/domain/manual ownership checks to keep marketplace quality high.",
+      href: "/admin#verification-queue",
+    });
+  }
+  if (snapshot.overview.manualReviewRequests > 0) {
+    adminNotifications.push({
+      id: "manual-review-requests",
+      level: "warning",
+      title: `${snapshot.overview.manualReviewRequests} manual review request(s) waiting`,
+      message: "Creators requested manual ownership review with additional context.",
+      href: "/admin#verification-queue",
+    });
+  }
+  if (snapshot.overview.pendingCashPools > 0) {
+    adminNotifications.push({
+      id: "pending-cash-pools",
+      level: "warning",
+      title: `${snapshot.overview.pendingCashPools} cash beta test(s) not funded`,
+      message: "These beta tests remain drafts until reward pools are funded.",
+      href: "/admin",
+    });
+  }
+
+  const auditNotifications: AdminDashboardNotification[] = snapshot.recentPayoutAudit
+    .slice(0, 6)
+    .map((row) => ({
+      id: `audit-${row.id}`,
+      level: row.nextStatus === "failed" ? "critical" : "info",
+      title: `Payout ${row.nextStatus}: ${row.betaTestTitle}`,
+      message: `${row.applicantName ?? row.applicantUserId} • ${row.previousStatus} -> ${row.nextStatus}`,
+      href: "/admin#payout-audit",
+      createdAt: row.createdAt,
+    }));
+
+  const dashboardNotifications =
+    adminNotifications.length > 0
+      ? [...adminNotifications, ...auditNotifications].slice(0, 12)
+      : [
+          {
+            id: "no-alerts",
+            level: "success" as const,
+            title: "No active operational alerts",
+            message: "Payouts and verification queues are under control.",
+          },
+          ...auditNotifications,
+        ].slice(0, 12);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -138,6 +246,34 @@ export default async function AdminPage({ searchParams }: Props) {
       </section>
 
       <section className="rounded-lg border border-zinc-800 bg-zinc-900">
+        <div className="border-b border-zinc-800 px-4 py-3">
+          <h2 className="text-base font-semibold text-zinc-100">Admin Notifications</h2>
+          <p className="text-xs text-zinc-500">Live operational alerts and recent payout activity.</p>
+        </div>
+        <div className="divide-y divide-zinc-800">
+          {dashboardNotifications.map((item) => (
+            <div key={item.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className={notificationBadgeClass(item.level)}>{item.level}</Badge>
+                  <p className="text-sm font-medium text-zinc-100">{item.title}</p>
+                </div>
+                <p className="mt-1 text-sm text-zinc-400">{item.message}</p>
+              </div>
+              <div className="flex flex-col items-start gap-1 text-xs text-zinc-500 sm:items-end">
+                {item.createdAt && <span>{formatDate(item.createdAt)}</span>}
+                {item.href && (
+                  <Link href={item.href} className="text-indigo-300 hover:text-indigo-200">
+                    Open
+                  </Link>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="payout-queue" className="rounded-lg border border-zinc-800 bg-zinc-900">
         <div className="border-b border-zinc-800 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -288,7 +424,7 @@ export default async function AdminPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="rounded-lg border border-zinc-800 bg-zinc-900">
+      <section id="payout-audit" className="rounded-lg border border-zinc-800 bg-zinc-900">
         <div className="border-b border-zinc-800 px-4 py-3">
           <h2 className="text-base font-semibold text-zinc-100">Payout Audit Trail</h2>
           <p className="text-xs text-zinc-500">Immutable log of payout-status changes made by admins.</p>
@@ -330,7 +466,7 @@ export default async function AdminPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <section id="verification-queue" className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="rounded-lg border border-zinc-800 bg-zinc-900">
           <div className="border-b border-zinc-800 px-4 py-3">
             <h2 className="text-base font-semibold text-zinc-100">
