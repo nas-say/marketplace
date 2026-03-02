@@ -6,7 +6,22 @@ import { BetaTest } from "@/types/beta-test";
 import { StatCard } from "@/components/shared/stat-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { BetaCard } from "@/components/beta/beta-card";
-import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye, ShieldCheck, Lock, Loader2 } from "lucide-react";
+import {
+  DollarSign,
+  Package,
+  TestTube,
+  MessageSquare,
+  PlusCircle,
+  Pencil,
+  Trash2,
+  CheckCheck,
+  Eye,
+  ShieldCheck,
+  Lock,
+  Loader2,
+  CalendarDays,
+  ArrowUpRight,
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -311,29 +326,58 @@ export function DashboardClient({
           ) : (
             <div className="space-y-3">
               {myApplications.map((application) => (
-                <div key={application.betaTestId} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-zinc-200">
-                      {application.betaTest?.title ?? application.betaTestId}
-                    </p>
-                    <Badge className={
-                      application.status === "accepted"
-                        ? "bg-green-500/10 text-green-400 border-green-500/20"
-                        : application.status === "rejected"
-                          ? "bg-red-500/10 text-red-400 border-red-500/20"
-                          : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
-                    }>
-                      {application.status}
-                    </Badge>
+                <Link
+                  key={application.betaTestId}
+                  href={`/beta/${application.betaTestId}`}
+                  className="group block rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 transition-colors hover:border-indigo-500/40 hover:bg-zinc-900/90"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-zinc-200">{application.betaTest?.title ?? application.betaTestId}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <Badge
+                          className={
+                            application.status === "accepted"
+                              ? "bg-green-500/10 border-green-500/20 text-green-400"
+                              : application.status === "rejected"
+                                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                : "bg-zinc-500/10 border-zinc-500/20 text-zinc-400"
+                          }
+                        >
+                          Application: {application.status}
+                        </Badge>
+                        {application.betaTest && (
+                          <Badge
+                            className={
+                              application.betaTest.status === "accepting"
+                                ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                : application.betaTest.status === "almost_full"
+                                  ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                  : application.betaTest.status === "closed"
+                                    ? "bg-zinc-500/10 border-zinc-500/20 text-zinc-400"
+                                    : "bg-violet-500/10 border-violet-500/20 text-violet-300"
+                            }
+                          >
+                            Beta: {application.betaTest.status}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        Applied on{" "}
+                        {new Date(application.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    <span className="mt-1 flex items-center gap-1 text-xs text-indigo-300/90 transition-transform group-hover:translate-x-0.5">
+                      Open
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </span>
                   </div>
-                  {application.betaTest && (
-                    <Link href={`/beta/${application.betaTestId}`}>
-                      <Button size="sm" variant="outline" className="border-zinc-700 px-2 text-zinc-400 hover:text-zinc-50">
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
-                  )}
-                </div>
+                </Link>
               ))}
             </div>
           )}
