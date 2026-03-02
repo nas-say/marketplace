@@ -6,12 +6,12 @@ import { BetaTest } from "@/types/beta-test";
 import { StatCard } from "@/components/shared/stat-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { BetaCard } from "@/components/beta/beta-card";
-import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye, ShieldCheck, Lock } from "lucide-react";
+import { DollarSign, Package, TestTube, MessageSquare, PlusCircle, Pencil, Trash2, CheckCheck, Eye, ShieldCheck, Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/data";
-import { deleteListingAction, markSoldAction } from "./actions";
+import { deleteDraftBetaTestAction, deleteListingAction, markSoldAction } from "./actions";
 
 const MONTHLY_DATA = [
   { month: "Mar", value: 22, label: "$22K" }, { month: "Apr", value: 35, label: "$35K" },
@@ -53,6 +53,8 @@ export function DashboardClient({
   const [activeTab, setActiveTab] = useState("Overview");
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [myListings, setMyListings] = useState(listings);
+  const [myBetaTests, setMyBetaTests] = useState(betaTests);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
 
   const handleDelete = async (listingId: string) => {
     if (!window.confirm("Delete this listing? This cannot be undone.")) return;
@@ -66,6 +68,20 @@ export function DashboardClient({
     if (!result.error) setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, status: "sold" as const } : l));
   };
 
+  const handleDeleteDraftBetaTest = async (betaTestId: string) => {
+    if (!window.confirm("Delete this draft beta test? This cannot be undone.")) return;
+    setDeletingDraftId(betaTestId);
+    const result = await deleteDraftBetaTestAction(betaTestId);
+    setDeletingDraftId(null);
+
+    if (result.error) {
+      window.alert(result.error);
+      return;
+    }
+
+    setMyBetaTests((prev) => prev.filter((bt) => bt.id !== betaTestId));
+  };
+
   const recentActivity = [
     listings[0]
       ? {
@@ -74,10 +90,10 @@ export function DashboardClient({
           dot: "bg-indigo-500",
         }
       : { text: "List your first project to start selling", time: "", dot: "bg-zinc-700" },
-    betaTests[0]
+    myBetaTests[0]
       ? {
-          text: `Beta test "${betaTests[0].title}" — ${betaTests[0].spots.total - betaTests[0].spots.filled} spots remaining`,
-          time: new Date(betaTests[0].createdAt).toLocaleDateString(),
+          text: `Beta test "${myBetaTests[0].title}" — ${myBetaTests[0].spots.total - myBetaTests[0].spots.filled} spots remaining`,
+          time: new Date(myBetaTests[0].createdAt).toLocaleDateString(),
           dot: "bg-green-500",
         }
       : { text: "Create a beta test to recruit testers", time: "", dot: "bg-zinc-700" },
@@ -88,10 +104,10 @@ export function DashboardClient({
           dot: "bg-indigo-500",
         }
       : { text: "Add more listings to reach more buyers", time: "", dot: "bg-zinc-700" },
-    betaTests[1]
+    myBetaTests[1]
       ? {
-          text: `Beta test "${betaTests[1].title}" — ${betaTests[1].spots.filled} of ${betaTests[1].spots.total} spots filled`,
-          time: new Date(betaTests[1].createdAt).toLocaleDateString(),
+          text: `Beta test "${myBetaTests[1].title}" — ${myBetaTests[1].spots.filled} of ${myBetaTests[1].spots.total} spots filled`,
+          time: new Date(myBetaTests[1].createdAt).toLocaleDateString(),
           dot: "bg-amber-500",
         }
       : { text: "Multiple beta tests help you test faster", time: "", dot: "bg-zinc-700" },
@@ -131,7 +147,7 @@ export function DashboardClient({
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
             <StatCard label="Total Earnings" value={stats.totalEarnings} icon={<DollarSign className="h-4 w-4" />} />
             <StatCard label="Active Listings" value={String(stats.activeListings)} icon={<Package className="h-4 w-4" />} />
-            <StatCard label="Beta Tests" value={String(stats.betaTests)} icon={<TestTube className="h-4 w-4" />} />
+            <StatCard label="Beta Tests" value={String(myBetaTests.length)} icon={<TestTube className="h-4 w-4" />} />
             <StatCard label="Feedback Given" value={String(stats.feedbackGiven)} icon={<MessageSquare className="h-4 w-4" />} />
           </div>
           <h3 className="text-lg font-semibold text-zinc-50 mb-4">Recent Activity</h3>
@@ -223,11 +239,40 @@ export function DashboardClient({
       {activeTab === "Beta Tests" && (
         <div>
           <h3 className="text-lg font-semibold text-zinc-50 mb-4">My Beta Tests</h3>
-          {betaTests.length === 0 ? (
+          {myBetaTests.length === 0 ? (
             <p className="text-center text-zinc-500 py-12">No beta tests yet.</p>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {betaTests.map((bt) => <BetaCard key={bt.id} betaTest={bt} />)}
+              {myBetaTests.map((bt) => (
+                <div key={bt.id} className="relative">
+                  <BetaCard betaTest={bt} />
+                  {bt.status === "draft" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute right-3 top-3 z-20 border-red-500/40 bg-zinc-950/80 text-red-300 hover:bg-red-500/10 hover:text-red-200"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void handleDeleteDraftBetaTest(bt.id);
+                      }}
+                      disabled={deletingDraftId === bt.id}
+                    >
+                      {deletingDraftId === bt.id ? (
+                        <>
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                          Delete Draft
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -201,3 +201,34 @@ export async function createBetaTest(
 
   return null;
 }
+
+export async function deleteDraftBetaTest(
+  clerkUserId: string,
+  betaTestId: string
+): Promise<{ error?: string; success?: boolean }> {
+  const client = createServiceClient();
+
+  const { data, error } = await client
+    .from("beta_tests")
+    .select("*")
+    .eq("id", betaTestId)
+    .eq("creator_id", clerkUserId)
+    .maybeSingle();
+
+  if (error) return { error: "Failed to load beta test" };
+  if (!data) return { error: "Draft beta test not found" };
+
+  const betaTest = rowToBetaTest(data as Record<string, unknown>);
+  if (betaTest.status !== "draft") {
+    return { error: "Only draft beta tests can be deleted" };
+  }
+
+  const { error: deleteError } = await client
+    .from("beta_tests")
+    .delete()
+    .eq("id", betaTestId)
+    .eq("creator_id", clerkUserId);
+
+  if (deleteError) return { error: "Failed to delete draft beta test" };
+  return { success: true };
+}
