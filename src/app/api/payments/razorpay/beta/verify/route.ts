@@ -10,6 +10,7 @@ import {
 } from "@/lib/payments/razorpay";
 
 export const runtime = "nodejs";
+const MAX_POOL_SYNC_RETRIES = 5;
 
 interface VerifyBody {
   betaTestId?: string;
@@ -20,6 +21,91 @@ interface VerifyBody {
 
 function logBetaVerifyFailure(reason: string, context: Record<string, unknown>) {
   console.error("[razorpay/beta/verify] request failed", { reason, ...context });
+}
+
+async function syncRewardPoolFromPayments(
+  client: ReturnType<typeof createServiceClient>,
+  params: {
+    betaTestId: string;
+    userId: string;
+    latestPaymentId: string;
+  }
+): Promise<
+  | { success: true; poolFundedMinor: number; poolTotalMinor: number; poolStatus: string }
+  | { success: false; error: string }
+> {
+  const { betaTestId, userId, latestPaymentId } = params;
+
+  for (let attempt = 0; attempt < MAX_POOL_SYNC_RETRIES; attempt += 1) {
+    const { data: currentPool, error: currentPoolError } = await client
+      .from("beta_tests")
+      .select("reward_pool_total_minor, reward_pool_funded_minor")
+      .eq("id", betaTestId)
+      .eq("creator_id", userId)
+      .maybeSingle();
+
+    if (currentPoolError || !currentPool) {
+      return { success: false, error: "Could not load reward pool state." };
+    }
+
+    const poolTotalMinor = Math.max(0, Number(currentPool.reward_pool_total_minor ?? 0));
+    const poolFundedMinor = Math.max(0, Number(currentPool.reward_pool_funded_minor ?? 0));
+
+    const { data: paymentRows, error: paymentRowsError } = await client
+      .from("beta_reward_payments")
+      .select("amount_minor")
+      .eq("beta_test_id", betaTestId);
+
+    if (paymentRowsError) {
+      return { success: false, error: "Could not recalculate funded reward pool amount." };
+    }
+
+    const fundedFromPayments = ((paymentRows ?? []) as Array<{ amount_minor?: number | string | null }>).reduce(
+      (sum, row) => sum + Math.max(0, Number(row.amount_minor ?? 0)),
+      0
+    );
+
+    // Never decrease funded amount, even under concurrent requests.
+    const nextFundedMinor = Math.max(poolFundedMinor, fundedFromPayments);
+    const nextStatus =
+      nextFundedMinor >= poolTotalMinor
+        ? "funded"
+        : nextFundedMinor > 0
+        ? "partial"
+        : poolTotalMinor > 0
+        ? "pending"
+        : "not_required";
+    const nowIso = new Date().toISOString();
+
+    const { data: updatedPool, error: updateError } = await client
+      .from("beta_tests")
+      .update({
+        reward_pool_funded_minor: nextFundedMinor,
+        reward_pool_status: nextStatus,
+        reward_pool_payment_id: latestPaymentId,
+        reward_pool_funded_at: nextStatus === "funded" ? nowIso : null,
+      })
+      .eq("id", betaTestId)
+      .eq("creator_id", userId)
+      .eq("reward_pool_funded_minor", poolFundedMinor)
+      .select("reward_pool_funded_minor, reward_pool_total_minor, reward_pool_status")
+      .maybeSingle();
+
+    if (updateError) {
+      return { success: false, error: "Could not update reward pool status." };
+    }
+
+    if (updatedPool) {
+      return {
+        success: true,
+        poolFundedMinor: Math.max(0, Number(updatedPool.reward_pool_funded_minor ?? nextFundedMinor)),
+        poolTotalMinor: Math.max(0, Number(updatedPool.reward_pool_total_minor ?? poolTotalMinor)),
+        poolStatus: String(updatedPool.reward_pool_status ?? nextStatus),
+      };
+    }
+  }
+
+  return { success: false, error: "Could not finalize reward pool update due to concurrent requests." };
 }
 
 export async function POST(request: Request) {
@@ -88,7 +174,7 @@ export async function POST(request: Request) {
   const client = createServiceClient();
   const { data: betaTest, error: betaError } = await client
     .from("beta_tests")
-    .select("*")
+    .select("creator_id, reward_type, reward_currency")
     .eq("id", betaTestId)
     .maybeSingle();
 
@@ -110,20 +196,39 @@ export async function POST(request: Request) {
     logBetaVerifyFailure("reward_currency_not_inr", { userId, betaTestId, orderId, paymentId });
     return NextResponse.json({ error: "Only INR funding is supported right now." }, { status: 400 });
   }
-  if (String(betaTest.reward_pool_order_id ?? "") !== orderId) {
-    logBetaVerifyFailure("order_id_mismatch", { userId, betaTestId, orderId, paymentId });
-    return NextResponse.json({ error: "Payment order does not match current reward funding order." }, { status: 400 });
-  }
 
   try {
     const { data: existingPayment, error: existingError } = await client
       .from("beta_reward_payments")
-      .select("id, amount_minor")
+      .select("id")
       .eq("payment_id", paymentId)
       .maybeSingle();
 
     if (!existingError && existingPayment) {
-      return NextResponse.json({ success: true, credited: false, fundedAmountMinor: 0 });
+      const synced = await syncRewardPoolFromPayments(client, {
+        betaTestId,
+        userId,
+        latestPaymentId: paymentId,
+      });
+      if (!synced.success) {
+        logBetaVerifyFailure("sync_existing_payment_failed", {
+          userId,
+          betaTestId,
+          orderId,
+          paymentId,
+          error: synced.error,
+        });
+        return NextResponse.json({ error: synced.error }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        credited: false,
+        fundedAmountMinor: 0,
+        poolFundedMinor: synced.poolFundedMinor,
+        poolTotalMinor: synced.poolTotalMinor,
+        poolStatus: synced.poolStatus,
+      });
     }
 
     const [order, initialPayment] = await Promise.all([
@@ -134,6 +239,18 @@ export async function POST(request: Request) {
     if (order.notes?.beta_test_id !== betaTestId || order.notes?.creator_id !== userId) {
       logBetaVerifyFailure("order_metadata_mismatch", { userId, betaTestId, orderId, paymentId });
       return NextResponse.json({ error: "Razorpay order metadata mismatch." }, { status: 400 });
+    }
+
+    if (order.currency !== "INR" || order.amount <= 0) {
+      logBetaVerifyFailure("order_invalid_for_pool", {
+        userId,
+        betaTestId,
+        orderId,
+        paymentId,
+        orderCurrency: order.currency,
+        orderAmount: order.amount,
+      });
+      return NextResponse.json({ error: "Invalid Razorpay order for INR funding." }, { status: 400 });
     }
 
     if (initialPayment.order_id !== orderId) {
@@ -168,24 +285,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only INR payments are valid for beta funding." }, { status: 400 });
     }
 
-    const poolTotalMinor = Number(betaTest.reward_pool_total_minor ?? 0);
-    const poolFundedMinor = Number(betaTest.reward_pool_funded_minor ?? 0);
-    const remainingMinor = Math.max(0, poolTotalMinor - poolFundedMinor);
-    if (remainingMinor <= 0) {
-      logBetaVerifyFailure("pool_already_funded", { userId, betaTestId, orderId, paymentId });
-      return NextResponse.json({ error: "Reward pool is already fully funded." }, { status: 400 });
-    }
-
-    if (payment.amount > remainingMinor) {
-      logBetaVerifyFailure("payment_exceeds_remaining", {
+    if (payment.amount !== order.amount) {
+      logBetaVerifyFailure("payment_amount_mismatch", {
         userId,
         betaTestId,
         orderId,
         paymentId,
+        orderAmount: order.amount,
         paymentAmount: payment.amount,
-        remainingMinor,
       });
-      return NextResponse.json({ error: "Payment amount exceeds remaining reward pool amount." }, { status: 400 });
+      return NextResponse.json({ error: "Razorpay payment amount mismatch." }, { status: 400 });
     }
 
     const { error: insertError } = await client.from("beta_reward_payments").insert({
@@ -198,42 +307,34 @@ export async function POST(request: Request) {
       status: "captured",
     });
 
-    if (insertError) {
-      if (insertError.code === "23505") {
-        return NextResponse.json({ success: true, credited: false, fundedAmountMinor: 0 });
-      }
+    if (insertError && insertError.code !== "23505") {
       logBetaVerifyFailure("record_payment_failed", { userId, betaTestId, orderId, paymentId });
       return NextResponse.json({ error: "Could not record payment for reward pool." }, { status: 500 });
     }
 
-    const newFundedMinor = poolFundedMinor + payment.amount;
-    const newStatus = newFundedMinor >= poolTotalMinor ? "funded" : "partial";
-    const nowIso = new Date().toISOString();
-
-    const { error: updateError } = await client
-      .from("beta_tests")
-      .update({
-        reward_pool_funded_minor: newFundedMinor,
-        reward_pool_status: newStatus,
-        reward_pool_payment_id: paymentId,
-        reward_pool_funded_at: newStatus === "funded" ? nowIso : betaTest.reward_pool_funded_at,
-      })
-      .eq("id", betaTestId)
-      .eq("creator_id", userId);
-
-    if (updateError) {
-      await client.from("beta_reward_payments").delete().eq("payment_id", paymentId);
-      logBetaVerifyFailure("update_pool_failed", { userId, betaTestId, orderId, paymentId });
-      return NextResponse.json({ error: "Could not update reward pool status." }, { status: 500 });
+    const synced = await syncRewardPoolFromPayments(client, {
+      betaTestId,
+      userId,
+      latestPaymentId: paymentId,
+    });
+    if (!synced.success) {
+      logBetaVerifyFailure("update_pool_failed", {
+        userId,
+        betaTestId,
+        orderId,
+        paymentId,
+        error: synced.error,
+      });
+      return NextResponse.json({ error: synced.error }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      credited: true,
-      fundedAmountMinor: payment.amount,
-      poolFundedMinor: newFundedMinor,
-      poolTotalMinor,
-      poolStatus: newStatus,
+      credited: !insertError,
+      fundedAmountMinor: insertError ? 0 : payment.amount,
+      poolFundedMinor: synced.poolFundedMinor,
+      poolTotalMinor: synced.poolTotalMinor,
+      poolStatus: synced.poolStatus,
     });
   } catch (error) {
     logBetaVerifyFailure("unexpected_exception", {
