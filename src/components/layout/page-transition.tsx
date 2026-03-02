@@ -77,15 +77,6 @@ export function PageTransition({ children }: PageTransitionProps) {
             : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
         }
       >
-        {!disableHeavyMotion && (
-          <motion.div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent"
-            initial={{ opacity: 0, scaleX: 0.6 }}
-            animate={{ opacity: [0, 0.85, 0], scaleX: [0.6, 1, 1.15] }}
-            transition={{ duration: isMobile ? 0.22 : 0.34, ease: "easeOut" }}
-          />
-        )}
         {children}
       </motion.div>
     </AnimatePresence>
