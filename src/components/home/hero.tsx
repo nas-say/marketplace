@@ -8,7 +8,7 @@ export async function Hero() {
   const totalSalesValue = listings.reduce((sum, l) => sum + l.askingPrice, 0);
 
   return (
-    <section className="gradient-hero relative overflow-hidden py-24 sm:py-32">
+    <section className="gradient-hero relative overflow-hidden">
       <HeroParallaxBackdrop />
       <HeroClient
         listingsCount={listings.length}
