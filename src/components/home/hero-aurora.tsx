@@ -1,11 +1,12 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useMotionProfile } from "@/components/shared/use-motion-profile";
 
 export function HeroAurora() {
-  const reduceMotion = useReducedMotion();
+  const { prefersReducedMotion, isMobile } = useMotionProfile();
 
-  if (reduceMotion) {
+  if (prefersReducedMotion) {
     return (
       <>
         <div
@@ -22,6 +23,17 @@ export function HeroAurora() {
           }}
         />
       </>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute left-[-24%] top-[-28%] h-[420px] w-[420px] rounded-full bg-indigo-500/24 blur-[105px]"
+        animate={{ x: [0, 40, 10, 0], y: [0, 36, 12, 0], scale: [1, 1.05, 0.98, 1] }}
+        transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+      />
     );
   }
 

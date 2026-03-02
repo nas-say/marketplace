@@ -9,7 +9,7 @@ import { TechStackBadges } from "@/components/shared/tech-stack-badges";
 import { formatPrice, formatNumber } from "@/lib/data";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { useWatchlist } from "@/lib/use-watchlist";
-import { motion, useReducedMotion } from "framer-motion";
+import { TiltCardShell } from "@/components/shared/tilt-card-shell";
 
 // Category gradient backgrounds
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -56,7 +56,6 @@ interface ListingCardProps {
 
 export function ListingCard({ listing }: ListingCardProps) {
   const { isWatchlisted, toggle } = useWatchlist(listing.id);
-  const reduceMotion = useReducedMotion();
 
   const TrendIcon =
     listing.metrics.revenueTrend === "up"
@@ -80,11 +79,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   const textColor = CATEGORY_TEXT_COLORS[listing.category] ?? "text-zinc-400";
 
   return (
-    <motion.div
-      className="relative group h-full"
-      whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
-      transition={{ type: "spring", stiffness: 300, damping: 24, mass: 0.8 }}
-    >
+    <TiltCardShell className="relative" overlayClassName="rounded-lg">
       <Link href={`/listing/${listing.id}`}>
         <Card className="card-hover flex h-full min-h-[360px] cursor-pointer flex-col border-zinc-800 bg-zinc-900">
           {/* Gradient thumbnail */}
@@ -172,6 +167,6 @@ export function ListingCard({ listing }: ListingCardProps) {
           <Bookmark className="h-3.5 w-3.5 text-zinc-400" />
         )}
       </button>
-    </motion.div>
+    </TiltCardShell>
   );
 }

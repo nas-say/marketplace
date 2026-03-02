@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { BetaTest } from "@/types/beta-test";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
-import { motion, useReducedMotion } from "framer-motion";
+import { TiltCardShell } from "@/components/shared/tilt-card-shell";
 
 interface BetaCardProps {
   betaTest: BetaTest;
@@ -27,7 +27,6 @@ function formatCurrencyMinor(amountMinor: number, currency = "INR"): string {
 }
 
 export function BetaCard({ betaTest }: BetaCardProps) {
-  const reduceMotion = useReducedMotion();
   const spotsRemaining = betaTest.spots.total - betaTest.spots.filled;
   const fillPercent = (betaTest.spots.filled / betaTest.spots.total) * 100;
 
@@ -52,64 +51,60 @@ export function BetaCard({ betaTest }: BetaCardProps) {
     betaTest.reward.type === "cash" ? calculateCashBetaPayout(Number(betaTest.reward.amount ?? 0)) : null;
 
   return (
-    <motion.div
-      className="h-full"
-      whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
-      transition={{ type: "spring", stiffness: 280, damping: 24, mass: 0.85 }}
-    >
+    <TiltCardShell overlayClassName="rounded-lg">
       <Link href={`/beta/${betaTest.id}`}>
         <Card className="card-hover flex h-full min-h-[360px] cursor-pointer flex-col border-zinc-800 bg-zinc-900">
-        <CardContent className="flex flex-1 flex-col p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="line-clamp-2 min-h-[56px] font-semibold text-zinc-50">{betaTest.title}</h3>
-              <p className="mt-1 line-clamp-2 min-h-10 text-sm text-zinc-400">{betaTest.description}</p>
+          <CardContent className="flex flex-1 flex-col p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="line-clamp-2 min-h-[56px] font-semibold text-zinc-50">{betaTest.title}</h3>
+                <p className="mt-1 line-clamp-2 min-h-10 text-sm text-zinc-400">{betaTest.description}</p>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-3 flex min-h-[56px] max-h-[56px] flex-wrap content-start gap-1 overflow-hidden">
-            <Badge className={statusColor}>{statusLabel}</Badge>
-            <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs">
-              {CATEGORY_LABELS[betaTest.category]}
-            </Badge>
-            {betaTest.platform.map((p) => (
-              <Badge key={p} variant="outline" className="border-zinc-700 text-zinc-400 text-xs capitalize">
-                {p}
+            <div className="mt-3 flex min-h-[56px] max-h-[56px] flex-wrap content-start gap-1 overflow-hidden">
+              <Badge className={statusColor}>{statusLabel}</Badge>
+              <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs">
+                {CATEGORY_LABELS[betaTest.category]}
               </Badge>
-            ))}
-          </div>
-
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-zinc-500 mb-1">
-              <span>{betaTest.spots.filled} of {betaTest.spots.total} spots filled</span>
-              <span>{spotsRemaining} left</span>
+              {betaTest.platform.map((p) => (
+                <Badge key={p} variant="outline" className="border-zinc-700 text-zinc-400 text-xs capitalize">
+                  {p}
+                </Badge>
+              ))}
             </div>
-            <div className="h-2 rounded-full bg-zinc-800">
-              <div
-                className="h-2 rounded-full bg-indigo-600 transition-all"
-                style={{ width: `${fillPercent}%` }}
-              />
-            </div>
-          </div>
 
-          <div className="mt-auto flex items-end justify-between pt-3">
-            <div className="max-w-[78%]">
-              <span className="line-clamp-2 text-sm font-medium text-violet-400">
-                {betaTest.reward.description}
+            <div className="mt-4">
+              <div className="mb-1 flex justify-between text-xs text-zinc-500">
+                <span>{betaTest.spots.filled} of {betaTest.spots.total} spots filled</span>
+                <span>{spotsRemaining} left</span>
+              </div>
+              <div className="h-2 rounded-full bg-zinc-800">
+                <div
+                  className="h-2 rounded-full bg-indigo-600 transition-all"
+                  style={{ width: `${fillPercent}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-auto flex items-end justify-between pt-3">
+              <div className="max-w-[78%]">
+                <span className="line-clamp-2 text-sm font-medium text-violet-400">
+                  {betaTest.reward.description}
+                </span>
+                {cashPayout && (
+                  <p className="text-[11px] text-zinc-500">
+                    Net after 5% fee: {formatCurrencyMinor(cashPayout.netMinor, betaTest.reward.currency)}
+                  </p>
+                )}
+              </div>
+              <span className="text-right text-xs text-zinc-500">
+                Due {new Date(betaTest.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </span>
-              {cashPayout && (
-                <p className="text-[11px] text-zinc-500">
-                  Net after 5% fee: {formatCurrencyMinor(cashPayout.netMinor, betaTest.reward.currency)}
-                </p>
-              )}
             </div>
-            <span className="text-right text-xs text-zinc-500">
-              Due {new Date(betaTest.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </span>
-          </div>
-        </CardContent>
+          </CardContent>
         </Card>
       </Link>
-    </motion.div>
+    </TiltCardShell>
   );
 }

@@ -9,22 +9,22 @@ import { SectionReveal } from "@/components/shared/section-reveal";
 export default function HomePage() {
   return (
     <>
-      <SectionReveal variant="zoom-in">
+      <SectionReveal>
         <Hero />
       </SectionReveal>
-      <SectionReveal delay={0.04} variant="drift-left">
+      <SectionReveal delay={0.05}>
         <FeaturedListings />
       </SectionReveal>
-      <SectionReveal delay={0.08} variant="rise">
+      <SectionReveal delay={0.08}>
         <HowItWorksSteps />
       </SectionReveal>
-      <SectionReveal delay={0.1} variant="drift-right">
+      <SectionReveal delay={0.1}>
         <CategoriesGrid />
       </SectionReveal>
-      <SectionReveal delay={0.12} variant="tilt-up">
+      <SectionReveal delay={0.12}>
         <BetaSpotlight />
       </SectionReveal>
-      <SectionReveal delay={0.14} variant="zoom-in">
+      <SectionReveal delay={0.14}>
         <CtaBanner />
       </SectionReveal>
     </>

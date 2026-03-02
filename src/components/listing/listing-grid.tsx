@@ -3,6 +3,7 @@
 import { Listing } from "@/types/listing";
 import { ListingCard } from "./listing-card";
 import { motion, useReducedMotion } from "framer-motion";
+import { useMotionProfile } from "@/components/shared/use-motion-profile";
 
 interface ListingGridProps {
   listings: Listing[];
@@ -10,6 +11,8 @@ interface ListingGridProps {
 
 export function ListingGrid({ listings }: ListingGridProps) {
   const reduceMotion = useReducedMotion();
+  const { isMobile } = useMotionProfile();
+  const disableHeavyMotion = reduceMotion || isMobile;
 
   if (listings.length === 0) {
     return (
@@ -22,10 +25,10 @@ export function ListingGrid({ listings }: ListingGridProps) {
   return (
     <motion.div
       className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      initial={reduceMotion ? undefined : "hidden"}
-      animate={reduceMotion ? undefined : "visible"}
+      initial={disableHeavyMotion ? undefined : "hidden"}
+      animate={disableHeavyMotion ? undefined : "visible"}
       variants={
-        reduceMotion
+        disableHeavyMotion
           ? undefined
           : {
               hidden: {},
@@ -42,14 +45,18 @@ export function ListingGrid({ listings }: ListingGridProps) {
           key={listing.id}
           className="h-full"
           variants={
-            reduceMotion
+            disableHeavyMotion
               ? undefined
               : {
                   hidden: { opacity: 0, y: 14 },
                   visible: { opacity: 1, y: 0 },
                 }
           }
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          transition={
+            isMobile
+              ? { duration: 0.2, ease: [0.22, 1, 0.36, 1] }
+              : { duration: 0.35, ease: [0.22, 1, 0.36, 1] }
+          }
         >
           <ListingCard listing={listing} />
         </motion.div>
