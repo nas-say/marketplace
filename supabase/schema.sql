@@ -147,7 +147,18 @@ create table if not exists beta_tests (
 
 alter table beta_tests enable row level security;
 
-create policy "beta_tests_public_read" on beta_tests for select using (true);
+drop policy if exists "beta_tests_public_read" on beta_tests;
+create policy "beta_tests_public_read" on beta_tests for select using (
+  creator_id = auth.uid()::text
+  or (
+    status in ('accepting', 'almost_full', 'closed')
+    and (
+      coalesce(reward_type, 'cash') <> 'cash'
+      or coalesce(reward_pool_total_minor, 0) = 0
+      or coalesce(reward_pool_status, 'not_required') = 'funded'
+    )
+  )
+);
 create policy "beta_tests_owner_insert" on beta_tests for insert with check (creator_id = auth.uid()::text);
 create policy "beta_tests_owner_update" on beta_tests for update using (creator_id = auth.uid()::text);
 

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { getVisitorCountryCode, getVisitorCurrency } from "@/lib/geo";
 import { sendPaymentInterestNotification } from "@/lib/notifications/payment-interest";
+import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,44 @@ export async function POST(request: Request) {
   const feature = body?.feature?.trim() ?? "";
   if (!SUPPORTED_FEATURES.has(feature)) {
     return NextResponse.json({ error: "Unsupported interest type." }, { status: 400 });
+  }
+
+  const rateLimit = await enforceUserRateLimit({
+    userId,
+    action: "payment_interest",
+    request,
+    windowMs: 60_000,
+    maxRequests: 10,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait and try again." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds ?? 60),
+        },
+      }
+    );
+  }
+
+  const cooldown = await enforceUserCooldown({
+    userId,
+    action: "payment_interest_feature",
+    scope: feature,
+    request,
+    cooldownMs: 8_000,
+  });
+  if (!cooldown.allowed) {
+    return NextResponse.json(
+      { error: "Please wait a few seconds before submitting interest again." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(cooldown.retryAfterSeconds ?? 8),
+        },
+      }
+    );
   }
 
   const context = body?.context && typeof body.context === "object" ? body.context : {};
