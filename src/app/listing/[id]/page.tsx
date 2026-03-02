@@ -15,7 +15,7 @@ import { ListingCard } from "@/components/listing/listing-card";
 import { SellerWebsiteGate } from "./seller-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, CheckCircle, User, ShieldCheck } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CheckCircle, User, ShieldCheck, Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
@@ -213,44 +213,63 @@ export default async function ListingDetailPage({ params }: Props) {
           {seller && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 mb-8">
               <h3 className="text-lg font-semibold text-zinc-50 mb-3">About the Seller</h3>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 shrink-0">
-                  <User className="h-6 w-6 text-zinc-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Link href={`/seller/${seller.id}`} className="font-semibold text-zinc-50 hover:text-indigo-400 transition-colors">
-                      {seller.displayName}
-                    </Link>
-                    {seller.verified && <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-xs">Verified</Badge>}
-                  </div>
-                  <p className="text-sm text-zinc-400 mt-0.5">{seller.bio}</p>
-                  <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500 flex-wrap">
-                    <span>{seller.stats.totalSales} sales</span>
-                    <span>Member since {new Date(seller.stats.memberSince).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
-                    <SellerWebsiteGate
-                      listingId={listing.id}
-                      isUnlocked={unlocked}
-                      website={unlocked ? (seller.website ?? null) : null}
-                      userId={userId ?? null}
-                      connectsBalance={connectsBalance}
-                      unlockCost={unlockCost}
-                    />
+              {!isSeller && !unlocked ? (
+                <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900/80 border border-zinc-700">
+                      <Lock className="h-5 w-5 text-zinc-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-200">Seller details are locked</p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Unlock this listing to view seller profile, website, and more projects from this seller.
+                      </p>
+                      <p className="mt-2 text-xs text-indigo-300">Use the unlock card on the right ({unlockCost} connects).</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              {sellerOtherListings.length > 0 && (
-                <div className="mt-4 border-t border-zinc-800 pt-4">
-                  <p className="text-xs text-zinc-500 mb-2">More from this seller</p>
-                  <div className="space-y-2">
-                    {sellerOtherListings.map((l) => (
-                      <Link key={l.id} href={`/listing/${l.id}`} className="flex items-center justify-between rounded-md border border-zinc-800 px-3 py-2 hover:border-zinc-600 transition-colors">
-                        <span className="text-sm text-zinc-300">{l.title}</span>
-                        <span className="text-sm font-medium text-violet-400">{formatPrice(l.askingPrice)}</span>
-                      </Link>
-                    ))}
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 shrink-0">
+                      <User className="h-6 w-6 text-zinc-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/seller/${seller.id}`} className="font-semibold text-zinc-50 hover:text-indigo-400 transition-colors">
+                          {seller.displayName}
+                        </Link>
+                        {seller.verified && <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-xs">Verified</Badge>}
+                      </div>
+                      <p className="text-sm text-zinc-400 mt-0.5">{seller.bio}</p>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500 flex-wrap">
+                        <span>{seller.stats.totalSales} sales</span>
+                        <span>Member since {new Date(seller.stats.memberSince).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+                        <SellerWebsiteGate
+                          listingId={listing.id}
+                          isUnlocked={unlocked}
+                          website={unlocked ? (seller.website ?? null) : null}
+                          userId={userId ?? null}
+                          connectsBalance={connectsBalance}
+                          unlockCost={unlockCost}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                  {sellerOtherListings.length > 0 && (
+                    <div className="mt-4 border-t border-zinc-800 pt-4">
+                      <p className="text-xs text-zinc-500 mb-2">More from this seller</p>
+                      <div className="space-y-2">
+                        {sellerOtherListings.map((l) => (
+                          <Link key={l.id} href={`/listing/${l.id}`} className="flex items-center justify-between rounded-md border border-zinc-800 px-3 py-2 hover:border-zinc-600 transition-colors">
+                            <span className="text-sm text-zinc-300">{l.title}</span>
+                            <span className="text-sm font-medium text-violet-400">{formatPrice(l.askingPrice)}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
