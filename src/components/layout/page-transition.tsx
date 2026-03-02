@@ -32,15 +32,16 @@ export function PageTransition({ children }: PageTransitionProps) {
   const direction = order % 2 === 0 ? 1 : -1;
 
   const disableHeavyMotion = reduceMotion || isMobile;
+  const visibleState = { opacity: 1, y: 0, x: 0, filter: "blur(0px)", scale: 1 };
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="sync" initial={false}>
       <motion.div
         key={pathname}
         className="relative"
         initial={
           disableHeavyMotion
-            ? undefined
+            ? visibleState
             : {
                 opacity: 0,
                 y: 8,
@@ -49,20 +50,10 @@ export function PageTransition({ children }: PageTransitionProps) {
                 scale: 0.998,
               }
         }
-        animate={
-          disableHeavyMotion
-            ? undefined
-            : {
-                opacity: 1,
-                y: 0,
-                x: 0,
-                filter: "blur(0px)",
-                scale: 1,
-              }
-        }
+        animate={visibleState}
         exit={
           disableHeavyMotion
-            ? undefined
+            ? visibleState
             : {
                 opacity: 0,
                 y: -4,
