@@ -1,6 +1,7 @@
 import { getListings } from "@/lib/db/listings";
 import { getActiveBetaTests } from "@/lib/db/beta-tests";
 import { HeroParallaxBackdrop } from "./hero-parallax-backdrop";
+import { HeroAurora } from "./hero-aurora";
 import { HeroClient } from "./hero-client";
 
 export async function Hero() {
@@ -9,6 +10,7 @@ export async function Hero() {
 
   return (
     <section className="gradient-hero relative overflow-hidden">
+      <HeroAurora />
       <HeroParallaxBackdrop />
       <HeroClient
         listingsCount={listings.length}

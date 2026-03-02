@@ -45,7 +45,7 @@ export function HeroClient({ listingsCount, betaTestsCount, totalSalesValue }: H
 
   return (
     <div
-      className="relative w-full py-24 sm:py-32"
+      className="relative z-10 w-full py-24 sm:py-32"
       onMouseMove={handlePointerMove}
       onMouseLeave={handlePointerLeave}
     >
