@@ -307,7 +307,7 @@ export function ConnectsClient({
           <div className="flex-1">
             <p className="font-semibold text-amber-300">Early Access Perk</p>
             <p className="text-sm text-amber-400/80 mt-0.5">
-              Payments are setting up. Claim {freeAmount} free connects now to unlock seller info and try the platform.
+              Given to our first 100 users. Claim {freeAmount} free connects now to unlock seller info and try the platform.
             </p>
             <Button
               size="sm"
