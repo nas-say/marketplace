@@ -51,6 +51,7 @@ export function DashboardClient({
   myApplications,
 }: Props) {
   const [activeTab, setActiveTab] = useState("Overview");
+  const [betaSubTab, setBetaSubTab] = useState<"posted" | "applied">("posted");
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [myListings, setMyListings] = useState(listings);
   const [myBetaTests, setMyBetaTests] = useState(betaTests);
@@ -238,10 +239,34 @@ export function DashboardClient({
 
       {activeTab === "Beta Tests" && (
         <div>
-          <h3 className="text-lg font-semibold text-zinc-50 mb-4">My Beta Tests</h3>
-          {myBetaTests.length === 0 ? (
-            <p className="text-center text-zinc-500 py-12">No beta tests yet.</p>
-          ) : (
+          <h3 className="mb-4 text-lg font-semibold text-zinc-50">Beta Tests</h3>
+
+          <div className="mb-5 inline-flex gap-1 rounded-lg bg-zinc-900 p-1">
+            <button
+              onClick={() => setBetaSubTab("posted")}
+              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                betaSubTab === "posted"
+                  ? "bg-zinc-800 text-zinc-50"
+                  : "text-zinc-400 hover:text-zinc-50"
+              }`}
+            >
+              Posted ({myBetaTests.length})
+            </button>
+            <button
+              onClick={() => setBetaSubTab("applied")}
+              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                betaSubTab === "applied"
+                  ? "bg-zinc-800 text-zinc-50"
+                  : "text-zinc-400 hover:text-zinc-50"
+              }`}
+            >
+              Applied ({myApplications.length})
+            </button>
+          </div>
+
+          {betaSubTab === "posted" && myBetaTests.length === 0 ? (
+            <p className="py-12 text-center text-zinc-500">No beta tests posted yet.</p>
+          ) : betaSubTab === "posted" ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {myBetaTests.map((bt) => (
                 <div key={bt.id} className="relative">
@@ -270,6 +295,43 @@ export function DashboardClient({
                         </>
                       )}
                     </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : myApplications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 py-12 text-center">
+              <TestTube className="mb-3 h-8 w-8 text-zinc-700" />
+              <p className="font-medium text-zinc-400">No applications yet</p>
+              <p className="mt-1 text-sm text-zinc-600">Apply to beta tests to earn rewards.</p>
+              <Link href="/beta" className="mt-4">
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">Browse beta tests</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myApplications.map((application) => (
+                <div key={application.betaTestId} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-zinc-200">
+                      {application.betaTest?.title ?? application.betaTestId}
+                    </p>
+                    <Badge className={
+                      application.status === "accepted"
+                        ? "bg-green-500/10 text-green-400 border-green-500/20"
+                        : application.status === "rejected"
+                          ? "bg-red-500/10 text-red-400 border-red-500/20"
+                          : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                    }>
+                      {application.status}
+                    </Badge>
+                  </div>
+                  {application.betaTest && (
+                    <Link href={`/beta/${application.betaTestId}`}>
+                      <Button size="sm" variant="outline" className="border-zinc-700 px-2 text-zinc-400 hover:text-zinc-50">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
                   )}
                 </div>
               ))}
@@ -333,48 +395,6 @@ export function DashboardClient({
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-zinc-50 mb-4">My Beta Applications</h3>
-            {myApplications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-zinc-800 bg-zinc-900">
-                <TestTube className="h-8 w-8 text-zinc-700 mb-3" />
-                <p className="font-medium text-zinc-400">No applications yet</p>
-                <p className="mt-1 text-sm text-zinc-600">Apply to beta tests to earn rewards.</p>
-                <Link href="/beta" className="mt-4">
-                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">Browse beta tests</Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {myApplications.map((application) => (
-                  <div key={application.betaTestId} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-zinc-200 truncate">
-                        {application.betaTest?.title ?? application.betaTestId}
-                      </p>
-                      <Badge className={
-                        application.status === "accepted"
-                          ? "bg-green-500/10 text-green-400 border-green-500/20"
-                          : application.status === "rejected"
-                            ? "bg-red-500/10 text-red-400 border-red-500/20"
-                            : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
-                      }>
-                        {application.status}
-                      </Badge>
-                    </div>
-                    {application.betaTest && (
-                      <Link href={`/beta/${application.betaTestId}`}>
-                        <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-zinc-50 px-2">
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
-                    )}
                   </div>
                 ))}
               </div>
