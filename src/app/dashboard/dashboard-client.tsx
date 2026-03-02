@@ -38,6 +38,16 @@ const MONTHLY_DATA = [
 ];
 
 const tabs = ["Overview", "My Listings", "Beta Tests", "Earnings", "As Buyer"];
+const CATEGORY_LABELS: Record<Listing["category"], string> = {
+  saas: "SaaS",
+  "mobile-app": "Mobile App",
+  "chrome-extension": "Chrome Extension",
+  domain: "Domain",
+  "open-source": "Open Source",
+  "bot-automation": "Automation",
+  api: "API",
+  "template-theme": "Template",
+};
 
 interface ApplicationRow {
   betaTestId: string;
@@ -162,7 +172,12 @@ export function DashboardClient({
         <div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
             <StatCard label="Total Earnings" value={stats.totalEarnings} icon={<DollarSign className="h-4 w-4" />} />
-            <StatCard label="Active Listings" value={String(stats.activeListings)} icon={<Package className="h-4 w-4" />} />
+            <StatCard
+              label="Active Listings"
+              value={String(stats.activeListings)}
+              secondaryValue={`${unlockedListings.length} unlocked`}
+              icon={<Package className="h-4 w-4" />}
+            />
             <StatCard label="Beta Tests" value={String(myBetaTests.length)} icon={<TestTube className="h-4 w-4" />} />
             <StatCard label="Feedback Given" value={String(stats.feedbackGiven)} icon={<MessageSquare className="h-4 w-4" />} />
           </div>
@@ -429,17 +444,54 @@ export function DashboardClient({
             ) : (
               <div className="space-y-3">
                 {unlockedListings.map((listing) => (
-                  <div key={listing.id} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-zinc-200 truncate">{listing.title}</p>
-                      <span className="text-sm text-zinc-400">{formatPrice(listing.askingPrice)}</span>
+                  <Link
+                    key={listing.id}
+                    href={`/listing/${listing.id}`}
+                    className="group block rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 transition-colors hover:border-indigo-500/40 hover:bg-zinc-900/90"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-zinc-200">{listing.title}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                          <Badge className="bg-zinc-500/10 border-zinc-500/20 text-zinc-300">
+                            {CATEGORY_LABELS[listing.category]}
+                          </Badge>
+                          <Badge
+                            className={
+                              listing.status === "active"
+                                ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                : listing.status === "sold"
+                                  ? "bg-zinc-500/10 border-zinc-500/20 text-zinc-400"
+                                  : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                            }
+                          >
+                            {listing.status}
+                          </Badge>
+                          {listing.ownershipVerified && (
+                            <Badge className="bg-emerald-500/10 border-emerald-500/20 text-emerald-300">
+                              verified
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-400">
+                          <span>{formatPrice(listing.askingPrice)}</span>
+                          <span>MRR {formatPrice(listing.metrics.mrr)}</span>
+                          <span className="text-zinc-500">
+                            Updated{" "}
+                            {new Date(listing.updatedAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="mt-1 flex items-center gap-1 text-xs text-indigo-300/90 transition-transform group-hover:translate-x-0.5">
+                        Open
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </span>
                     </div>
-                    <Link href={`/listing/${listing.id}`}>
-                      <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 hover:text-zinc-50 px-2">
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
