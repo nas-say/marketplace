@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/data";
@@ -24,9 +24,12 @@ export function HeroClient({ listingsCount, betaTestsCount, totalSalesValue }: H
   const ctaY = useTransform(scrollYProgress, [0, 0.25], [0, 26]);
   const ctaOpacity = useTransform(scrollYProgress, [0, 0.24, 0.36], [1, 1, 0.65]);
 
-  const mouseX = useMotionValue(-500);
-  const mouseY = useMotionValue(-500);
-  const spotlightBg = useMotionTemplate`radial-gradient(260px circle at ${mouseX}px ${mouseY}px, rgba(99,102,241,0.25), rgba(34,211,238,0.12) 35%, transparent 68%)`;
+  const mouseX = useMotionValue(-9999);
+  const mouseY = useMotionValue(-9999);
+  const smoothX = useSpring(mouseX, { stiffness: 280, damping: 28, mass: 0.8 });
+  const smoothY = useSpring(mouseY, { stiffness: 280, damping: 28, mass: 0.8 });
+  const spotlightX = useTransform(smoothX, (v) => v - 260);
+  const spotlightY = useTransform(smoothY, (v) => v - 260);
 
   const handlePointerMove = (event: MouseEvent<HTMLDivElement>) => {
     if (reduceMotion) return;
@@ -37,8 +40,8 @@ export function HeroClient({ listingsCount, betaTestsCount, totalSalesValue }: H
   };
 
   const handlePointerLeave = () => {
-    mouseX.set(-500);
-    mouseY.set(-500);
+    mouseX.set(-9999);
+    mouseY.set(-9999);
   };
 
   return (
@@ -50,8 +53,16 @@ export function HeroClient({ listingsCount, betaTestsCount, totalSalesValue }: H
       {!reduceMotion && (
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-0 hidden lg:block"
-          style={{ background: spotlightBg }}
+          className="pointer-events-none absolute left-0 top-0 z-0 hidden h-[520px] w-[520px] rounded-full lg:block"
+          style={{
+            x: spotlightX,
+            y: spotlightY,
+            opacity: 0.9,
+            mixBlendMode: "screen",
+            filter: "blur(16px)",
+            background:
+              "radial-gradient(circle, rgba(56,189,248,0.28) 0%, rgba(99,102,241,0.22) 36%, rgba(99,102,241,0.12) 56%, rgba(15,23,42,0) 74%)",
+          }}
         />
       )}
 
