@@ -2,7 +2,6 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { isConfiguredAdminUser } from "@/lib/admin-access-shared";
 
 const isProtected = createRouteMatcher([
-  "/dashboard(.*)",
   "/admin(.*)",
   "/create(.*)",
   "/beta/create(.*)",
