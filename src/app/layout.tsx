@@ -28,9 +28,6 @@ export const metadata: Metadata = {
     "project listings",
     "SideFlip",
   ],
-  alternates: {
-    canonical: absoluteUrl("/"),
-  },
   openGraph: {
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
