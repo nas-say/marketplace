@@ -20,14 +20,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
+import { NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
 
 interface Props { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const listing = await getListingById(id);
-  if (!listing) return {};
-  return { title: `${listing.title} — SideFlip`, description: listing.pitch };
+  if (!listing) {
+    return {
+      title: "Listing Not Found",
+      robots: NO_INDEX_ROBOTS,
+    };
+  }
+
+  return publicPageMetadata({
+    title: `${listing.title} for Sale`,
+    description: listing.pitch,
+    path: `/listing/${listing.id}`,
+    type: "article",
+  });
 }
 
 function renderDescription(text: string) {

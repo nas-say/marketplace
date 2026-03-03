@@ -1,4 +1,8 @@
 import { SignIn } from "@clerk/nextjs";
+import type { Metadata } from "next";
+import { privatePageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = privatePageMetadata("Sign In");
 
 export default function SignInPage() {
   return (

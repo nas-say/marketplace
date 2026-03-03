@@ -15,6 +15,7 @@ import { getVisitorCountryCode } from "@/lib/geo";
 import { createServiceClient } from "@/lib/supabase";
 import { getBetaFeedback } from "./actions";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
+import { NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -35,8 +36,19 @@ function formatCurrencyMinor(amountMinor: number, currency: string): string {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const betaTest = await getBetaTestById(id);
-  if (!betaTest) return {};
-  return { title: `${betaTest.title} — SideFlip Beta` };
+  if (!betaTest) {
+    return {
+      title: "Beta Test Not Found",
+      robots: NO_INDEX_ROBOTS,
+    };
+  }
+
+  return publicPageMetadata({
+    title: `${betaTest.title} Beta Test`,
+    description: betaTest.description,
+    path: `/beta/${betaTest.id}`,
+    type: "article",
+  });
 }
 
 export default async function BetaDetailPage({ params }: Props) {

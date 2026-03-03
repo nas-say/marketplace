@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy — SideFlip",
-  description: "SideFlip Privacy Policy",
-};
+export const metadata: Metadata = publicPageMetadata({
+  title: "Privacy Policy",
+  description: "Learn what data SideFlip collects, how it is used, and your privacy rights.",
+  path: "/privacy",
+});
 
 const EFFECTIVE_DATE = "March 1, 2026";
 const CONTACT_EMAIL = "sudnas11@gmail.com";

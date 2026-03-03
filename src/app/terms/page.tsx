@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms of Service — SideFlip",
-  description: "SideFlip Terms of Service",
-};
+export const metadata: Metadata = publicPageMetadata({
+  title: "Terms of Service",
+  description: "Read SideFlip terms for listings, connects, payments, and beta-testing usage.",
+  path: "/terms",
+});
 
 const EFFECTIVE_DATE = "March 1, 2026";
 const CONTACT_EMAIL = "sudnas11@gmail.com";

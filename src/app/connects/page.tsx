@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import {
   getConnectsBalance,
   getConnectsTransactions,
@@ -8,6 +9,9 @@ import {
 } from "@/lib/db/connects";
 import { getVisitorCountryCode, getVisitorCurrency } from "@/lib/geo";
 import { ConnectsClient } from "./connects-client";
+import { privatePageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = privatePageMetadata("Connects");
 
 export default async function ConnectsPage() {
   const { userId } = await auth();

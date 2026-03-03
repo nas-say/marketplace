@@ -1,4 +1,8 @@
 import { SignUp } from "@clerk/nextjs";
+import type { Metadata } from "next";
+import { privatePageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = privatePageMetadata("Sign Up");
 
 export default function SignUpPage() {
   return (

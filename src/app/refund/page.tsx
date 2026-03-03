@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Refund Policy — SideFlip",
-  description: "SideFlip Refund Policy for Connects purchases",
-};
+export const metadata: Metadata = publicPageMetadata({
+  title: "Refund Policy",
+  description: "Review SideFlip refund terms for connects purchases and beta reward funding.",
+  path: "/refund",
+});
 
 const EFFECTIVE_DATE = "March 1, 2026";
 const CONTACT_EMAIL = "sudnas11@gmail.com";

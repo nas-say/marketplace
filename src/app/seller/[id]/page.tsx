@@ -9,14 +9,25 @@ import { User, MapPin, DollarSign, Package, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
 
 interface Props { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const seller = await getProfile(id);
-  if (!seller) return {};
-  return { title: `${seller.displayName} — SideFlip` };
+  if (!seller) {
+    return {
+      title: "Seller Not Found",
+      robots: NO_INDEX_ROBOTS,
+    };
+  }
+  return publicPageMetadata({
+    title: `${seller.displayName} Profile`,
+    description: seller.bio || `View listings and beta tests posted by ${seller.displayName}.`,
+    path: `/seller/${seller.id}`,
+    type: "profile",
+  });
 }
 
 export default async function SellerPage({ params }: Props) {

@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/db/profiles";
 import { ProfileForm } from "./profile-form";
 import type { Metadata } from "next";
+import { privatePageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Settings — SideFlip" };
+export const metadata: Metadata = privatePageMetadata("Settings");
 
 export default async function SettingsPage() {
   const { userId } = await auth();

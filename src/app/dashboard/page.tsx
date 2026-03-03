@@ -7,6 +7,10 @@ import { formatPrice } from "@/lib/data";
 import { getUserApplications } from "@/lib/db/applications";
 import { isAdminUser } from "@/lib/admin-access";
 import { DashboardClient } from "./dashboard-client";
+import type { Metadata } from "next";
+import { privatePageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = privatePageMetadata("Dashboard");
 
 export default async function DashboardPage() {
   const { userId } = await auth();

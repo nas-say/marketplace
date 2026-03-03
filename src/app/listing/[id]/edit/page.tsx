@@ -3,10 +3,11 @@ import { redirect, notFound } from "next/navigation";
 import { getListingById } from "@/lib/db/listings";
 import { EditListingForm } from "./edit-form";
 import type { Metadata } from "next";
+import { privatePageMetadata } from "@/lib/seo";
 
 interface Props { params: Promise<{ id: string }> }
 
-export const metadata: Metadata = { title: "Edit Listing — SideFlip" };
+export const metadata: Metadata = privatePageMetadata("Edit Listing");
 
 export default async function EditListingPage({ params }: Props) {
   const { id } = await params;

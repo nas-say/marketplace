@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   ArrowRight,
@@ -10,6 +11,13 @@ import {
   Upload,
   UserCheck,
 } from "lucide-react";
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = publicPageMetadata({
+  title: "How It Works",
+  description: "Understand how SideFlip helps founders list projects, buyers unlock leads, and testers earn rewards.",
+  path: "/how-it-works",
+});
 
 export default function HowItWorksPage() {
   return (

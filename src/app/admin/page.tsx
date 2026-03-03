@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
   snoozeAdminNotificationAction,
   updateCashPayoutStatusAction,
 } from "./actions";
+import { privatePageMetadata } from "@/lib/seo";
 
 type NotificationLevel = "critical" | "warning" | "info" | "success";
 
@@ -33,6 +35,8 @@ interface AdminDashboardNotification {
   href?: string;
   createdAt?: string;
 }
+
+export const metadata: Metadata = privatePageMetadata("Admin Dashboard");
 
 function formatDate(value: string): string {
   if (!value) return "—";

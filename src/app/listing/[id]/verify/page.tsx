@@ -1,23 +1,20 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
-import { getListingById, getListingByIdForSeller } from "@/lib/db/listings";
+import { getListingByIdForSeller } from "@/lib/db/listings";
 import { getListingVerificationsForSeller } from "@/lib/db/listing-verifications";
 import { VerifyListingClient } from "./verify-client";
 import type { Metadata } from "next";
+import { NO_INDEX_ROBOTS } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const listing = await getListingById(id);
-  if (!listing) return {};
-  return {
-    title: `Verify Ownership — ${listing.title} | SideFlip`,
-    description: "Verify listing ownership with repo, domain, or manual review.",
-  };
-}
+export const metadata: Metadata = {
+  title: "Verify Ownership",
+  description: "Verify listing ownership with repo, domain, or manual review.",
+  robots: NO_INDEX_ROBOTS,
+};
 
 export default async function VerifyListingPage({ params }: Props) {
   const { id } = await params;

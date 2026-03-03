@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import { getBetaTests, getBetaTestsByCreator } from "@/lib/db/beta-tests";
 import { getTopTesters } from "@/lib/db/profiles";
 import { BetaPageClient } from "./beta-client";
 import { auth } from "@clerk/nextjs/server";
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = publicPageMetadata({
+  title: "Beta Tests",
+  description: "Join live beta tests, earn rewards, and help founders improve products before launch.",
+  path: "/beta",
+});
 
 export default async function BetaPage() {
   const { userId } = await auth();

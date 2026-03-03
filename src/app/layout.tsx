@@ -6,14 +6,52 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { PageTransition } from "@/components/layout/page-transition";
 import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/constants";
+import { absoluteUrl, DEFAULT_OG_IMAGE_URL, SITE_URL } from "@/lib/seo";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: SITE_NAME,
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
   description: SITE_DESCRIPTION,
+  keywords: [
+    "buy side projects",
+    "sell side projects",
+    "beta testing marketplace",
+    "indie hackers marketplace",
+    "startup acquisition",
+    "project listings",
+    "SideFlip",
+  ],
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: absoluteUrl("/"),
+    siteName: SITE_NAME,
+    type: "website",
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE_URL,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} logo`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE_URL],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
