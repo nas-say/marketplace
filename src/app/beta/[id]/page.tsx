@@ -6,6 +6,7 @@ import { FundingCard } from "./funding-card";
 import { FeedbackSection } from "./feedback-section";
 import { CreatorApplicantsSection } from "./creator-applicants-section";
 import { Badge } from "@/components/ui/badge";
+import { JsonLd } from "@/components/shared/json-ld";
 import { User } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,7 +16,7 @@ import { getVisitorCountryCode } from "@/lib/geo";
 import { createServiceClient } from "@/lib/supabase";
 import { getBetaFeedback } from "./actions";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
-import { NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
+import { absoluteUrl, NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -127,8 +128,35 @@ export default async function BetaDetailPage({ params }: Props) {
     savedEmail = clerkUser?.primaryEmailAddress?.emailAddress ?? null;
   }
 
+  const betaJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: betaTest.title,
+    description: betaTest.description,
+    url: absoluteUrl(`/beta/${betaTest.id}`),
+    datePublished: betaTest.createdAt,
+    dateModified: betaTest.updatedAt,
+    creator: {
+      "@type": "Person",
+      name: creator?.displayName ?? "SideFlip Creator",
+      url: creator?.id ? absoluteUrl(`/seller/${creator.id}`) : undefined,
+    },
+    offers:
+      betaTest.reward.type === "cash"
+        ? {
+            "@type": "Offer",
+            price: (Number(betaTest.reward.amount ?? 0) / 100).toFixed(2),
+            priceCurrency: betaTest.reward.currency,
+            availability:
+              betaTest.status === "closed" ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+          }
+        : undefined,
+    keywords: betaTest.feedbackTypes.join(", "),
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <JsonLd data={betaJsonLd} />
       <div className="mb-6 text-sm text-zinc-500">
         <Link href="/" className="hover:text-zinc-300">Home</Link>
         <span className="mx-2">/</span>

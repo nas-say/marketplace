@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createListing, deleteListing } from "@/lib/db/listings";
 import { createBetaTest } from "@/lib/db/beta-tests";
 import { CATEGORY_LABELS } from "@/lib/constants";
+import { isListingCreateRateLimited, isBetaCreateRateLimited } from "@/lib/abuse/velocity";
 
 const MAX_LISTING_PRICE = 10_000_000;
 const MAX_MRR = 1_000_000;
@@ -48,6 +49,10 @@ export async function createListingAction(payload: {
 }): Promise<{ error?: string; listingId?: string; requiresVerification?: boolean }> {
   const { userId } = await auth();
   if (!userId) return { error: "Not authenticated" };
+
+  if (await isListingCreateRateLimited(userId)) {
+    return { error: "Too many listing attempts. Please wait a few minutes and try again." };
+  }
 
   const title = payload.title.trim();
   if (!title) return { error: "Project name is required." };
@@ -102,6 +107,10 @@ export async function createListingAction(payload: {
   const betaSpots = Number.isFinite(payload.betaSpots) ? Math.floor(payload.betaSpots) : 0;
 
   if (includeBeta) {
+    if (await isBetaCreateRateLimited(userId)) {
+      return { error: "Too many beta test attempts. Please wait a few minutes and try again." };
+    }
+
     if (betaRewardType === "cash") {
       if (betaRewardMinor <= 0) {
         return { error: "Cash reward per tester (INR) is required when beta testing is enabled." };

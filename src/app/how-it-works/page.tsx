@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/shared/page-header";
+import { JsonLd } from "@/components/shared/json-ld";
 import {
   ArrowRight,
   Eye,
@@ -11,7 +12,7 @@ import {
   Upload,
   UserCheck,
 } from "lucide-react";
-import { publicPageMetadata } from "@/lib/seo";
+import { absoluteUrl, publicPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = publicPageMetadata({
   title: "How It Works",
@@ -19,9 +20,55 @@ export const metadata: Metadata = publicPageMetadata({
   path: "/how-it-works",
 });
 
+const FAQ_ITEMS = [
+  {
+    q: "How do project sales happen?",
+    a: "SideFlip connects you with the seller; the transaction is handled directly between buyer and seller.",
+  },
+  {
+    q: "How are projects verified?",
+    a: "Project metrics are self-reported by sellers and can be independently verified via repo or domain ownership checks.",
+  },
+  {
+    q: "Can I list a project for free?",
+    a: "Yes. Listing is free. Connecting with sellers costs Connects.",
+  },
+  {
+    q: "How does beta testing pricing work?",
+    a: "Posting a beta test is free. For cash rewards, SideFlip deducts a 5% platform fee while paying approved testers.",
+  },
+  {
+    q: "Does SideFlip handle sale disputes?",
+    a: "No. SideFlip does not mediate sales. For larger deals, use a trusted third-party escrow service.",
+  },
+  {
+    q: "Is there a platform fee on project sales?",
+    a: "No percentage fee is charged on sale value. You only spend Connects to unlock seller info.",
+  },
+  {
+    q: "Can I buy projects and beta test too?",
+    a: "Yes. Many users browse listings and participate in beta tests from the same account.",
+  },
+];
+
 export default function HowItWorksPage() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ_ITEMS.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+    url: absoluteUrl("/how-it-works"),
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <JsonLd data={faqJsonLd} />
       <PageHeader title="How SideFlip Works" description="The marketplace lifecycle: Build, Test, Improve, Sell." />
 
       <section className="mb-16">
@@ -151,36 +198,7 @@ export default function HowItWorksPage() {
       <section>
         <h2 className="mb-8 text-2xl font-bold text-zinc-50">FAQ</h2>
         <div className="space-y-4">
-          {[
-            {
-              q: "How do project sales happen?",
-              a: "SideFlip connects you with the seller; the transaction is handled directly between buyer and seller.",
-            },
-            {
-              q: "How are projects verified?",
-              a: "Project metrics are self-reported by sellers and can be independently verified via repo or domain ownership checks.",
-            },
-            {
-              q: "Can I list a project for free?",
-              a: "Yes. Listing is free. Connecting with sellers costs Connects.",
-            },
-            {
-              q: "How does beta testing pricing work?",
-              a: "Posting a beta test is free. For cash rewards, SideFlip deducts a 5% platform fee while paying approved testers.",
-            },
-            {
-              q: "Does SideFlip handle sale disputes?",
-              a: "No. SideFlip does not mediate sales. For larger deals, use a trusted third-party escrow service.",
-            },
-            {
-              q: "Is there a platform fee on project sales?",
-              a: "No percentage fee is charged on sale value. You only spend Connects to unlock seller info.",
-            },
-            {
-              q: "Can I buy projects and beta test too?",
-              a: "Yes. Many users browse listings and participate in beta tests from the same account.",
-            },
-          ].map((faq) => (
+          {FAQ_ITEMS.map((faq) => (
             <details key={faq.q} className="group rounded-lg border border-zinc-800 bg-zinc-900">
               <summary className="cursor-pointer p-4 font-medium text-zinc-50 hover:text-indigo-400">
                 {faq.q}

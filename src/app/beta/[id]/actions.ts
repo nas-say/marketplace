@@ -8,6 +8,7 @@ import { getUserApplicationIds } from "@/lib/db/applications";
 import { saveUpiId } from "@/lib/db/profiles";
 import { revalidatePath } from "next/cache";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
+import { isBetaApplyRateLimited } from "@/lib/abuse/velocity";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UPI_PATTERN = /^[A-Za-z0-9._-]{2,256}@[A-Za-z]{2,64}$/;
@@ -35,6 +36,10 @@ export async function applyAction(
 ): Promise<{ error?: string; success?: boolean }> {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+
+  if (await isBetaApplyRateLimited(userId)) {
+    return { error: "Too many apply attempts. Please wait a moment and retry." };
+  }
 
   const client = createServiceClient();
   const { data: betaTest, error: betaTestError } = await client

@@ -15,12 +15,13 @@ import { ListingCard } from "@/components/listing/listing-card";
 import { SellerWebsiteGate } from "./seller-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { JsonLd } from "@/components/shared/json-ld";
 import { TrendingUp, TrendingDown, Minus, CheckCircle, User, ShieldCheck, Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
-import { NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
+import { absoluteUrl, NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -109,8 +110,42 @@ export default async function ListingDetailPage({ params }: Props) {
     documentation: "Documentation", hosting_setup: "Hosting Setup", support_period: "30-day Support",
   };
 
+  const listingJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: listing.title,
+    description: listing.pitch,
+    category: CATEGORY_LABELS[listing.category],
+    brand: {
+      "@type": "Brand",
+      name: "SideFlip",
+    },
+    offers: {
+      "@type": "Offer",
+      price: (listing.askingPrice / 100).toFixed(2),
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      url: absoluteUrl(`/listing/${listing.id}`),
+      seller: {
+        "@type": "Person",
+        name: seller?.displayName ?? "Seller",
+      },
+    },
+    additionalProperty: [
+      { "@type": "PropertyValue", name: "MRR", value: (listing.metrics.mrr / 100).toFixed(2) },
+      {
+        "@type": "PropertyValue",
+        name: "Monthly Profit",
+        value: (listing.metrics.monthlyProfit / 100).toFixed(2),
+      },
+      { "@type": "PropertyValue", name: "Monthly Visitors", value: String(listing.metrics.monthlyVisitors) },
+      { "@type": "PropertyValue", name: "Registered Users", value: String(listing.metrics.registeredUsers) },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <JsonLd data={listingJsonLd} />
       <div className="mb-6 text-sm text-zinc-500">
         <Link href="/" className="hover:text-zinc-300">Home</Link>
         <span className="mx-2">/</span>

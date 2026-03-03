@@ -5,8 +5,9 @@ import { HowItWorksSteps } from "@/components/home/how-it-works-steps";
 import { CategoriesGrid } from "@/components/home/categories-grid";
 import { BetaSpotlight } from "@/components/home/beta-spotlight";
 import { CtaBanner } from "@/components/home/cta-banner";
+import { JsonLd } from "@/components/shared/json-ld";
 import { SectionReveal } from "@/components/shared/section-reveal";
-import { publicPageMetadata } from "@/lib/seo";
+import { absoluteUrl, publicPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = publicPageMetadata({
   title: "Buy, Sell & Beta-Test Side Projects",
@@ -15,8 +16,31 @@ export const metadata: Metadata = publicPageMetadata({
 });
 
 export default function HomePage() {
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "SideFlip",
+      url: absoluteUrl("/"),
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${absoluteUrl("/browse")}?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "SideFlip",
+      url: absoluteUrl("/"),
+      logo: absoluteUrl("/images/logo.svg"),
+      sameAs: [],
+    },
+  ];
+
   return (
     <>
+      <JsonLd data={jsonLd} />
       <SectionReveal>
         <Hero />
       </SectionReveal>

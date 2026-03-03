@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/admin/daily-payout-summary",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/admin/payout-reconciliation",
+      "schedule": "30 2 * * *"
     }
   ]
 }

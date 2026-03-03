@@ -20,6 +20,46 @@ npm run dev
 
 Or use yarn / pnpm / bun equivalents.
 
+## Quality Checks
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+## E2E Smoke Tests (Playwright)
+
+```bash
+npm run test:e2e
+```
+
+Notes:
+- By default Playwright starts `npm run dev` at `http://127.0.0.1:3000`.
+- Set `PLAYWRIGHT_BASE_URL=https://sideflip.vercel.app` to run against deployed production.
+
+## Sentry (Optional)
+
+Sentry is integrated for client/server/edge error capture.
+
+Set these env vars to enable it:
+- `SENTRY_DSN` or `NEXT_PUBLIC_SENTRY_DSN`
+- `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` (optional; used for source map upload)
+
+If DSN is missing, Sentry stays disabled automatically.
+
+## Admin Cron Jobs
+
+Configured in [`vercel.json`](./vercel.json):
+- `/api/cron/admin/daily-payout-summary` (daily)
+- `/api/cron/admin/payout-reconciliation` (daily)
+
+Secure these with `CRON_SECRET` in Vercel env.
+
+## Ops Runbook
+
+- Backup/restore: [`docs/ops/backup-restore-runbook.md`](./docs/ops/backup-restore-runbook.md)
+
 ---
 
 First, run the development server:

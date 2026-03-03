@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createBetaTest } from "@/lib/db/beta-tests";
+import { isBetaCreateRateLimited } from "@/lib/abuse/velocity";
 
 const MAX_TITLE_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 10_000;
@@ -23,6 +24,10 @@ export async function createBetaTestAction(payload: {
 }): Promise<{ error?: string; betaTestId?: string }> {
   const { userId } = await auth();
   if (!userId) return { error: "Not authenticated" };
+
+  if (await isBetaCreateRateLimited(userId)) {
+    return { error: "Too many beta test attempts. Please wait a few minutes and try again." };
+  }
 
   const title = payload.title.trim();
   if (!title) return { error: "Title is required." };
