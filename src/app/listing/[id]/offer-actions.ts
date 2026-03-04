@@ -5,6 +5,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { createOffer, updateOfferStatus } from "@/lib/db/offers";
 import { getListingById } from "@/lib/db/listings";
 import { isListingUnlocked } from "@/lib/db/connects";
+import { createUserNotification } from "@/lib/db/notifications";
 import { revalidatePath } from "next/cache";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -95,6 +96,19 @@ export async function submitOfferAction(
   if (!result) return { error: "Failed to submit offer. Please try again." };
 
   notifySellerOfOffer(listing.sellerId, listing.title, normalizedAmount, listing.contactMode).catch(() => null);
+  createUserNotification({
+    clerkUserId: listing.sellerId,
+    type: listing.contactMode === "proposal" ? "proposal_received" : "offer_received",
+    title:
+      listing.contactMode === "proposal"
+        ? `New proposal request on "${listing.title}"`
+        : `New offer on "${listing.title}"`,
+    message:
+      normalizedAmount != null
+        ? `Buyer offered ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(normalizedAmount / 100)}.`
+        : "Buyer sent a proposal message.",
+    href: "/dashboard",
+  }).catch(() => null);
 
   revalidatePath(`/listing/${listingId}`);
   return { success: true };

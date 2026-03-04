@@ -5,6 +5,7 @@ import { deleteListing, updateListingStatus, featureListing, refreshListing } fr
 import { deleteDraftBetaTest } from "@/lib/db/beta-tests";
 import { deleteSavedSearch } from "@/lib/db/saved-searches";
 import { updateOfferStatus } from "@/lib/db/offers";
+import { createUserNotification } from "@/lib/db/notifications";
 import { revalidatePath } from "next/cache";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -136,6 +137,16 @@ export async function respondToOfferAction(
   revalidatePath("/dashboard");
   if (result.buyerId && result.listingTitle) {
     notifyBuyerOfOfferResponse(result.buyerId, result.listingTitle, status).catch(() => null);
+    createUserNotification({
+      clerkUserId: result.buyerId,
+      type: "offer_response",
+      title: `Your offer on "${result.listingTitle}" was ${status === "accepted" ? "accepted" : "declined"}`,
+      message:
+        status === "accepted"
+          ? "Seller contact is now available on the listing page."
+          : "You can submit another offer or browse similar listings.",
+      href: result.listingId ? `/listing/${result.listingId}` : "/dashboard",
+    }).catch(() => null);
   }
   return { success: true };
 }

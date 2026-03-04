@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Rocket, Zap } from "lucide-react";
+import { Bell, CheckCheck, Loader2, Menu, Rocket, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import {
+  getNotificationsSnapshotAction,
+  markAllNotificationsReadAction,
+} from "./notification-actions";
 import {
   SignedIn,
   SignedOut,
@@ -14,17 +18,63 @@ import {
   SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
+import type { UserNotificationItem } from "@/types/notification";
 
 interface NavbarProps {
   connectsBalance?: number | null;
+  unreadNotifications: number;
+  notifications: UserNotificationItem[];
 }
 
-export function Navbar({ connectsBalance }: NavbarProps) {
+function formatNotificationTime(input: string): string {
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function Navbar({ connectsBalance, unreadNotifications, notifications }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [markingRead, setMarkingRead] = useState(false);
+  const [localUnreadCount, setLocalUnreadCount] = useState(unreadNotifications);
+  const [localNotifications, setLocalNotifications] = useState(notifications);
   const pathname = usePathname();
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/" && pathname.startsWith(href));
+
+  const handleToggleNotifications = async () => {
+    if (notificationsOpen) {
+      setNotificationsOpen(false);
+      return;
+    }
+    setNotificationsOpen(true);
+    setLoadingNotifications(true);
+    const snapshot = await getNotificationsSnapshotAction();
+    setLoadingNotifications(false);
+    if (snapshot.error) return;
+    setLocalUnreadCount(snapshot.unread);
+    setLocalNotifications(snapshot.notifications);
+  };
+
+  const handleMarkAllRead = async () => {
+    if (markingRead || localUnreadCount === 0) return;
+    setMarkingRead(true);
+    const result = await markAllNotificationsReadAction();
+    setMarkingRead(false);
+    if (result.error) return;
+    const nowIso = new Date().toISOString();
+    setLocalUnreadCount(0);
+    setLocalNotifications((prev) =>
+      prev.map((item) => ({ ...item, readAt: item.readAt ?? nowIso }))
+    );
+  };
 
   return (
     <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
@@ -100,6 +150,87 @@ export function Navbar({ connectsBalance }: NavbarProps) {
                 {connectsBalance}
               </Link>
             )}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleToggleNotifications}
+                className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100"
+                title="Notifications"
+              >
+                <Bell className="h-4 w-4" />
+                {localUnreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold text-white">
+                    {localUnreadCount > 9 ? "9+" : localUnreadCount}
+                  </span>
+                )}
+              </button>
+              <AnimatePresence>
+                {notificationsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="absolute right-0 top-10 z-50 w-80 rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-2xl"
+                  >
+                    <div className="mb-1 flex items-center justify-between px-2 py-1">
+                      <p className="text-sm font-medium text-zinc-100">Notifications</p>
+                      <button
+                        type="button"
+                        onClick={handleMarkAllRead}
+                        disabled={markingRead || localUnreadCount === 0}
+                        className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {markingRead ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <CheckCheck className="h-3 w-3" />
+                        )}
+                        Mark all read
+                      </button>
+                    </div>
+                    {loadingNotifications ? (
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-sm text-zinc-500">
+                        Loading...
+                      </div>
+                    ) : localNotifications.length === 0 ? (
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-sm text-zinc-500">
+                        No notifications yet.
+                      </div>
+                    ) : (
+                      <div className="max-h-96 space-y-1 overflow-y-auto">
+                        {localNotifications.map((item) => {
+                          const content = (
+                            <div className="flex items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 transition-colors hover:border-zinc-700">
+                              {!item.readAt ? (
+                                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
+                              ) : (
+                                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-zinc-700" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm text-zinc-200">{item.title}</p>
+                                {item.message && (
+                                  <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{item.message}</p>
+                                )}
+                                <p className="mt-1 text-[11px] text-zinc-600">{formatNotificationTime(item.createdAt)}</p>
+                              </div>
+                            </div>
+                          );
+
+                          return item.href ? (
+                            <Link key={item.id} href={item.href} onClick={() => setNotificationsOpen(false)}>
+                              {content}
+                            </Link>
+                          ) : (
+                            <div key={item.id}>{content}</div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
           </SignedIn>
         </div>
@@ -190,6 +321,12 @@ export function Navbar({ connectsBalance }: NavbarProps) {
                     {link.label}
                   </Link>
                 ))}
+                <div className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-zinc-400">Notifications</span>
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-xs text-indigo-300">
+                    {localUnreadCount}
+                  </span>
+                </div>
                 <div className="flex items-center gap-3 py-2">
                   <UserButton />
                   <span className="text-sm text-zinc-400">My Account</span>
