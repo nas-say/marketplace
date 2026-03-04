@@ -16,13 +16,14 @@ import { PurchaseCard } from "@/components/listing/purchase-card";
 import { ListingCard } from "@/components/listing/listing-card";
 import { SellerWebsiteGate } from "./seller-section";
 import { OfferSection } from "./offer-section";
+import { hasAcceptedOfferForBuyer } from "@/lib/db/offers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/shared/json-ld";
 import { TrendingUp, TrendingDown, Minus, CheckCircle, User, ShieldCheck, Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { absoluteUrl, NO_INDEX_ROBOTS, publicPageMetadata } from "@/lib/seo";
 
@@ -103,6 +104,24 @@ export default async function ListingDetailPage({ params }: Props) {
 
   const sellerOtherListings = sellerListings.filter((l) => l.id !== listing.id).slice(0, 2);
   const unlockCost = getUnlockCost(listing.askingPrice);
+  const proposalAccepted =
+    userId && unlocked && listing.contactMode === "proposal"
+      ? await hasAcceptedOfferForBuyer(userId, listing.id)
+      : false;
+  const canRevealSellerContact =
+    isSeller ||
+    (unlocked && (listing.contactMode === "direct" || proposalAccepted));
+
+  let sellerEmail: string | null = null;
+  if (canRevealSellerContact && !isSeller) {
+    try {
+      const clerk = await clerkClient();
+      const sellerUser = await clerk.users.getUser(listing.sellerId);
+      sellerEmail = sellerUser.emailAddresses.find((e) => e.id === sellerUser.primaryEmailAddressId)?.emailAddress ?? null;
+    } catch {
+      // non-critical
+    }
+  }
 
   // Track view — fire after response is sent, skip seller's own views
   if (!isSeller && (listing.status === "active" || listing.status === "under_offer")) {
@@ -112,6 +131,9 @@ export default async function ListingDetailPage({ params }: Props) {
   const TrendIcon = listing.metrics.revenueTrend === "up" ? TrendingUp : listing.metrics.revenueTrend === "down" ? TrendingDown : Minus;
   const trendColor = listing.metrics.revenueTrend === "up" ? "text-green-400" : listing.metrics.revenueTrend === "down" ? "text-red-400" : "text-zinc-400";
   const revenueMultiple = getRevenueMultiple(listing.askingPrice, listing.metrics.mrr);
+  const daysSinceUpdate = Math.floor(
+    (Date.now() - new Date(listing.updatedAt).getTime()) / (1000 * 60 * 60 * 24)
+  );
 
   const assetLabels: Record<string, string> = {
     source_code: "Source Code", domain: "Domain Name", user_database: "User Database",
@@ -205,7 +227,11 @@ export default async function ListingDetailPage({ params }: Props) {
                       : "Pending verification"}
                   </span>
                 </p>
-                <p className="mt-1">Seller contact stays locked until buyer unlocks with connects.</p>
+                {listing.contactMode === "proposal" ? (
+                  <p className="mt-1">This listing uses proposal-gated contact: buyers unlock, send a proposal, and contact is revealed only after seller acceptance.</p>
+                ) : (
+                  <p className="mt-1">This listing uses direct contact: buyers unlock with connects and can reach out immediately.</p>
+                )}
                 <p className="mt-1">Deals close off-platform between buyer and seller; escrow is recommended for larger amounts.</p>
               </div>
             </div>
@@ -300,7 +326,7 @@ export default async function ListingDetailPage({ params }: Props) {
           {seller && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 mb-8">
               <h3 className="text-lg font-semibold text-zinc-50 mb-3">About the Seller</h3>
-              {!isSeller && !unlocked ? (
+              {!isSeller && !canRevealSellerContact ? (
                 <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900/80 border border-zinc-700">
@@ -309,9 +335,15 @@ export default async function ListingDetailPage({ params }: Props) {
                     <div>
                       <p className="text-sm font-semibold text-zinc-200">Seller details are locked</p>
                       <p className="mt-1 text-xs text-zinc-500">
-                        Unlock this listing to view seller profile, website, and more projects from this seller.
+                        {listing.contactMode === "proposal" && unlocked
+                          ? "You unlocked this listing. Send a proposal and wait for seller acceptance to reveal contact details."
+                          : "Unlock this listing to view seller profile, website, and more projects from this seller."}
                       </p>
-                      <p className="mt-2 text-xs text-indigo-300">Use the unlock card on the right ({unlockCost} connects).</p>
+                      {!unlocked && (
+                        <p className="mt-2 text-xs text-indigo-300">
+                          Use the unlock card on the right ({unlockCost} connects).
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -334,13 +366,24 @@ export default async function ListingDetailPage({ params }: Props) {
                         <span>Member since {new Date(seller.stats.memberSince).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
                         <SellerWebsiteGate
                           listingId={listing.id}
-                          isUnlocked={unlocked}
-                          website={unlocked ? (seller.website ?? null) : null}
+                          canRevealContact={canRevealSellerContact}
+                          hasUnlocked={unlocked}
+                          contactMode={listing.contactMode}
+                          proposalAccepted={proposalAccepted}
+                          website={canRevealSellerContact ? (seller.website ?? null) : null}
                           userId={userId ?? null}
                           connectsBalance={connectsBalance}
                           unlockCost={unlockCost}
                         />
                       </div>
+                      {sellerEmail && (
+                        <div className="mt-2 flex items-center gap-2 rounded-md border border-green-500/20 bg-green-500/5 px-3 py-2">
+                          <span className="text-xs text-zinc-400">Contact:</span>
+                          <a href={`mailto:${sellerEmail}`} className="text-xs font-medium text-green-400 hover:text-green-300 break-all">
+                            {sellerEmail}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {sellerOtherListings.length > 0 && (
@@ -374,6 +417,13 @@ export default async function ListingDetailPage({ params }: Props) {
             </div>
           ) : (
             <>
+              {!isSeller && daysSinceUpdate >= 30 && (
+                <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                  <p className="text-xs text-amber-400">
+                    ⚠ Last updated {daysSinceUpdate}d ago. Confirm the seller is still active before spending Connects.
+                  </p>
+                </div>
+              )}
               <PurchaseCard
                 askingPrice={formatPrice(listing.askingPrice)}
                 openToOffers={listing.openToOffers}
@@ -383,15 +433,21 @@ export default async function ListingDetailPage({ params }: Props) {
                 mrr={formatPrice(listing.metrics.mrr)}
                 listingId={listing.id}
                 isUnlocked={unlocked}
+                contactMode={listing.contactMode}
+                proposalAccepted={proposalAccepted}
                 userId={userId ?? null}
                 connectsBalance={connectsBalance}
                 unlockCost={unlockCost}
               />
-              {listing.openToOffers && !isSeller && (
+              {!isSeller && (listing.contactMode === "proposal" || listing.openToOffers) && (
                 <OfferSection
                   listingId={listing.id}
                   askingPriceCents={listing.askingPrice}
                   userId={userId ?? null}
+                  contactMode={listing.contactMode}
+                  openToOffers={listing.openToOffers}
+                  isUnlocked={unlocked}
+                  proposalAccepted={proposalAccepted}
                 />
               )}
             </>

@@ -34,6 +34,7 @@ export function EditListingForm({ listing }: { listing: Listing }) {
   const [screenshots, setScreenshots] = useState<string[]>(listing.screenshots);
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [screenshotError, setScreenshotError] = useState("");
+  const [contactMode, setContactMode] = useState<"direct" | "proposal">(listing.contactMode ?? "direct");
   // prices stored as dollars in state (DB is in cents)
   const [mrr, setMrr] = useState(String(listing.metrics.mrr / 100));
   const [askingPrice, setAskingPrice] = useState(String(listing.askingPrice / 100));
@@ -99,6 +100,7 @@ export function EditListingForm({ listing }: { listing: Listing }) {
       techStack,
       askingPrice: Math.round((Number(fd.get("askingPrice")) || 0) * 100),
       openToOffers: fd.has("openToOffers"),
+      contactMode,
       mrr: Math.round((Number(fd.get("mrr")) || 0) * 100),
       monthlyProfit: Math.round((Number(fd.get("monthlyProfit")) || 0) * 100),
       monthlyVisitors: Number(fd.get("monthlyVisitors")) || 0,
@@ -236,6 +238,39 @@ export function EditListingForm({ listing }: { listing: Listing }) {
               className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 accent-indigo-600"
             />
             <label htmlFor="open-to-offers" className="text-sm text-zinc-400">Open to offers below asking price</label>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm text-zinc-400 mb-2">Buyer Contact Mode</label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setContactMode("direct")}
+                className={`rounded-lg border px-3 py-3 text-left transition-colors ${
+                  contactMode === "direct"
+                    ? "border-indigo-500/50 bg-indigo-500/10"
+                    : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                }`}
+              >
+                <p className="text-sm font-medium text-zinc-100">Direct</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Buyer spends Connects and sees your contact instantly.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setContactMode("proposal")}
+                className={`rounded-lg border px-3 py-3 text-left transition-colors ${
+                  contactMode === "proposal"
+                    ? "border-indigo-500/50 bg-indigo-500/10"
+                    : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                }`}
+              >
+                <p className="text-sm font-medium text-zinc-100">Proposal-gated</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Buyer unlocks, sends proposal, and contact is revealed only after you accept.
+                </p>
+              </button>
+            </div>
           </div>
         </section>
 

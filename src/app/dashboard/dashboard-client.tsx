@@ -46,6 +46,7 @@ import {
   boostListingAction,
   deleteSavedSearchAction,
   respondToOfferAction,
+  refreshListingAction,
 } from "./actions";
 
 const MONTHLY_DATA = [
@@ -151,6 +152,11 @@ export function DashboardClient({
     if (!window.confirm("Mark this listing as active again?")) return;
     const result = await markActiveAction(listingId);
     if (!result.error) setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, status: "active" as const } : l));
+  };
+
+  const handleKeepActive = async (listingId: string) => {
+    await refreshListingAction(listingId);
+    setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, updatedAt: new Date().toISOString() } : l));
   };
 
   const handleBoost = useCallback(async (listingId: string, durationDays: 7 | 14 | 30) => {
@@ -374,6 +380,21 @@ export function DashboardClient({
                         Featured until {new Date(listing.featuredUntil).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     )}
+                    {listing.status === "active" && (() => {
+                      const days = Math.floor((Date.now() - new Date(listing.updatedAt).getTime()) / 86400000);
+                      if (days < 30) return null;
+                      return (
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="text-xs text-amber-400">⚠ Not updated in {days}d</span>
+                          <button
+                            onClick={() => handleKeepActive(listing.id)}
+                            className="text-[10px] font-medium text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+                          >
+                            Keep active
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Link href={`/listing/${listing.id}`}>
@@ -458,7 +479,9 @@ export function DashboardClient({
                   <div key={offer.id} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-zinc-200">{formatPrice(offer.amountCents)}</span>
+                        <span className="font-medium text-zinc-200">
+                          {offer.amountCents != null ? formatPrice(offer.amountCents) : "Proposal (no price)"}
+                        </span>
                         <Badge className={
                           offer.status === "accepted"
                             ? "bg-green-500/10 text-green-400 border-green-500/20"
@@ -677,7 +700,9 @@ export function DashboardClient({
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-zinc-200">{formatPrice(offer.amountCents)}</span>
+                        <span className="font-medium text-zinc-200">
+                          {offer.amountCents != null ? formatPrice(offer.amountCents) : "Proposal (no price)"}
+                        </span>
                         <Badge className={
                           offer.status === "accepted"
                             ? "bg-green-500/10 text-green-400 border-green-500/20"

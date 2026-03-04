@@ -17,6 +17,7 @@ function rowToListing(row: Record<string, unknown>): Listing {
     screenshots: (row.screenshots as string[]) ?? [],
     askingPrice: Number(row.asking_price),
     openToOffers: Boolean(row.open_to_offers),
+    contactMode: (row.contact_mode as Listing["contactMode"]) ?? "direct",
     metrics: {
       mrr: Number(row.mrr),
       monthlyProfit: Number(row.monthly_profit),
@@ -132,6 +133,7 @@ export async function updateListing(
   payload: {
     title: string; pitch: string; description: string; category: string;
     techStack: string[]; askingPrice: number; openToOffers: boolean;
+    contactMode: Listing["contactMode"];
     mrr: number; monthlyProfit: number; monthlyVisitors: number;
     registeredUsers: number; assetsIncluded: string[]; screenshots: string[];
   }
@@ -141,6 +143,7 @@ export async function updateListing(
     title: payload.title, pitch: payload.pitch, description: payload.description,
     category: payload.category, tech_stack: payload.techStack,
     asking_price: payload.askingPrice, open_to_offers: payload.openToOffers,
+    contact_mode: payload.contactMode,
     mrr: payload.mrr, monthly_profit: payload.monthlyProfit,
     monthly_visitors: payload.monthlyVisitors, registered_users: payload.registeredUsers,
     assets_included: payload.assetsIncluded, screenshots: payload.screenshots,
@@ -179,6 +182,7 @@ export async function createListing(
     techStack: string[];
     askingPrice: number;
     openToOffers: boolean;
+    contactMode: Listing["contactMode"];
     mrr: number;
     monthlyProfit: number;
     monthlyVisitors: number;
@@ -198,6 +202,7 @@ export async function createListing(
       tech_stack: payload.techStack,
       asking_price: payload.askingPrice,
       open_to_offers: payload.openToOffers,
+      contact_mode: payload.contactMode,
       mrr: payload.mrr,
       monthly_profit: payload.monthlyProfit,
       monthly_visitors: payload.monthlyVisitors,
@@ -312,4 +317,60 @@ export async function getListingAnalytics(
   for (const row of (unlocksRes.data ?? []) as { listing_id: string }[])
     result[row.listing_id].unlocks++;
   return result;
+}
+
+export async function refreshListing(
+  clerkUserId: string,
+  listingId: string
+): Promise<boolean> {
+  const client = createServiceClient();
+  const { error } = await client
+    .from("listings")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", listingId)
+    .eq("seller_id", clerkUserId);
+  return !error;
+}
+
+export interface StaleListing {
+  id: string;
+  sellerId: string;
+  title: string;
+}
+
+// Returns listings that just crossed the 60-day inactivity mark (within last 24h)
+export async function getListingsToWarn(): Promise<StaleListing[]> {
+  const client = createServiceClient();
+  const sixty = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+  const sixtyOne = new Date(Date.now() - 61 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await client
+    .from("listings")
+    .select("id, seller_id, title")
+    .eq("status", "active")
+    .lt("updated_at", sixty)
+    .gte("updated_at", sixtyOne);
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((row) => ({
+    id: row.id as string,
+    sellerId: row.seller_id as string,
+    title: row.title as string,
+  }));
+}
+
+// Auto-drafts listings inactive for 90+ days, returns them for notification
+export async function archiveStaleListings(): Promise<StaleListing[]> {
+  const client = createServiceClient();
+  const ninety = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await client
+    .from("listings")
+    .update({ status: "draft" })
+    .eq("status", "active")
+    .lt("updated_at", ninety)
+    .select("id, seller_id, title");
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((row) => ({
+    id: row.id as string,
+    sellerId: row.seller_id as string,
+    title: row.title as string,
+  }));
 }

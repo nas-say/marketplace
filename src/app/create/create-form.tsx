@@ -34,6 +34,7 @@ export function CreateForm() {
   const [techStack, setTechStack] = useState<string[]>([]);
   const [includeBeta, setIncludeBeta] = useState(false);
   const [betaRewardType, setBetaRewardType] = useState<"cash" | "premium_access">("cash");
+  const [contactMode, setContactMode] = useState<"direct" | "proposal">("direct");
   const [assets, setAssets] = useState<string[]>(["source_code", "documentation"]);
   const [mrr, setMrr] = useState("");
   const [askingPrice, setAskingPrice] = useState("");
@@ -85,6 +86,7 @@ export function CreateForm() {
       techStack,
       askingPrice: Number(fd.get("askingPrice")) || 0,
       openToOffers: fd.has("openToOffers"),
+      contactMode,
       mrr: Number(fd.get("mrr")) || 0,
       monthlyProfit: Number(fd.get("monthlyProfit")) || 0,
       monthlyVisitors: Number(fd.get("monthlyVisitors")) || 0,
@@ -271,6 +273,39 @@ export function CreateForm() {
             <label htmlFor="open-to-offers" className="text-sm text-zinc-400">
               Open to offers below asking price
             </label>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm text-zinc-400 mb-2">Buyer Contact Mode</label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setContactMode("direct")}
+                className={`rounded-lg border px-3 py-3 text-left transition-colors ${
+                  contactMode === "direct"
+                    ? "border-indigo-500/50 bg-indigo-500/10"
+                    : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                }`}
+              >
+                <p className="text-sm font-medium text-zinc-100">Direct (default)</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Buyer spends Connects and sees your contact instantly.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setContactMode("proposal")}
+                className={`rounded-lg border px-3 py-3 text-left transition-colors ${
+                  contactMode === "proposal"
+                    ? "border-indigo-500/50 bg-indigo-500/10"
+                    : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                }`}
+              >
+                <p className="text-sm font-medium text-zinc-100">Proposal-gated</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Buyer spends Connects, sends a message/optional offer, and contact unlocks only after you accept.
+                </p>
+              </button>
+            </div>
           </div>
         </section>
 

@@ -49,6 +49,8 @@ const CATEGORY_TEXT_COLORS: Record<string, string> = {
 const HOT_VISITOR_THRESHOLD = 4000;
 const NEW_LISTING_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const NEW_LISTING_CUTOFF = Date.now() - NEW_LISTING_WINDOW_MS;
+const STALE_THRESHOLD_DAYS = 30;
+const NOW_TS = Date.now();
 
 interface ListingCardProps {
   listing: Listing;
@@ -73,6 +75,10 @@ export function ListingCard({ listing }: ListingCardProps) {
 
   const isNew = new Date(listing.createdAt).getTime() > NEW_LISTING_CUTOFF;
   const isHot = listing.metrics.monthlyVisitors >= HOT_VISITOR_THRESHOLD;
+  const daysSinceUpdate = Math.floor(
+    (NOW_TS - new Date(listing.updatedAt).getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const isStale = daysSinceUpdate >= STALE_THRESHOLD_DAYS;
 
   const gradient = CATEGORY_GRADIENTS[listing.category] ?? "from-zinc-800 to-zinc-900";
   const initials = CATEGORY_INITIALS[listing.category] ?? "?";
@@ -106,6 +112,11 @@ export function ListingCard({ listing }: ListingCardProps) {
               {listing.status === "under_offer" && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-500/15 border border-violet-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-violet-300">
                   Under Offer
+                </span>
+              )}
+              {listing.contactMode === "proposal" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-300">
+                  Proposal Gate
                 </span>
               )}
               {isNew && listing.status !== "under_offer" && (
@@ -160,7 +171,12 @@ export function ListingCard({ listing }: ListingCardProps) {
                 {formatPrice(listing.askingPrice)}
               </span>
               <div className="flex items-center gap-2">
-                {listing.ownershipVerified && (
+                {isStale && (
+                  <span className="text-[10px] text-amber-500/80" title={`Last updated ${daysSinceUpdate} days ago`}>
+                    ⚠ {daysSinceUpdate}d ago
+                  </span>
+                )}
+                {!isStale && listing.ownershipVerified && (
                   <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5">
                     {listing.ownershipVerificationMethod === "repo"
                       ? "Repo verified"

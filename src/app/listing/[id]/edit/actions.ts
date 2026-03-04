@@ -38,6 +38,7 @@ export async function updateListingAction(
     techStack: string[];
     askingPrice: number;
     openToOffers: boolean;
+    contactMode: "direct" | "proposal";
     mrr: number;
     monthlyProfit: number;
     monthlyVisitors: number;
@@ -104,6 +105,7 @@ export async function updateListingAction(
   const screenshots = (payload.screenshots ?? [])
     .filter((u) => typeof u === "string" && u.startsWith("https://"))
     .slice(0, 10);
+  const contactMode = payload.contactMode === "proposal" ? "proposal" : "direct";
 
   const ok = await updateListing(userId, safeListingId, {
     title,
@@ -113,6 +115,7 @@ export async function updateListingAction(
     techStack,
     askingPrice: Math.round(payload.askingPrice),
     openToOffers: Boolean(payload.openToOffers),
+    contactMode,
     mrr: Math.round(payload.mrr),
     monthlyProfit: Math.round(payload.monthlyProfit),
     monthlyVisitors: Math.floor(payload.monthlyVisitors),

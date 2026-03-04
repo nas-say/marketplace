@@ -9,14 +9,27 @@ import { toSafeWebsiteUrl } from "@/lib/validation/profile";
 
 interface Props {
   listingId: string;
-  isUnlocked: boolean;
+  canRevealContact: boolean;
+  hasUnlocked: boolean;
+  contactMode: "direct" | "proposal";
+  proposalAccepted: boolean;
   website: string | null;
   userId: string | null;
   connectsBalance: number;
   unlockCost: number;
 }
 
-export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, connectsBalance, unlockCost }: Props) {
+export function SellerWebsiteGate({
+  listingId,
+  canRevealContact,
+  hasUnlocked,
+  contactMode,
+  proposalAccepted,
+  website,
+  userId,
+  connectsBalance,
+  unlockCost,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +55,7 @@ export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, conn
     );
   }
 
-  if (isUnlocked) {
+  if (canRevealContact) {
     const safeWebsite = toSafeWebsiteUrl(website);
     if (!safeWebsite) return <span className="text-zinc-600">No website listed</span>;
     return (
@@ -50,6 +63,10 @@ export function SellerWebsiteGate({ listingId, isUnlocked, website, userId, conn
         Website <ExternalLink className="h-3 w-3" />
       </a>
     );
+  }
+
+  if (hasUnlocked && contactMode === "proposal" && !proposalAccepted) {
+    return <span className="text-zinc-500">Pending seller acceptance</span>;
   }
 
   return (
