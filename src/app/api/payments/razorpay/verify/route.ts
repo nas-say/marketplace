@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const probeHeader = request.headers.get("x-sideflip-sentry-probe");
   const probeId = request.headers.get("x-sideflip-sentry-probe-id") ?? undefined;
   const allowProbeReport = Boolean(
-    process.env.CRON_SECRET && probeHeader && probeHeader === process.env.CRON_SECRET
+    process.env.CRON_SECRET?.trim() && probeHeader?.trim() && probeHeader.trim() === process.env.CRON_SECRET.trim()
   );
 
   const { userId } = await auth();
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       "not_authenticated",
       {
         probeId,
+        allowProbeReport,
       },
       { forceReport: allowProbeReport }
     );
