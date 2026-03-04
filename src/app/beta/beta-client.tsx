@@ -25,6 +25,7 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
   const reduceMotion = useReducedMotion();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [fundedCashOnly, setFundedCashOnly] = useState(false);
 
   const filtered = useMemo(() => {
     const source = statusFilter === "draft" ? draftBetaTests : betaTests;
@@ -36,10 +37,13 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
     if (statusFilter && statusFilter !== "draft") {
       result = result.filter((bt) => bt.status === statusFilter);
     }
+    if (fundedCashOnly) {
+      result = result.filter((bt) => bt.reward.type === "cash" && bt.reward.poolStatus === "funded");
+    }
     return result;
-  }, [betaTests, draftBetaTests, search, statusFilter]);
+  }, [betaTests, draftBetaTests, search, statusFilter, fundedCashOnly]);
 
-  const gridKey = `${statusFilter}:${search.trim().toLowerCase()}:${filtered.length}`;
+  const gridKey = `${statusFilter}:${fundedCashOnly}:${search.trim().toLowerCase()}:${filtered.length}`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -83,7 +87,12 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
               ].map((status) => (
                 <button
                   key={status}
-                  onClick={() => setStatusFilter(status)}
+                  onClick={() => {
+                    setStatusFilter(status);
+                    if (status === "draft") {
+                      setFundedCashOnly(false);
+                    }
+                  }}
                   className={`relative overflow-hidden rounded-full px-3 py-1 text-sm transition-colors ${
                     statusFilter === status ? "text-white" : "bg-zinc-800 text-zinc-400 hover:text-zinc-50"
                   }`}
@@ -108,6 +117,17 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
                   </span>
                 </button>
               ))}
+              <button
+                onClick={() => setFundedCashOnly((prev) => !prev)}
+                disabled={statusFilter === "draft"}
+                className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                  fundedCashOnly
+                    ? "bg-emerald-600 text-white hover:bg-emerald-500"
+                    : "bg-zinc-800 text-zinc-400 hover:text-zinc-50"
+                } disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                Funded cash only
+              </button>
             </div>
           </div>
           {filtered.length === 0 ? (

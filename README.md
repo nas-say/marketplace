@@ -28,6 +28,20 @@ npm test
 npm run build
 ```
 
+## GitHub Automation
+
+- `CI` workflow runs on every push/PR to `main`.
+- `Uptime Checks` workflow runs every 30 minutes and checks:
+  - `/`
+  - `/browse`
+  - `/beta`
+  - `/api/cron/admin/daily-payout-summary` (when `CRON_SECRET` secret is set)
+  - `/api/cron/admin/payout-reconciliation` (when `CRON_SECRET` secret is set)
+
+Recommended GitHub repo secrets:
+- `APP_BASE_URL` (optional, defaults to `https://sideflip.vercel.app`)
+- `CRON_SECRET` (required for authenticated cron health checks)
+
 ## E2E Smoke Tests (Playwright)
 
 ```bash

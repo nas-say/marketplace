@@ -1,0 +1,44 @@
+name: Uptime Checks
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  uptime:
+    name: Public + Cron Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_BASE_URL: ${{ secrets.APP_BASE_URL || 'https://sideflip.vercel.app' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Check public routes
+        run: |
+          set -euo pipefail
+          for path in / /browse /beta; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" "${APP_BASE_URL}${path}")
+            echo "${path} -> ${code}"
+            if [ "${code}" -ne 200 ]; then
+              echo "Expected 200 for ${path}, got ${code}"
+              exit 1
+            fi
+          done
+
+      - name: Check cron routes with auth
+        if: ${{ env.CRON_SECRET != '' }}
+        run: |
+          set -euo pipefail
+          for path in /api/cron/admin/daily-payout-summary /api/cron/admin/payout-reconciliation; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${CRON_SECRET}" "${APP_BASE_URL}${path}")
+            echo "${path} -> ${code}"
+            if [ "${code}" -ne 200 ]; then
+              echo "Expected 200 for ${path}, got ${code}"
+              exit 1
+            fi
+          done
+
+      - name: Warn when CRON_SECRET is missing
+        if: ${{ env.CRON_SECRET == '' }}
+        run: echo "::warning::Skipping cron endpoint checks because CRON_SECRET is missing in GitHub repo secrets."
