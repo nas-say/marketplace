@@ -44,6 +44,14 @@ async function sendPaymentFailureEvent(
 
   const eventId = randomUUID().replace(/-/g, "");
   const message = `payment_failure:${route}:${reason}`;
+  const contextTagKeys = ["userId", "orderId", "paymentId", "betaTestId", "probeId"] as const;
+  const contextTags: Record<string, string> = {};
+  for (const key of contextTagKeys) {
+    const value = context[key];
+    if (typeof value === "string" && value.length > 0) {
+      contextTags[`payments.${key}`] = value.slice(0, 128);
+    }
+  }
   const envelopeHeader = {
     event_id: eventId,
     dsn,
@@ -59,6 +67,10 @@ async function sendPaymentFailureEvent(
       area: "payments",
       "payments.route": route,
       "payments.reason": reason,
+      ...contextTags,
+    },
+    contexts: {
+      payment_failure: context,
     },
     extra: context,
     timestamp: new Date().toISOString(),
