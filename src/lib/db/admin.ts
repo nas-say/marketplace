@@ -1,7 +1,14 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
-import { PAYMENT_INTEREST_FEATURES } from "@/lib/payments/interest-features";
+import {
+  BETA_REWARD_FUNDING_INTEREST_FEATURE,
+  BETA_REWARD_FUNDING_WAITLIST_VIEW_FEATURE,
+  CONNECTS_PAYMENT_INTEREST_FEATURE,
+  CONNECTS_PAYMENT_WAITLIST_VIEW_FEATURE,
+  PAYMENT_INTEREST_FEATURES,
+  PAYMENT_INTEREST_MARK_FEATURES,
+} from "@/lib/payments/interest-features";
 import { getActiveAdminNotifications, type AdminNotificationItem } from "@/lib/db/admin-notifications";
 
 type PayoutStatus = "pending" | "paid" | "failed";
@@ -180,6 +187,22 @@ export interface AdminGrowthBreakdownItem {
   count: number;
 }
 
+export interface AdminWaitlistCountryConversion {
+  countryCode: string;
+  connectsViews: number;
+  connectsInterested: number;
+  betaFundingViews: number;
+  betaFundingInterested: number;
+}
+
+export interface AdminWaitlistConversionSnapshot {
+  connectsViews: number;
+  connectsInterested: number;
+  betaFundingViews: number;
+  betaFundingInterested: number;
+  topCountries: AdminWaitlistCountryConversion[];
+}
+
 export interface AdminGrowthFunnelSnapshot {
   shortWindowDays: number;
   longWindowDays: number;
@@ -187,6 +210,7 @@ export interface AdminGrowthFunnelSnapshot {
   marketplace30d: AdminMarketplaceFunnelCounts;
   beta7d: AdminBetaFunnelCounts;
   beta30d: AdminBetaFunnelCounts;
+  waitlistConversion: AdminWaitlistConversionSnapshot;
   topInterestCountries: AdminGrowthBreakdownItem[];
   topInterestCurrencies: AdminGrowthBreakdownItem[];
 }
@@ -499,7 +523,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
       client
         .from("payment_interest_signals")
         .select("id, clerk_user_id, feature, country_code, currency, created_at")
-        .in("feature", PAYMENT_INTEREST_FEATURES)
+        .in("feature", PAYMENT_INTEREST_MARK_FEATURES)
         .order("created_at", { ascending: false })
         .limit(200),
       client
@@ -514,7 +538,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
         .limit(200),
       client
         .from("payment_interest_signals")
-        .select("country_code, currency, created_at")
+        .select("feature, country_code, currency, created_at")
         .in("feature", PAYMENT_INTEREST_FEATURES)
         .gte("created_at", longWindowDate)
         .order("created_at", { ascending: false })
@@ -766,7 +790,17 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
   const interestBreakdownRows = (interestBreakdownResult.data ?? []) as Record<string, unknown>[];
   const countryCounts = new Map<string, number>();
   const currencyCounts = new Map<string, number>();
+  const waitlistCountryMap = new Map<
+    string,
+    { connectsViews: number; connectsInterested: number; betaFundingViews: number; betaFundingInterested: number }
+  >();
+  let connectsViews = 0;
+  let connectsInterested = 0;
+  let betaFundingViews = 0;
+  let betaFundingInterested = 0;
+
   for (const row of interestBreakdownRows) {
+    const feature = typeof row.feature === "string" ? row.feature : "";
     const country =
       typeof row.country_code === "string" && row.country_code.trim().length > 0
         ? row.country_code.trim().toUpperCase()
@@ -775,8 +809,35 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
       typeof row.currency === "string" && row.currency.trim().length > 0
         ? row.currency.trim().toUpperCase()
         : "UNKNOWN";
-    countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
-    currencyCounts.set(currency, (currencyCounts.get(currency) ?? 0) + 1);
+
+    if (
+      feature === CONNECTS_PAYMENT_INTEREST_FEATURE ||
+      feature === BETA_REWARD_FUNDING_INTEREST_FEATURE
+    ) {
+      countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+      currencyCounts.set(currency, (currencyCounts.get(currency) ?? 0) + 1);
+    }
+
+    const countryRow = waitlistCountryMap.get(country) ?? {
+      connectsViews: 0,
+      connectsInterested: 0,
+      betaFundingViews: 0,
+      betaFundingInterested: 0,
+    };
+    if (feature === CONNECTS_PAYMENT_WAITLIST_VIEW_FEATURE) {
+      countryRow.connectsViews += 1;
+      connectsViews += 1;
+    } else if (feature === CONNECTS_PAYMENT_INTEREST_FEATURE) {
+      countryRow.connectsInterested += 1;
+      connectsInterested += 1;
+    } else if (feature === BETA_REWARD_FUNDING_WAITLIST_VIEW_FEATURE) {
+      countryRow.betaFundingViews += 1;
+      betaFundingViews += 1;
+    } else if (feature === BETA_REWARD_FUNDING_INTEREST_FEATURE) {
+      countryRow.betaFundingInterested += 1;
+      betaFundingInterested += 1;
+    }
+    waitlistCountryMap.set(country, countryRow);
   }
 
   const topInterestCountries = Array.from(countryCounts.entries())
@@ -788,6 +849,28 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 8)
     .map(([label, count]) => ({ label, count }));
+
+  const topWaitlistCountries = Array.from(waitlistCountryMap.entries())
+    .filter(([, row]) => row.connectsViews + row.connectsInterested + row.betaFundingViews + row.betaFundingInterested > 0)
+    .sort((a, b) => {
+      const aInterested = a[1].connectsInterested + a[1].betaFundingInterested;
+      const bInterested = b[1].connectsInterested + b[1].betaFundingInterested;
+      if (aInterested !== bInterested) return bInterested - aInterested;
+
+      const aViews = a[1].connectsViews + a[1].betaFundingViews;
+      const bViews = b[1].connectsViews + b[1].betaFundingViews;
+      if (aViews !== bViews) return bViews - aViews;
+
+      return a[0].localeCompare(b[0]);
+    })
+    .slice(0, 8)
+    .map(([countryCode, row]) => ({
+      countryCode,
+      connectsViews: row.connectsViews,
+      connectsInterested: row.connectsInterested,
+      betaFundingViews: row.betaFundingViews,
+      betaFundingInterested: row.betaFundingInterested,
+    }));
 
   const growthFunnel: AdminGrowthFunnelSnapshot = {
     shortWindowDays,
@@ -815,6 +898,13 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
       betaApplications: betaApplications30d,
       betaAccepted: betaAccepted30d,
       betaFeedbackSubmitted: betaFeedbackSubmitted30d,
+    },
+    waitlistConversion: {
+      connectsViews,
+      connectsInterested,
+      betaFundingViews,
+      betaFundingInterested,
+      topCountries: topWaitlistCountries,
     },
     topInterestCountries,
     topInterestCurrencies,

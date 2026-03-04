@@ -376,6 +376,49 @@ export default async function AdminPage({ searchParams }: Props) {
               Payment Interest Split ({funnel.longWindowDays}d)
             </p>
             <div className="mt-3 grid grid-cols-1 gap-3 text-sm">
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">
+                  Connects waitlist conversion:{" "}
+                  <span className="text-zinc-50">
+                    {funnel.waitlistConversion.connectsInterested} / {funnel.waitlistConversion.connectsViews}
+                  </span>
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Interested rate:{" "}
+                  {toPercent(
+                    funnel.waitlistConversion.connectsInterested,
+                    funnel.waitlistConversion.connectsViews
+                  )}
+                </p>
+                <p className="mt-1 text-zinc-200">
+                  Beta funding waitlist conversion:{" "}
+                  <span className="text-zinc-50">
+                    {funnel.waitlistConversion.betaFundingInterested} /{" "}
+                    {funnel.waitlistConversion.betaFundingViews}
+                  </span>
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Interested rate:{" "}
+                  {toPercent(
+                    funnel.waitlistConversion.betaFundingInterested,
+                    funnel.waitlistConversion.betaFundingViews
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500">Top waitlist countries (views → interested)</p>
+                <div className="mt-1 space-y-1">
+                  {funnel.waitlistConversion.topCountries.length === 0 && (
+                    <p className="text-xs text-zinc-600">No waitlist conversion data yet.</p>
+                  )}
+                  {funnel.waitlistConversion.topCountries.map((row) => (
+                    <p key={`waitlist-country-${row.countryCode}`} className="text-zinc-300">
+                      {row.countryCode}: C {row.connectsInterested}/{row.connectsViews} • B{" "}
+                      {row.betaFundingInterested}/{row.betaFundingViews}
+                    </p>
+                  ))}
+                </div>
+              </div>
               <div>
                 <p className="text-xs text-zinc-500">Top countries</p>
                 <div className="mt-1 space-y-1">

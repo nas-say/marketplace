@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import {
+  BETA_REWARD_FUNDING_INTEREST_FEATURE,
+  BETA_REWARD_FUNDING_WAITLIST_VIEW_FEATURE,
+} from "@/lib/payments/interest-features";
+import { getNonIndiaPaymentsWaitlistCopy } from "@/lib/payments/waitlist-copy";
+import { shouldTrackWaitlistViewClient } from "@/lib/payments/waitlist-tracking";
 
 type PoolStatus = "not_required" | "pending" | "partial" | "funded";
 type RewardType = "cash" | "premium_access";
@@ -86,6 +92,44 @@ export function FundingCard({
   const [markingInterest, setMarkingInterest] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const waitlistCopy = getNonIndiaPaymentsWaitlistCopy(countryCode, rewardCurrency);
+  const remainingMinor = Math.max(0, poolTotalMinor - poolFundedMinor);
+  const funded = poolStatus === "funded" || remainingMinor === 0;
+
+  useEffect(() => {
+    if (!isCreator || funded || paymentsEnabledForCountry) return;
+    const viewKey = `beta_funding:${betaTestId}:${countryCode || "unknown"}:${rewardCurrency}`;
+    if (!shouldTrackWaitlistViewClient(viewKey)) return;
+
+    void fetch("/api/payments/interest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        feature: BETA_REWARD_FUNDING_WAITLIST_VIEW_FEATURE,
+        context: {
+          source: "beta_funding_card",
+          event: "waitlist_view",
+          route: `/beta/${betaTestId}`,
+          betaTestId,
+          rewardCurrency,
+          poolTotalMinor,
+          poolFundedMinor,
+          countryCode,
+        },
+      }),
+    }).catch(() => {
+      // Non-blocking telemetry for conversion tracking.
+    });
+  }, [
+    betaTestId,
+    countryCode,
+    funded,
+    isCreator,
+    paymentsEnabledForCountry,
+    poolFundedMinor,
+    poolTotalMinor,
+    rewardCurrency,
+  ]);
 
   if (rewardType !== "cash" || poolTotalMinor <= 0) {
     return (
@@ -95,9 +139,6 @@ export function FundingCard({
       </div>
     );
   }
-
-  const remainingMinor = Math.max(0, poolTotalMinor - poolFundedMinor);
-  const funded = poolStatus === "funded" || remainingMinor === 0;
 
   const handleFund = async () => {
     if (!isCreator || funded || loading) return;
@@ -189,8 +230,11 @@ export function FundingCard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          feature: "beta_reward_funding",
+          feature: BETA_REWARD_FUNDING_INTEREST_FEATURE,
           context: {
+            source: "beta_funding_card",
+            event: "waitlist_interested",
+            route: `/beta/${betaTestId}`,
             betaTestId,
             rewardCurrency,
             poolTotalMinor,
@@ -207,7 +251,7 @@ export function FundingCard({
         return;
       }
 
-      setMessage("Marked. We will email you when payments are available in your country.");
+      setMessage(waitlistCopy.successMessage);
       setMarkingInterest(false);
     } catch {
       setError("Could not mark your interest right now.");
@@ -232,7 +276,7 @@ export function FundingCard({
         ) : !paymentsEnabledForCountry ? (
           <div className="mt-3">
             <p className="mb-2 text-xs text-amber-400">
-              Payments are currently available only in India. Mark interested to get notified.
+              {waitlistCopy.availabilityMessage}
             </p>
             <Button
               size="sm"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, Gift, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { getMoreConnectsTransactionsAction, giftConnectsAction } from "./actions";
 import type { Currency } from "@/lib/geo";
+import {
+  CONNECTS_PAYMENT_INTEREST_FEATURE,
+  CONNECTS_PAYMENT_WAITLIST_VIEW_FEATURE,
+} from "@/lib/payments/interest-features";
+import { getNonIndiaPaymentsWaitlistCopy } from "@/lib/payments/waitlist-copy";
+import { shouldTrackWaitlistViewClient } from "@/lib/payments/waitlist-tracking";
 
 const BUNDLES: Record<Currency, Array<{ connects: number; price: string; description: string; popular?: boolean }>> = {
   USD: [
@@ -122,7 +128,32 @@ export function ConnectsClient({
   const [purchaseMessage, setPurchaseMessage] = useState("");
 
   const bundles = BUNDLES[currency];
+  const waitlistCopy = getNonIndiaPaymentsWaitlistCopy(countryCode, currency);
   const freeAmount = signupGiftAmount;
+
+  useEffect(() => {
+    if (paymentsEnabledForCountry || currency === "INR") return;
+    const viewKey = `connects:${countryCode || "unknown"}:${currency}`;
+    if (!shouldTrackWaitlistViewClient(viewKey)) return;
+
+    void fetch("/api/payments/interest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        feature: CONNECTS_PAYMENT_WAITLIST_VIEW_FEATURE,
+        context: {
+          source: "connects_page",
+          event: "waitlist_view",
+          route: "/connects",
+          currency,
+          countryCode,
+          bundles: bundles.map((bundle) => ({ connects: bundle.connects, priceLabel: bundle.price })),
+        },
+      }),
+    }).catch(() => {
+      // Non-blocking telemetry for conversion tracking.
+    });
+  }, [bundles, countryCode, currency, paymentsEnabledForCountry]);
 
   const handleClaim = async () => {
     if (claimed || loading) return;
@@ -239,8 +270,11 @@ export function ConnectsClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          feature: "connects_payment",
+          feature: CONNECTS_PAYMENT_INTEREST_FEATURE,
           context: {
+            source: "connects_page",
+            event: "waitlist_interested",
+            route: "/connects",
             connects,
             priceLabel,
             currency,
@@ -254,7 +288,7 @@ export function ConnectsClient({
         setMarkingInterestConnects(null);
         return;
       }
-      setPurchaseMessage("Marked. We will email you when payments are available in your country.");
+      setPurchaseMessage(waitlistCopy.successMessage);
       setMarkingInterestConnects(null);
     } catch {
       setPurchaseError("Could not mark your interest right now.");
@@ -384,7 +418,7 @@ export function ConnectsClient({
       <p className="text-xs text-zinc-600 mb-10 text-center">
         {paymentsEnabledForCountry && currency === "INR"
           ? "INR payments are live via Razorpay. Unlock cost scales by listing price (starts at 2 connects)."
-          : "Payments are currently available only in India. Mark interested and we will email you when your country goes live."}
+          : waitlistCopy.availabilityMessage}
       </p>
       {purchaseError && <p className="text-xs text-red-400 mb-4 text-center">{purchaseError}</p>}
       {purchaseMessage && <p className="text-xs text-green-400 mb-4 text-center">{purchaseMessage}</p>}

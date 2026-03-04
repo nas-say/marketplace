@@ -1,6 +1,21 @@
+export const CONNECTS_PAYMENT_INTEREST_FEATURE = "connects_payment" as const;
+export const BETA_REWARD_FUNDING_INTEREST_FEATURE = "beta_reward_funding" as const;
+export const CONNECTS_PAYMENT_WAITLIST_VIEW_FEATURE = "connects_payment_waitlist_view" as const;
+export const BETA_REWARD_FUNDING_WAITLIST_VIEW_FEATURE = "beta_reward_funding_waitlist_view" as const;
+
+export const PAYMENT_INTEREST_MARK_FEATURES = [
+  CONNECTS_PAYMENT_INTEREST_FEATURE,
+  BETA_REWARD_FUNDING_INTEREST_FEATURE,
+] as const;
+
+export const PAYMENT_INTEREST_WAITLIST_VIEW_FEATURES = [
+  CONNECTS_PAYMENT_WAITLIST_VIEW_FEATURE,
+  BETA_REWARD_FUNDING_WAITLIST_VIEW_FEATURE,
+] as const;
+
 export const PAYMENT_INTEREST_FEATURES = [
-  "connects_payment",
-  "beta_reward_funding",
+  ...PAYMENT_INTEREST_MARK_FEATURES,
+  ...PAYMENT_INTEREST_WAITLIST_VIEW_FEATURES,
 ] as const;
 
 export type PaymentInterestFeature = (typeof PAYMENT_INTEREST_FEATURES)[number];
