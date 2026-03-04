@@ -36,11 +36,11 @@ async function sendPaymentFailureEvent(
   context: Record<string, unknown>
 ) {
   const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
-  if (!dsn) return;
+  if (!dsn) return null;
 
   const dsnUrl = new URL(dsn);
   const projectId = dsnUrl.pathname.replace("/", "");
-  if (!projectId) return;
+  if (!projectId) return null;
 
   const eventId = randomUUID().replace(/-/g, "");
   const message = `payment_failure:${route}:${reason}`;
@@ -66,11 +66,12 @@ async function sendPaymentFailureEvent(
 
   const envelope = `${JSON.stringify(envelopeHeader)}\n${JSON.stringify(itemHeader)}\n${JSON.stringify(payload)}`;
   const endpoint = `${dsnUrl.protocol}//${dsnUrl.host}/api/${projectId}/envelope/`;
-  await fetch(endpoint, {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/x-sentry-envelope" },
     body: envelope,
   });
+  return response.status;
 }
 
 export async function logPaymentFailureWithOptions(
@@ -82,9 +83,9 @@ export async function logPaymentFailureWithOptions(
   console.error(`[${route}] request failed`, { reason, ...context });
 
   if (!options.forceReport && !REPORTABLE_REASONS.has(reason)) {
-    return;
+    return null;
   }
 
   const level = resolveLevel(reason);
-  await sendPaymentFailureEvent(route, reason, level, context);
+  return sendPaymentFailureEvent(route, reason, level, context);
 }
