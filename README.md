@@ -37,6 +37,7 @@ npm run build
   - `/beta`
   - `/api/cron/admin/daily-payout-summary` (when `CRON_SECRET` secret is set)
   - `/api/cron/admin/payout-reconciliation` (when `CRON_SECRET` secret is set)
+- `Uptime Alerts` workflow opens an incident issue automatically if uptime fails on `main`, and auto-closes it after recovery.
 
 Recommended GitHub repo secrets:
 - `APP_BASE_URL` (optional, defaults to `https://sideflip.vercel.app`)

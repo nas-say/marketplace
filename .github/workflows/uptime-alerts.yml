@@ -1,0 +1,136 @@
+name: Uptime Alerts
+
+on:
+  workflow_run:
+    workflows: ["Uptime Checks"]
+    types: [completed]
+
+jobs:
+  notify:
+    if: ${{ github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      issues: write
+    steps:
+      - name: Open or update incident issue when uptime fails
+        if: ${{ github.event.workflow_run.conclusion != 'success' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const run = context.payload.workflow_run;
+            const title = "[Ops] Uptime checks failing on main";
+            const alertLabel = "ops-uptime";
+
+            async function ensureLabel(name, color, description) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner,
+                    repo,
+                    name,
+                    color,
+                    description,
+                  });
+                  return;
+                }
+                throw error;
+              }
+            }
+
+            await ensureLabel(alertLabel, "B60205", "Uptime check incidents");
+            await ensureLabel("ops", "5319E7", "Operational work and incidents");
+
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              labels: alertLabel,
+              per_page: 100,
+            });
+
+            const body = [
+              "Automated uptime checks failed on `main`.",
+              "",
+              `- Workflow run: ${run.html_url}`,
+              `- Trigger: ${run.event}`,
+              `- Conclusion: ${run.conclusion}`,
+              `- Commit: ${run.head_sha}`,
+              "",
+              "Check logs, fix the failure, and merge a patch. This issue auto-closes after the next successful uptime run on `main`.",
+            ].join("\n");
+
+            const existing = openIssues.find((issue) => issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body,
+              });
+              core.info(`Updated existing incident issue #${existing.number}`);
+              return;
+            }
+
+            const { data: created } = await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body,
+              labels: [alertLabel, "ops"],
+            });
+            core.info(`Created incident issue #${created.number}`);
+
+      - name: Close incident issue after recovery
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const run = context.payload.workflow_run;
+            const title = "[Ops] Uptime checks failing on main";
+            const alertLabel = "ops-uptime";
+
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              labels: alertLabel,
+              per_page: 100,
+            });
+
+            const incidents = openIssues.filter((issue) => issue.title === title);
+            if (incidents.length === 0) {
+              core.info("No open uptime incident issues found.");
+              return;
+            }
+
+            const body = [
+              "Uptime checks recovered on `main`.",
+              "",
+              `- Workflow run: ${run.html_url}`,
+              `- Trigger: ${run.event}`,
+              `- Conclusion: ${run.conclusion}`,
+              `- Commit: ${run.head_sha}`,
+            ].join("\n");
+
+            for (const incident of incidents) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: incident.number,
+                body,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: incident.number,
+                state: "closed",
+              });
+              core.info(`Closed incident issue #${incident.number}`);
+            }
