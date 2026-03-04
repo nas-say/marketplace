@@ -160,20 +160,34 @@ export interface AdminRecentUserItem {
   createdAt: string;
 }
 
+export interface AdminMarketplaceFunnelCounts {
+  listingsCreated: number;
+  listingsVerified: number;
+  listingUnlocks: number;
+  connectPurchases: number;
+}
+
+export interface AdminBetaFunnelCounts {
+  betaTestsPosted: number;
+  betaApplications: number;
+  betaAccepted: number;
+  betaFeedbackSubmitted: number;
+}
+
+export interface AdminGrowthBreakdownItem {
+  label: string;
+  count: number;
+}
+
 export interface AdminGrowthFunnelSnapshot {
-  lookbackDays: number;
-  marketplace: {
-    listingsCreated: number;
-    listingsVerified: number;
-    listingUnlocks: number;
-    connectPurchases: number;
-  };
-  beta: {
-    betaTestsPosted: number;
-    betaApplications: number;
-    betaAccepted: number;
-    betaFeedbackSubmitted: number;
-  };
+  shortWindowDays: number;
+  longWindowDays: number;
+  marketplace7d: AdminMarketplaceFunnelCounts;
+  marketplace30d: AdminMarketplaceFunnelCounts;
+  beta7d: AdminBetaFunnelCounts;
+  beta30d: AdminBetaFunnelCounts;
+  topInterestCountries: AdminGrowthBreakdownItem[];
+  topInterestCurrencies: AdminGrowthBreakdownItem[];
 }
 
 export interface AdminPayoutAuditItem {
@@ -252,8 +266,10 @@ async function exactCount(queryPromise: PromiseLike<unknown>): Promise<number> {
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
   const client = createServiceClient();
   const adminNotificationsPromise = getActiveAdminNotifications(120);
-  const lookbackDays = 30;
-  const lookbackDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000).toISOString();
+  const shortWindowDays = 7;
+  const longWindowDays = 30;
+  const shortWindowDate = new Date(Date.now() - shortWindowDays * 24 * 60 * 60 * 1000).toISOString();
+  const longWindowDate = new Date(Date.now() - longWindowDays * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     totalUsers,
@@ -266,6 +282,14 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     fundedCashBetaTests,
     pendingCashPools,
     manualReviewRequests,
+    listingsCreated7d,
+    listingsVerified7d,
+    listingUnlocks7d,
+    connectPurchases7d,
+    betaTestsPosted7d,
+    betaApplications7d,
+    betaAccepted7d,
+    betaFeedbackSubmitted7d,
     listingsCreated30d,
     listingsVerified30d,
     listingUnlocks30d,
@@ -315,46 +339,88 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
         .eq("status", "manual_requested")
     ),
     exactCount(
-      client.from("listings").select("id", { head: true, count: "exact" }).gte("created_at", lookbackDate)
+      client.from("listings").select("id", { head: true, count: "exact" }).gte("created_at", shortWindowDate)
     ),
     exactCount(
       client
         .from("listings")
         .select("id", { head: true, count: "exact" })
         .eq("ownership_verified", true)
-        .gte("ownership_verified_at", lookbackDate)
+        .gte("ownership_verified_at", shortWindowDate)
     ),
     exactCount(
       client
         .from("unlocked_listings")
         .select("id", { head: true, count: "exact" })
-        .gte("created_at", lookbackDate)
+        .gte("created_at", shortWindowDate)
     ),
     exactCount(
       client
         .from("connects_transactions")
         .select("id", { head: true, count: "exact" })
         .eq("type", "purchase_razorpay")
-        .gte("created_at", lookbackDate)
+        .gte("created_at", shortWindowDate)
     ),
     exactCount(
-      client.from("beta_tests").select("id", { head: true, count: "exact" }).gte("created_at", lookbackDate)
+      client.from("beta_tests").select("id", { head: true, count: "exact" }).gte("created_at", shortWindowDate)
     ),
     exactCount(
       client
         .from("beta_applications")
         .select("beta_test_id", { head: true, count: "exact" })
-        .gte("created_at", lookbackDate)
+        .gte("created_at", shortWindowDate)
     ),
     exactCount(
       client
         .from("beta_applications")
         .select("beta_test_id", { head: true, count: "exact" })
         .eq("status", "accepted")
-        .gte("created_at", lookbackDate)
+        .gte("created_at", shortWindowDate)
     ),
     exactCount(
-      client.from("beta_feedback").select("id", { head: true, count: "exact" }).gte("created_at", lookbackDate)
+      client.from("beta_feedback").select("id", { head: true, count: "exact" }).gte("created_at", shortWindowDate)
+    ),
+    exactCount(
+      client.from("listings").select("id", { head: true, count: "exact" }).gte("created_at", longWindowDate)
+    ),
+    exactCount(
+      client
+        .from("listings")
+        .select("id", { head: true, count: "exact" })
+        .eq("ownership_verified", true)
+        .gte("ownership_verified_at", longWindowDate)
+    ),
+    exactCount(
+      client
+        .from("unlocked_listings")
+        .select("id", { head: true, count: "exact" })
+        .gte("created_at", longWindowDate)
+    ),
+    exactCount(
+      client
+        .from("connects_transactions")
+        .select("id", { head: true, count: "exact" })
+        .eq("type", "purchase_razorpay")
+        .gte("created_at", longWindowDate)
+    ),
+    exactCount(
+      client.from("beta_tests").select("id", { head: true, count: "exact" }).gte("created_at", longWindowDate)
+    ),
+    exactCount(
+      client
+        .from("beta_applications")
+        .select("beta_test_id", { head: true, count: "exact" })
+        .gte("created_at", longWindowDate)
+    ),
+    exactCount(
+      client
+        .from("beta_applications")
+        .select("beta_test_id", { head: true, count: "exact" })
+        .eq("status", "accepted")
+        .gte("created_at", longWindowDate)
+    ),
+    exactCount(
+      client.from("beta_feedback").select("id", { head: true, count: "exact" }).gte("created_at", longWindowDate)
     ),
   ]);
 
@@ -397,7 +463,16 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     payoutRowsRaw = (fallbackResult.data ?? []) as RawCashPayoutRow[];
   }
 
-  const [premiumQueueResult, verificationQueueResult, betaPaymentsResult, connectPurchasesResult, signalsResult, recentUsersResult, payoutAuditResult] =
+  const [
+    premiumQueueResult,
+    verificationQueueResult,
+    betaPaymentsResult,
+    connectPurchasesResult,
+    signalsResult,
+    recentUsersResult,
+    payoutAuditResult,
+    interestBreakdownResult,
+  ] =
     await Promise.all([
       client
         .from("beta_applications")
@@ -435,6 +510,12 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
         .select("id, beta_test_id, applicant_user_id, previous_status, next_status, payout_note, admin_user_id, created_at")
         .order("created_at", { ascending: false })
         .limit(200),
+      client
+        .from("payment_interest_signals")
+        .select("country_code, currency, created_at")
+        .gte("created_at", longWindowDate)
+        .order("created_at", { ascending: false })
+        .limit(2000),
     ]);
 
   const cashPayoutQueueBase = payoutRowsRaw
@@ -678,20 +759,62 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     (sum, row) => sum + Math.max(0, row.payoutFeeMinor),
     0
   );
+
+  const interestBreakdownRows = (interestBreakdownResult.data ?? []) as Record<string, unknown>[];
+  const countryCounts = new Map<string, number>();
+  const currencyCounts = new Map<string, number>();
+  for (const row of interestBreakdownRows) {
+    const country =
+      typeof row.country_code === "string" && row.country_code.trim().length > 0
+        ? row.country_code.trim().toUpperCase()
+        : "Unknown";
+    const currency =
+      typeof row.currency === "string" && row.currency.trim().length > 0
+        ? row.currency.trim().toUpperCase()
+        : "UNKNOWN";
+    countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+    currencyCounts.set(currency, (currencyCounts.get(currency) ?? 0) + 1);
+  }
+
+  const topInterestCountries = Array.from(countryCounts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8)
+    .map(([label, count]) => ({ label, count }));
+
+  const topInterestCurrencies = Array.from(currencyCounts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8)
+    .map(([label, count]) => ({ label, count }));
+
   const growthFunnel: AdminGrowthFunnelSnapshot = {
-    lookbackDays,
-    marketplace: {
+    shortWindowDays,
+    longWindowDays,
+    marketplace7d: {
+      listingsCreated: listingsCreated7d,
+      listingsVerified: listingsVerified7d,
+      listingUnlocks: listingUnlocks7d,
+      connectPurchases: connectPurchases7d,
+    },
+    marketplace30d: {
       listingsCreated: listingsCreated30d,
       listingsVerified: listingsVerified30d,
       listingUnlocks: listingUnlocks30d,
       connectPurchases: connectPurchases30d,
     },
-    beta: {
+    beta7d: {
+      betaTestsPosted: betaTestsPosted7d,
+      betaApplications: betaApplications7d,
+      betaAccepted: betaAccepted7d,
+      betaFeedbackSubmitted: betaFeedbackSubmitted7d,
+    },
+    beta30d: {
       betaTestsPosted: betaTestsPosted30d,
       betaApplications: betaApplications30d,
       betaAccepted: betaAccepted30d,
       betaFeedbackSubmitted: betaFeedbackSubmitted30d,
     },
+    topInterestCountries,
+    topInterestCurrencies,
   };
   const persistedNotifications = await adminNotificationsPromise;
 

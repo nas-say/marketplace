@@ -18,6 +18,7 @@ export function BrowseClient({ initialListings }: BrowseClientProps) {
   const reduceMotion = useReducedMotion();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -33,6 +34,7 @@ export function BrowseClient({ initialListings }: BrowseClientProps) {
       );
     }
     if (category) result = result.filter((l) => l.category === category);
+    if (verifiedOnly) result = result.filter((l) => l.ownershipVerified);
     if (minPrice) result = result.filter((l) => l.askingPrice >= Number(minPrice) * 100);
     if (maxPrice) result = result.filter((l) => l.askingPrice <= Number(maxPrice) * 100);
 
@@ -43,20 +45,29 @@ export function BrowseClient({ initialListings }: BrowseClientProps) {
       default: result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     return result;
-  }, [initialListings, search, category, sortBy, minPrice, maxPrice]);
+  }, [initialListings, search, category, verifiedOnly, sortBy, minPrice, maxPrice]);
 
   const activeFilters = [
     search && { label: `"${search}"`, onRemove: () => setSearch("") },
     category && { label: CATEGORY_LABELS[category], onRemove: () => setCategory("") },
+    verifiedOnly && { label: "Verified only", onRemove: () => setVerifiedOnly(false) },
     minPrice && { label: `Min $${minPrice}`, onRemove: () => setMinPrice("") },
     maxPrice && { label: `Max $${maxPrice}`, onRemove: () => setMaxPrice("") },
   ].filter(Boolean) as { label: string; onRemove: () => void }[];
 
-  const clearAll = () => { setSearch(""); setCategory(""); setMinPrice(""); setMaxPrice(""); setSortBy("newest"); };
+  const clearAll = () => {
+    setSearch("");
+    setCategory("");
+    setVerifiedOnly(false);
+    setMinPrice("");
+    setMaxPrice("");
+    setSortBy("newest");
+  };
 
   const filtersProps = {
     search, onSearchChange: setSearch,
     selectedCategory: category, onCategoryChange: setCategory,
+    verifiedOnly, onVerifiedOnlyChange: setVerifiedOnly,
     sortBy, onSortChange: setSortBy,
     minPrice, onMinPriceChange: setMinPrice,
     maxPrice, onMaxPriceChange: setMaxPrice,

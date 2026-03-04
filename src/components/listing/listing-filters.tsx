@@ -8,6 +8,8 @@ interface ListingFiltersProps {
   onSearchChange: (value: string) => void;
   selectedCategory: string;
   onCategoryChange: (value: string) => void;
+  verifiedOnly: boolean;
+  onVerifiedOnlyChange: (value: boolean) => void;
   sortBy: string;
   onSortChange: (value: string) => void;
   minPrice: string;
@@ -21,6 +23,8 @@ export function ListingFilters({
   onSearchChange,
   selectedCategory,
   onCategoryChange,
+  verifiedOnly,
+  onVerifiedOnlyChange,
   sortBy,
   onSortChange,
   minPrice,
@@ -84,6 +88,21 @@ export function ListingFilters({
             />
           </div>
         </div>
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-zinc-50">Trust</h3>
+        <button
+          type="button"
+          onClick={() => onVerifiedOnlyChange(!verifiedOnly)}
+          className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+            verifiedOnly
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+              : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-50"
+          }`}
+        >
+          {verifiedOnly ? "Verified listings only" : "Show all verification states"}
+        </button>
       </div>
 
       <div>

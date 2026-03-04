@@ -276,36 +276,53 @@ export default async function AdminPage({ searchParams }: Props) {
 
       <section className="rounded-lg border border-zinc-800 bg-zinc-900">
         <div className="border-b border-zinc-800 px-4 py-3">
-          <h2 className="text-base font-semibold text-zinc-100">Growth Funnel ({funnel.lookbackDays}d)</h2>
+          <h2 className="text-base font-semibold text-zinc-100">
+            Growth Funnel ({funnel.shortWindowDays}d vs {funnel.longWindowDays}d)
+          </h2>
           <p className="text-xs text-zinc-500">
-            Conversion checkpoints from real product actions. Use this to spot bottlenecks quickly.
+            Trend view for key conversion checkpoints plus demand split by region/currency.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 p-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 p-4 xl:grid-cols-3">
           <div className="rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
             <p className="text-xs uppercase tracking-wide text-zinc-500">Marketplace Funnel</p>
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
               <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Listings Created: {funnel.marketplace.listingsCreated}</p>
-              </div>
-              <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Ownership Verified: {funnel.marketplace.listingsVerified}</p>
-                <p className="text-xs text-zinc-500">
-                  Verify rate: {toPercent(funnel.marketplace.listingsVerified, funnel.marketplace.listingsCreated)}
+                <p className="text-zinc-200">
+                  Listings Created: {funnel.marketplace7d.listingsCreated} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.marketplace30d.listingsCreated} ({funnel.longWindowDays}d)
                 </p>
               </div>
               <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Listing Unlock Actions: {funnel.marketplace.listingUnlocks}</p>
+                <p className="text-zinc-200">
+                  Ownership Verified: {funnel.marketplace7d.listingsVerified} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.marketplace30d.listingsVerified} ({funnel.longWindowDays}d)
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Verify rate: {toPercent(funnel.marketplace7d.listingsVerified, funnel.marketplace7d.listingsCreated)}{" "}
+                  / {toPercent(funnel.marketplace30d.listingsVerified, funnel.marketplace30d.listingsCreated)}
+                </p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">
+                  Listing Unlock Actions: {funnel.marketplace7d.listingUnlocks} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.marketplace30d.listingUnlocks} ({funnel.longWindowDays}d)
+                </p>
                 <p className="text-xs text-zinc-500">
                   Unlocks per verified listing:{" "}
-                  {toPercent(funnel.marketplace.listingUnlocks, funnel.marketplace.listingsVerified)}
+                  {toPercent(funnel.marketplace7d.listingUnlocks, funnel.marketplace7d.listingsVerified)} /{" "}
+                  {toPercent(funnel.marketplace30d.listingUnlocks, funnel.marketplace30d.listingsVerified)}
                 </p>
               </div>
               <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Connect Purchases: {funnel.marketplace.connectPurchases}</p>
+                <p className="text-zinc-200">
+                  Connect Purchases: {funnel.marketplace7d.connectPurchases} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.marketplace30d.connectPurchases} ({funnel.longWindowDays}d)
+                </p>
                 <p className="text-xs text-zinc-500">
                   Purchase rate vs unlocks:{" "}
-                  {toPercent(funnel.marketplace.connectPurchases, funnel.marketplace.listingUnlocks)}
+                  {toPercent(funnel.marketplace7d.connectPurchases, funnel.marketplace7d.listingUnlocks)} /{" "}
+                  {toPercent(funnel.marketplace30d.connectPurchases, funnel.marketplace30d.listingUnlocks)}
                 </p>
               </div>
             </div>
@@ -315,26 +332,75 @@ export default async function AdminPage({ searchParams }: Props) {
             <p className="text-xs uppercase tracking-wide text-zinc-500">Beta Testing Funnel</p>
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
               <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Beta Tests Posted: {funnel.beta.betaTestsPosted}</p>
-              </div>
-              <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Applications Submitted: {funnel.beta.betaApplications}</p>
-                <p className="text-xs text-zinc-500">
-                  Applications per beta: {toPercent(funnel.beta.betaApplications, funnel.beta.betaTestsPosted)}
+                <p className="text-zinc-200">
+                  Beta Tests Posted: {funnel.beta7d.betaTestsPosted} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.beta30d.betaTestsPosted} ({funnel.longWindowDays}d)
                 </p>
               </div>
               <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Applicants Approved: {funnel.beta.betaAccepted}</p>
+                <p className="text-zinc-200">
+                  Applications Submitted: {funnel.beta7d.betaApplications} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.beta30d.betaApplications} ({funnel.longWindowDays}d)
+                </p>
                 <p className="text-xs text-zinc-500">
-                  Approval rate: {toPercent(funnel.beta.betaAccepted, funnel.beta.betaApplications)}
+                  Applications per beta: {toPercent(funnel.beta7d.betaApplications, funnel.beta7d.betaTestsPosted)} /{" "}
+                  {toPercent(funnel.beta30d.betaApplications, funnel.beta30d.betaTestsPosted)}
                 </p>
               </div>
               <div className="rounded border border-zinc-800 px-3 py-2">
-                <p className="text-zinc-200">Feedback Submitted: {funnel.beta.betaFeedbackSubmitted}</p>
+                <p className="text-zinc-200">
+                  Applicants Approved: {funnel.beta7d.betaAccepted} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.beta30d.betaAccepted} ({funnel.longWindowDays}d)
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Approval rate: {toPercent(funnel.beta7d.betaAccepted, funnel.beta7d.betaApplications)} /{" "}
+                  {toPercent(funnel.beta30d.betaAccepted, funnel.beta30d.betaApplications)}
+                </p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">
+                  Feedback Submitted: {funnel.beta7d.betaFeedbackSubmitted} ({funnel.shortWindowDays}d) •{" "}
+                  {funnel.beta30d.betaFeedbackSubmitted} ({funnel.longWindowDays}d)
+                </p>
                 <p className="text-xs text-zinc-500">
                   Feedback completion rate:{" "}
-                  {toPercent(funnel.beta.betaFeedbackSubmitted, funnel.beta.betaAccepted)}
+                  {toPercent(funnel.beta7d.betaFeedbackSubmitted, funnel.beta7d.betaAccepted)} /{" "}
+                  {toPercent(funnel.beta30d.betaFeedbackSubmitted, funnel.beta30d.betaAccepted)}
                 </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">
+              Payment Interest Split ({funnel.longWindowDays}d)
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-zinc-500">Top countries</p>
+                <div className="mt-1 space-y-1">
+                  {funnel.topInterestCountries.length === 0 && (
+                    <p className="text-xs text-zinc-600">No interest signals yet.</p>
+                  )}
+                  {funnel.topInterestCountries.map((row) => (
+                    <p key={`country-${row.label}`} className="text-zinc-300">
+                      {row.label}: <span className="text-zinc-50">{row.count}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500">Top currencies</p>
+                <div className="mt-1 space-y-1">
+                  {funnel.topInterestCurrencies.length === 0 && (
+                    <p className="text-xs text-zinc-600">No currency signals yet.</p>
+                  )}
+                  {funnel.topInterestCurrencies.map((row) => (
+                    <p key={`currency-${row.label}`} className="text-zinc-300">
+                      {row.label}: <span className="text-zinc-50">{row.count}</span>
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
