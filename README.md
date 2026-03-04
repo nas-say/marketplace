@@ -9,7 +9,7 @@ cp .env.example .env
 ```
 
 2. Fill the required Clerk, Supabase, and Razorpay keys in `.env`.
-   Optional: `RESEND_API_KEY`, `INTEREST_NOTIFY_EMAIL`, `INTEREST_FROM_EMAIL`, and `ADMIN_CLERK_USER_IDS` (comma-separated Clerk IDs allowed to access `/admin`).
+   Optional: `RESEND_API_KEY`, `INTEREST_NOTIFY_EMAIL`, `INTEREST_FROM_EMAIL`, `ADMIN_CLERK_USER_IDS` (comma-separated Clerk IDs allowed to access `/admin`), and Turnstile keys (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`) for listing/apply captcha checks.
 
 3. Run the development server:
 
@@ -67,6 +67,13 @@ Set these env vars to enable it:
 - `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` (optional; used for source map upload)
 
 If DSN is missing, Sentry stays disabled automatically.
+
+## Abuse Protection
+
+- Listing creation and beta applications are rate-limited by user and by network fingerprint.
+- Optional Turnstile captcha can be enforced for listing creation and beta apply by setting:
+  - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+  - `TURNSTILE_SECRET_KEY`
 
 Weekly Sentry review:
 

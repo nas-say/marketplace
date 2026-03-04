@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase";
 import { getVisitorCountryCode, getVisitorCurrency } from "@/lib/geo";
 import { sendPaymentInterestNotification } from "@/lib/notifications/payment-interest";
 import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
+import { PAYMENT_INTEREST_FEATURE_SET, type PaymentInterestFeature } from "@/lib/payments/interest-features";
 import { logPaymentFailure } from "@/lib/observability/payment-failures";
 
 export const runtime = "nodejs";
@@ -19,11 +20,6 @@ function isMissingTableError(error: { code?: string; message?: string } | null |
   return typeof error.message === "string" && error.message.includes("payment_interest_signals");
 }
 
-const SUPPORTED_FEATURES = new Set([
-  "connects_payment",
-  "beta_reward_funding",
-]);
-
 export async function POST(request: Request) {
   const { userId } = await auth();
   if (!userId) {
@@ -32,7 +28,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as MarkInterestBody | null;
   const feature = body?.feature?.trim() ?? "";
-  if (!SUPPORTED_FEATURES.has(feature)) {
+  if (!PAYMENT_INTEREST_FEATURE_SET.has(feature)) {
     return NextResponse.json({ error: "Unsupported interest type." }, { status: 400 });
   }
 
@@ -79,11 +75,12 @@ export async function POST(request: Request) {
     getVisitorCountryCode().catch(() => ""),
     getVisitorCurrency().catch(() => "USD" as const),
   ]);
+  const normalizedFeature = feature as PaymentInterestFeature;
 
   const client = createServiceClient();
   const { error: insertError } = await client.from("payment_interest_signals").insert({
     clerk_user_id: userId,
-    feature,
+    feature: normalizedFeature,
     country_code: countryCode || null,
     currency,
     metadata: context,
@@ -94,7 +91,7 @@ export async function POST(request: Request) {
       code: insertError.code,
       message: insertError.message,
       userId,
-      feature,
+      feature: normalizedFeature,
       countryCode,
     });
     return NextResponse.json({ error: "Could not mark interest right now." }, { status: 500 });
@@ -102,7 +99,7 @@ export async function POST(request: Request) {
 
   await sendPaymentInterestNotification({
     userId,
-    feature,
+    feature: normalizedFeature,
     countryCode,
     currency,
     context,

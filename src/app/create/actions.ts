@@ -5,6 +5,11 @@ import { createListing, deleteListing } from "@/lib/db/listings";
 import { createBetaTest } from "@/lib/db/beta-tests";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { isListingCreateRateLimited, isBetaCreateRateLimited } from "@/lib/abuse/velocity";
+import {
+  enforceActionRateLimit,
+  getActionRequestContext,
+} from "@/lib/abuse/action-guard";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 const MAX_LISTING_PRICE = 10_000_000;
 const MAX_MRR = 1_000_000;
@@ -46,9 +51,26 @@ export async function createListingAction(payload: {
   betaAccessDescription: string;
   betaInstructions: string;
   betaDeadline: string;
+  captchaToken?: string;
 }): Promise<{ error?: string; listingId?: string; requiresVerification?: boolean }> {
   const { userId } = await auth();
   if (!userId) return { error: "Not authenticated" };
+
+  const requestContext = await getActionRequestContext("/create");
+  const actionGuard = await enforceActionRateLimit({
+    userId,
+    action: "listing_create",
+    context: requestContext,
+    windowMs: 10 * 60_000,
+    maxPerUser: 4,
+    maxPerIp: 8,
+  });
+  if (!actionGuard.allowed) {
+    if (actionGuard.reason === "ip") {
+      return { error: "Too many listing attempts from this network. Please try again in a few minutes." };
+    }
+    return { error: "Too many listing attempts. Please wait a few minutes and try again." };
+  }
 
   if (await isListingCreateRateLimited(userId)) {
     return { error: "Too many listing attempts. Please wait a few minutes and try again." };
@@ -137,6 +159,16 @@ export async function createListingAction(payload: {
     if (parsedDeadline < now) {
       return { error: "Beta test deadline must be today or in the future." };
     }
+  }
+
+  const captcha = await verifyTurnstileToken({
+    token: payload.captchaToken,
+    expectedAction: "listing_create",
+    remoteIp: requestContext.ip ?? undefined,
+    userId,
+  });
+  if (!captcha.ok) {
+    return { error: captcha.error ?? "Please complete the security check and try again." };
   }
 
   const result = await createListing(userId, {

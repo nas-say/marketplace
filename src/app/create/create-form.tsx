@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { CheckCircle, X, Info, Loader2 } from "lucide-react";
 import { createListingAction } from "./actions";
@@ -23,9 +24,12 @@ const ASSET_OPTIONS = [
 export function CreateForm() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
   const [techInput, setTechInput] = useState("");
   const [techStack, setTechStack] = useState<string[]>([]);
   const [includeBeta, setIncludeBeta] = useState(false);
@@ -67,6 +71,12 @@ export function CreateForm() {
     setLoading(true);
     setError("");
 
+    if (captchaEnabled && !captchaToken) {
+      setError("Please complete the security check and try again.");
+      setLoading(false);
+      return;
+    }
+
     const result = await createListingAction({
       title: fd.get("title") as string,
       pitch: fd.get("pitch") as string,
@@ -87,10 +97,12 @@ export function CreateForm() {
       betaAccessDescription: (fd.get("betaAccessDescription") as string) || "",
       betaInstructions: (fd.get("betaInstructions") as string) || "",
       betaDeadline: (fd.get("betaDeadline") as string) || "",
+      captchaToken,
     });
 
     if (result.error) {
       setError(result.error);
+      if (captchaEnabled) setCaptchaResetSignal((value) => value + 1);
       setLoading(false);
       return;
     }
@@ -382,6 +394,20 @@ export function CreateForm() {
             </div>
           )}
         </section>
+
+        {captchaEnabled && (
+          <section className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+            <p className="mb-2 text-sm font-medium text-zinc-200">Security Check</p>
+            <p className="mb-3 text-xs text-zinc-500">
+              Complete this quick check to protect SideFlip from automated spam listings.
+            </p>
+            <TurnstileWidget
+              action="listing_create"
+              resetSignal={captchaResetSignal}
+              onTokenChange={setCaptchaToken}
+            />
+          </section>
+        )}
 
         <Button type="submit" size="lg" className="w-full bg-indigo-600 hover:bg-indigo-500" disabled={loading}>
           {loading ? (
