@@ -8,6 +8,7 @@ import {
   getRazorpayPayment,
   verifyRazorpaySignature,
 } from "@/lib/payments/razorpay";
+import { logPaymentFailure } from "@/lib/observability/payment-failures";
 
 export const runtime = "nodejs";
 const MAX_POOL_SYNC_RETRIES = 5;
@@ -20,7 +21,7 @@ interface VerifyBody {
 }
 
 function logBetaVerifyFailure(reason: string, context: Record<string, unknown>) {
-  console.error("[razorpay/beta/verify] request failed", { reason, ...context });
+  logPaymentFailure("razorpay/beta/verify", reason, context);
 }
 
 async function syncRewardPoolFromPayments(

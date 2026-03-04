@@ -7,11 +7,12 @@ import {
   getInrBundleByConnects,
   getRazorpayPublicKeyId,
 } from "@/lib/payments/razorpay";
+import { logPaymentFailure } from "@/lib/observability/payment-failures";
 
 export const runtime = "nodejs";
 
 function logOrderFailure(reason: string, context: Record<string, unknown>) {
-  console.error("[razorpay/order] request failed", { reason, ...context });
+  logPaymentFailure("razorpay/order", reason, context);
 }
 
 export async function POST(request: Request) {

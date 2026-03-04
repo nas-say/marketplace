@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase";
 import { getVisitorCountryCode } from "@/lib/geo";
 import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
 import { createRazorpayOrder, getRazorpayPublicKeyId } from "@/lib/payments/razorpay";
+import { logPaymentFailure } from "@/lib/observability/payment-failures";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ interface CreateOrderBody {
 }
 
 function logBetaOrderFailure(reason: string, context: Record<string, unknown>) {
-  console.error("[razorpay/beta/order] request failed", { reason, ...context });
+  logPaymentFailure("razorpay/beta/order", reason, context);
 }
 
 export async function POST(request: Request) {

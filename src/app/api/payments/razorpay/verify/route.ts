@@ -9,6 +9,7 @@ import {
   getRazorpayPayment,
   verifyRazorpaySignature,
 } from "@/lib/payments/razorpay";
+import { logPaymentFailure, logPaymentFailureWithOptions } from "@/lib/observability/payment-failures";
 
 export const runtime = "nodejs";
 
@@ -19,13 +20,26 @@ interface VerifyBody {
 }
 
 function logVerifyFailure(reason: string, context: Record<string, unknown>) {
-  console.error("[razorpay/verify] request failed", { reason, ...context });
+  logPaymentFailure("razorpay/verify", reason, context);
 }
 
 export async function POST(request: Request) {
+  const probeHeader = request.headers.get("x-sideflip-sentry-probe");
+  const probeId = request.headers.get("x-sideflip-sentry-probe-id") ?? undefined;
+  const allowProbeReport = Boolean(
+    process.env.CRON_SECRET && probeHeader && probeHeader === process.env.CRON_SECRET
+  );
+
   const { userId } = await auth();
   if (!userId) {
-    logVerifyFailure("not_authenticated", {});
+    logPaymentFailureWithOptions(
+      "razorpay/verify",
+      "not_authenticated",
+      {
+        probeId,
+      },
+      { forceReport: allowProbeReport }
+    );
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 

@@ -48,6 +48,12 @@ Set these env vars to enable it:
 
 If DSN is missing, Sentry stays disabled automatically.
 
+Weekly Sentry review:
+
+```bash
+npm run ops:sentry-weekly
+```
+
 ## Admin Cron Jobs
 
 Configured in [`vercel.json`](./vercel.json):
@@ -59,6 +65,7 @@ Secure these with `CRON_SECRET` in Vercel env.
 ## Ops Runbook
 
 - Backup/restore: [`docs/ops/backup-restore-runbook.md`](./docs/ops/backup-restore-runbook.md)
+- Weekly observability: [`docs/ops/weekly-observability-checklist.md`](./docs/ops/weekly-observability-checklist.md)
 
 ---
 

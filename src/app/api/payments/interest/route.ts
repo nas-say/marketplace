@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase";
 import { getVisitorCountryCode, getVisitorCurrency } from "@/lib/geo";
 import { sendPaymentInterestNotification } from "@/lib/notifications/payment-interest";
 import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
+import { logPaymentFailure } from "@/lib/observability/payment-failures";
 
 export const runtime = "nodejs";
 
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
   });
 
   if (insertError && !isMissingTableError(insertError)) {
-    console.error("[payment-interest] failed to persist signal", {
+    logPaymentFailure("payments/interest", "persist_interest_failed", {
       code: insertError.code,
       message: insertError.message,
       userId,
