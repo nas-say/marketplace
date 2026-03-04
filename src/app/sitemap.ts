@@ -26,23 +26,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  const betaRoutes: MetadataRoute.Sitemap = betaTests.map((betaTest) => ({
-    url: absoluteUrl(`/beta/${betaTest.id}`),
-    lastModified: new Date(betaTest.updatedAt || betaTest.createdAt),
-    changeFrequency: "daily",
-    priority: 0.8,
-  }));
+  const betaRoutes: MetadataRoute.Sitemap = betaTests
+    .filter((bt) => bt.status !== "closed")
+    .map((betaTest) => ({
+      url: absoluteUrl(`/beta/${betaTest.id}`),
+      lastModified: new Date(betaTest.updatedAt || betaTest.createdAt),
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    }));
 
-  const sellerIds = new Set<string>();
-  for (const listing of listings) sellerIds.add(listing.sellerId);
-  for (const betaTest of betaTests) sellerIds.add(betaTest.creatorId);
+  const sellerLastModified = new Map<string, Date>();
+  for (const listing of listings) {
+    const d = new Date(listing.updatedAt || listing.createdAt);
+    const prev = sellerLastModified.get(listing.sellerId);
+    if (!prev || d > prev) sellerLastModified.set(listing.sellerId, d);
+  }
+  for (const betaTest of betaTests) {
+    const d = new Date(betaTest.updatedAt || betaTest.createdAt);
+    const prev = sellerLastModified.get(betaTest.creatorId);
+    if (!prev || d > prev) sellerLastModified.set(betaTest.creatorId, d);
+  }
 
-  const sellerRoutes: MetadataRoute.Sitemap = Array.from(sellerIds)
-    .filter((id) => id.length > 0)
-    .map((id) => ({
+  const sellerRoutes: MetadataRoute.Sitemap = Array.from(sellerLastModified.entries())
+    .filter(([id]) => id.length > 0)
+    .map(([id, lastMod]) => ({
       url: absoluteUrl(`/seller/${id}`),
-      lastModified: now,
-      changeFrequency: "weekly",
+      lastModified: lastMod,
+      changeFrequency: "weekly" as const,
       priority: 0.7,
     }));
 
