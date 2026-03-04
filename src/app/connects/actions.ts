@@ -11,6 +11,7 @@ import {
   SIGNUP_GIFT_CONNECTS,
 } from "@/lib/db/connects";
 import { getListingById } from "@/lib/db/listings";
+import { createUserNotification } from "@/lib/db/notifications";
 import { revalidatePath } from "next/cache";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -81,6 +82,16 @@ export async function unlockListingAction(listingId: string): Promise<{ error?: 
     revalidatePath("/connects");
     // Fire-and-forget seller notification
     notifySellerOfUnlock(listing.sellerId, listing.title, listing.contactMode).catch(() => null);
+    createUserNotification({
+      clerkUserId: listing.sellerId,
+      type: "listing_unlocked",
+      title: `A buyer unlocked "${listing.title}"`,
+      message:
+        listing.contactMode === "proposal"
+          ? "Review proposals in your dashboard. Contact is revealed after you accept."
+          : "Buyer can now view your contact details.",
+      href: "/dashboard",
+    }).catch(() => null);
   }
   return result;
 }

@@ -110,7 +110,7 @@ export async function updateOfferStatus(
   sellerId: string,
   offerId: string,
   status: "accepted" | "rejected"
-): Promise<{ ok: boolean; buyerId?: string; listingTitle?: string } > {
+): Promise<{ ok: boolean; buyerId?: string; listingId?: string; listingTitle?: string }> {
   const client = createServiceClient();
   // Validate the offer's listing belongs to this seller, and get buyer_id
   const { data: offer } = await client
@@ -135,7 +135,12 @@ export async function updateOfferStatus(
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", offerId);
   if (error) return { ok: false };
-  return { ok: true, buyerId: offerRow.buyer_id as string, listingTitle: listingRow.title as string };
+  return {
+    ok: true,
+    buyerId: offerRow.buyer_id as string,
+    listingId: String(offerRow.listing_id),
+    listingTitle: listingRow.title as string,
+  };
 }
 
 export async function hasAcceptedOfferForBuyer(
