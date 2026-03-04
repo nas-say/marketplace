@@ -42,6 +42,7 @@ npm run build
   - `/`, `/browse`, `/beta`, `/how-it-works`, `/terms`, `/privacy`, `/refund`
   - signed-out redirects on `/dashboard` and `/connects`
   - `/robots.txt`, `/sitemap.xml`, and Google verification file reachability
+- `Release Drafter` workflow updates a draft GitHub release on each `main` push using merged PR titles and labels.
 
 Recommended GitHub repo secrets:
 - `APP_BASE_URL` (optional, defaults to `https://sideflip.vercel.app`)
