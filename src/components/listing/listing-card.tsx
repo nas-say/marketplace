@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, Bookmark, BookmarkCheck, Flame, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Bookmark, BookmarkCheck, Flame, Sparkles, ShieldCheck } from "lucide-react";
 import { Listing } from "@/types/listing";
 import { TechStackBadges } from "@/components/shared/tech-stack-badges";
 import { formatPrice, formatNumber } from "@/lib/data";
@@ -116,6 +116,22 @@ export function ListingCard({ listing }: ListingCardProps) {
           <CardContent className="flex flex-1 flex-col p-4">
             <h3 className="font-semibold text-zinc-50 truncate">{listing.title}</h3>
             <p className="mt-1 text-sm text-zinc-400 line-clamp-1">{listing.pitch}</p>
+            <div className="mt-2 min-h-5">
+              {listing.ownershipVerified ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                  <ShieldCheck className="h-3 w-3" />
+                  {listing.ownershipVerificationMethod === "repo"
+                    ? "Repo ownership verified"
+                    : listing.ownershipVerificationMethod === "domain"
+                      ? "Domain ownership verified"
+                      : "Ownership manually reviewed"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                  Trust check pending
+                </span>
+              )}
+            </div>
 
             <div className="mt-3 min-h-4 flex items-center gap-3 text-xs text-zinc-500">
               <span className="flex items-center gap-1">

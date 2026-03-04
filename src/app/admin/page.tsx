@@ -104,6 +104,11 @@ function payoutSlaLabel(tier: PayoutSlaTier): string {
   return "<24h";
 }
 
+function toPercent(numerator: number, denominator: number): string {
+  if (denominator <= 0) return "—";
+  return `${((numerator / denominator) * 100).toFixed(1)}%`;
+}
+
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
@@ -142,6 +147,7 @@ export default async function AdminPage({ searchParams }: Props) {
   const interestRows = snapshot.recentInterestSignals.slice(0, 100);
   const recentUsers = snapshot.recentUsers.slice(0, 100);
   const slaSummary = summarizePayoutSla(allPayoutRows, snapshot.generatedAt);
+  const funnel = snapshot.growthFunnel;
 
   const adminNotifications: AdminDashboardNotification[] = [];
   if (slaSummary.pendingCount > 0) {
@@ -265,6 +271,73 @@ export default async function AdminPage({ searchParams }: Props) {
           <p className="mt-1 text-xs text-zinc-500">
             5% fee share: {formatCurrencyMinor(snapshot.overview.pendingCashPlatformFeeMinor, "INR")}
           </p>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-zinc-800 bg-zinc-900">
+        <div className="border-b border-zinc-800 px-4 py-3">
+          <h2 className="text-base font-semibold text-zinc-100">Growth Funnel ({funnel.lookbackDays}d)</h2>
+          <p className="text-xs text-zinc-500">
+            Conversion checkpoints from real product actions. Use this to spot bottlenecks quickly.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 p-4 xl:grid-cols-2">
+          <div className="rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Marketplace Funnel</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Listings Created: {funnel.marketplace.listingsCreated}</p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Ownership Verified: {funnel.marketplace.listingsVerified}</p>
+                <p className="text-xs text-zinc-500">
+                  Verify rate: {toPercent(funnel.marketplace.listingsVerified, funnel.marketplace.listingsCreated)}
+                </p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Listing Unlock Actions: {funnel.marketplace.listingUnlocks}</p>
+                <p className="text-xs text-zinc-500">
+                  Unlocks per verified listing:{" "}
+                  {toPercent(funnel.marketplace.listingUnlocks, funnel.marketplace.listingsVerified)}
+                </p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Connect Purchases: {funnel.marketplace.connectPurchases}</p>
+                <p className="text-xs text-zinc-500">
+                  Purchase rate vs unlocks:{" "}
+                  {toPercent(funnel.marketplace.connectPurchases, funnel.marketplace.listingUnlocks)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Beta Testing Funnel</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Beta Tests Posted: {funnel.beta.betaTestsPosted}</p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Applications Submitted: {funnel.beta.betaApplications}</p>
+                <p className="text-xs text-zinc-500">
+                  Applications per beta: {toPercent(funnel.beta.betaApplications, funnel.beta.betaTestsPosted)}
+                </p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Applicants Approved: {funnel.beta.betaAccepted}</p>
+                <p className="text-xs text-zinc-500">
+                  Approval rate: {toPercent(funnel.beta.betaAccepted, funnel.beta.betaApplications)}
+                </p>
+              </div>
+              <div className="rounded border border-zinc-800 px-3 py-2">
+                <p className="text-zinc-200">Feedback Submitted: {funnel.beta.betaFeedbackSubmitted}</p>
+                <p className="text-xs text-zinc-500">
+                  Feedback completion rate:{" "}
+                  {toPercent(funnel.beta.betaFeedbackSubmitted, funnel.beta.betaAccepted)}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

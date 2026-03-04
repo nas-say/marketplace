@@ -183,6 +183,23 @@ export default async function ListingDetailPage({ params }: Props) {
                   </span>
                 )}
               </div>
+              <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-400">
+                <p className="text-zinc-200">Trust checks</p>
+                <p className="mt-1">
+                  Ownership:{" "}
+                  <span className="text-zinc-300">
+                    {listing.ownershipVerified
+                      ? listing.ownershipVerificationMethod === "repo"
+                        ? "Repo verified"
+                        : listing.ownershipVerificationMethod === "domain"
+                          ? "Domain verified"
+                          : "Manually reviewed"
+                      : "Pending verification"}
+                  </span>
+                </p>
+                <p className="mt-1">Seller contact stays locked until buyer unlocks with connects.</p>
+                <p className="mt-1">Deals close off-platform between buyer and seller; escrow is recommended for larger amounts.</p>
+              </div>
             </div>
             {isSeller && (
               <Link href={`/listing/${listing.id}/edit`} className="shrink-0">

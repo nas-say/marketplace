@@ -241,6 +241,23 @@ export default async function BetaDetailPage({ params }: Props) {
               )}
             </div>
 
+            <div className="mb-4 rounded-md border border-zinc-800 bg-zinc-950/70 p-3 text-xs text-zinc-400">
+              <p className="text-zinc-200">Trust & payout status</p>
+              {betaTest.reward.type === "cash" ? (
+                <>
+                  <p className="mt-1">
+                    Reward pool status: <span className="text-zinc-300">{betaTest.reward.poolStatus}</span>
+                  </p>
+                  <p className="mt-1">
+                    SideFlip pays approved testers from the funded pool; creator funding is non-refundable after payment.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1">Premium access rewards are granted directly by the creator after approval.</p>
+              )}
+              <p className="mt-1">One application per user is enforced to prevent duplicate signups.</p>
+            </div>
+
             <FundingCard
               betaTestId={id}
               isCreator={isCreator}

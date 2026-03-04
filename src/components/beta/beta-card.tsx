@@ -49,6 +49,26 @@ export function BetaCard({ betaTest }: BetaCardProps) {
       : "Closed";
   const cashPayout =
     betaTest.reward.type === "cash" ? calculateCashBetaPayout(Number(betaTest.reward.amount ?? 0)) : null;
+  const trustBadge =
+    betaTest.reward.type === "cash"
+      ? betaTest.reward.poolStatus === "funded"
+        ? {
+            className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+            label: "Reward pool funded",
+          }
+        : betaTest.reward.poolStatus === "partial"
+          ? {
+              className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+              label: "Reward pool partially funded",
+            }
+          : {
+              className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+              label: "Reward funding pending",
+            }
+      : {
+          className: "border-sky-500/30 bg-sky-500/10 text-sky-300",
+          label: "Premium access reward",
+        };
 
   return (
     <TiltCardShell overlayClassName="rounded-lg">
@@ -66,6 +86,9 @@ export function BetaCard({ betaTest }: BetaCardProps) {
               <Badge className={statusColor}>{statusLabel}</Badge>
               <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs">
                 {CATEGORY_LABELS[betaTest.category]}
+              </Badge>
+              <Badge variant="outline" className={`text-xs ${trustBadge.className}`}>
+                {trustBadge.label}
               </Badge>
               {betaTest.platform.map((p) => (
                 <Badge key={p} variant="outline" className="border-zinc-700 text-zinc-400 text-xs capitalize">
@@ -96,6 +119,9 @@ export function BetaCard({ betaTest }: BetaCardProps) {
                   <p className="text-[11px] text-zinc-500">
                     Net after 5% fee: {formatCurrencyMinor(cashPayout.netMinor, betaTest.reward.currency)}
                   </p>
+                )}
+                {betaTest.reward.type === "cash" && (
+                  <p className="text-[11px] text-zinc-500">SideFlip pays approved testers from this reward pool.</p>
                 )}
               </div>
               <span className="text-right text-xs text-zinc-500">

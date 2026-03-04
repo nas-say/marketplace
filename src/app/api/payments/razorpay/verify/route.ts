@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   const { userId } = await auth();
   if (!userId) {
-    const sentryStatus = await logPaymentFailureWithOptions(
+    await logPaymentFailureWithOptions(
       "razorpay/verify",
       "not_authenticated",
       {
@@ -41,14 +41,7 @@ export async function POST(request: Request) {
       },
       { forceReport: allowProbeReport }
     );
-    return NextResponse.json(
-      {
-        error: "Not authenticated.",
-        probeAccepted: probeId ? allowProbeReport : undefined,
-        probeSentryStatus: probeId ? sentryStatus : undefined,
-      },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
   const body = (await request.json().catch(() => null)) as VerifyBody | null;

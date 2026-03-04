@@ -160,6 +160,22 @@ export interface AdminRecentUserItem {
   createdAt: string;
 }
 
+export interface AdminGrowthFunnelSnapshot {
+  lookbackDays: number;
+  marketplace: {
+    listingsCreated: number;
+    listingsVerified: number;
+    listingUnlocks: number;
+    connectPurchases: number;
+  };
+  beta: {
+    betaTestsPosted: number;
+    betaApplications: number;
+    betaAccepted: number;
+    betaFeedbackSubmitted: number;
+  };
+}
+
 export interface AdminPayoutAuditItem {
   id: string;
   betaTestId: string;
@@ -179,6 +195,7 @@ export interface AdminDashboardSnapshot {
   adminNotificationsAvailable: boolean;
   activeAdminNotifications: AdminNotificationItem[];
   overview: AdminOverview;
+  growthFunnel: AdminGrowthFunnelSnapshot;
   payoutStatusTrackingAvailable: boolean;
   cashPayoutQueue: AdminCashPayoutItem[];
   premiumApprovalQueue: AdminPremiumApprovalItem[];
@@ -235,6 +252,8 @@ async function exactCount(queryPromise: PromiseLike<unknown>): Promise<number> {
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
   const client = createServiceClient();
   const adminNotificationsPromise = getActiveAdminNotifications(120);
+  const lookbackDays = 30;
+  const lookbackDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     totalUsers,
@@ -247,6 +266,14 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     fundedCashBetaTests,
     pendingCashPools,
     manualReviewRequests,
+    listingsCreated30d,
+    listingsVerified30d,
+    listingUnlocks30d,
+    connectPurchases30d,
+    betaTestsPosted30d,
+    betaApplications30d,
+    betaAccepted30d,
+    betaFeedbackSubmitted30d,
   ] = await Promise.all([
     exactCount(client.from("profiles").select("id", { head: true, count: "exact" })),
     exactCount(client.from("listings").select("id", { head: true, count: "exact" })),
@@ -286,6 +313,48 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
         .from("listing_ownership_verifications")
         .select("id", { head: true, count: "exact" })
         .eq("status", "manual_requested")
+    ),
+    exactCount(
+      client.from("listings").select("id", { head: true, count: "exact" }).gte("created_at", lookbackDate)
+    ),
+    exactCount(
+      client
+        .from("listings")
+        .select("id", { head: true, count: "exact" })
+        .eq("ownership_verified", true)
+        .gte("ownership_verified_at", lookbackDate)
+    ),
+    exactCount(
+      client
+        .from("unlocked_listings")
+        .select("id", { head: true, count: "exact" })
+        .gte("created_at", lookbackDate)
+    ),
+    exactCount(
+      client
+        .from("connects_transactions")
+        .select("id", { head: true, count: "exact" })
+        .eq("type", "purchase_razorpay")
+        .gte("created_at", lookbackDate)
+    ),
+    exactCount(
+      client.from("beta_tests").select("id", { head: true, count: "exact" }).gte("created_at", lookbackDate)
+    ),
+    exactCount(
+      client
+        .from("beta_applications")
+        .select("beta_test_id", { head: true, count: "exact" })
+        .gte("created_at", lookbackDate)
+    ),
+    exactCount(
+      client
+        .from("beta_applications")
+        .select("beta_test_id", { head: true, count: "exact" })
+        .eq("status", "accepted")
+        .gte("created_at", lookbackDate)
+    ),
+    exactCount(
+      client.from("beta_feedback").select("id", { head: true, count: "exact" }).gte("created_at", lookbackDate)
     ),
   ]);
 
@@ -609,6 +678,21 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     (sum, row) => sum + Math.max(0, row.payoutFeeMinor),
     0
   );
+  const growthFunnel: AdminGrowthFunnelSnapshot = {
+    lookbackDays,
+    marketplace: {
+      listingsCreated: listingsCreated30d,
+      listingsVerified: listingsVerified30d,
+      listingUnlocks: listingUnlocks30d,
+      connectPurchases: connectPurchases30d,
+    },
+    beta: {
+      betaTestsPosted: betaTestsPosted30d,
+      betaApplications: betaApplications30d,
+      betaAccepted: betaAccepted30d,
+      betaFeedbackSubmitted: betaFeedbackSubmitted30d,
+    },
+  };
   const persistedNotifications = await adminNotificationsPromise;
 
   return {
@@ -632,6 +716,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
       acceptedPremiumApplicants: premiumApprovalQueue.length,
       manualReviewRequests,
     },
+    growthFunnel,
     payoutStatusTrackingAvailable,
     cashPayoutQueue,
     premiumApprovalQueue,
