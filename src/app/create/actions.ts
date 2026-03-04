@@ -39,6 +39,7 @@ export async function createListingAction(payload: {
   techStack: string[];
   askingPrice: number;
   openToOffers: boolean;
+  contactMode: "direct" | "proposal";
   mrr: number;
   monthlyProfit: number;
   monthlyVisitors: number;
@@ -94,6 +95,7 @@ export async function createListingAction(payload: {
 
   const askingPriceError = validateMoneyField(payload.askingPrice, "Asking price", MAX_LISTING_PRICE);
   if (askingPriceError) return { error: askingPriceError };
+  const contactMode = payload.contactMode === "proposal" ? "proposal" : "direct";
 
   const mrrError = validateMoneyField(payload.mrr, "MRR", MAX_MRR);
   if (mrrError) return { error: mrrError };
@@ -179,6 +181,7 @@ export async function createListingAction(payload: {
     techStack,
     askingPrice: Math.round(payload.askingPrice * 100), // dollars → cents
     openToOffers: payload.openToOffers,
+    contactMode,
     mrr: Math.round(payload.mrr * 100),
     monthlyProfit: Math.round(payload.monthlyProfit * 100),
     monthlyVisitors: Math.floor(payload.monthlyVisitors),

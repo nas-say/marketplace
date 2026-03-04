@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS offers (
   id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id    uuid        NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
   buyer_id      text        NOT NULL,
-  amount_cents  integer     NOT NULL CHECK (amount_cents > 0),
+  amount_cents  integer     CHECK (amount_cents IS NULL OR amount_cents > 0),
   message       text        NOT NULL DEFAULT '',
   status        text        NOT NULL DEFAULT 'pending'
                 CHECK (status IN ('pending', 'accepted', 'rejected')),

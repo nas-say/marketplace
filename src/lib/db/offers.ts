@@ -4,7 +4,7 @@ export interface Offer {
   id: string;
   listingId: string;
   buyerId: string;
-  amountCents: number;
+  amountCents: number | null;
   message: string;
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
@@ -21,7 +21,7 @@ function rowToOffer(row: Record<string, unknown>): Offer {
     id: row.id as string,
     listingId: row.listing_id as string,
     buyerId: row.buyer_id as string,
-    amountCents: Number(row.amount_cents),
+    amountCents: row.amount_cents == null ? null : Number(row.amount_cents),
     message: (row.message as string) ?? "",
     status: (row.status as Offer["status"]) ?? "pending",
     createdAt: row.created_at as string,
@@ -32,7 +32,7 @@ function rowToOffer(row: Record<string, unknown>): Offer {
 export async function createOffer(
   buyerId: string,
   listingId: string,
-  amountCents: number,
+  amountCents: number | null,
   message: string
 ): Promise<{ id: string } | null> {
   const client = createServiceClient();
@@ -110,27 +110,47 @@ export async function updateOfferStatus(
   sellerId: string,
   offerId: string,
   status: "accepted" | "rejected"
-): Promise<boolean> {
+): Promise<{ ok: boolean; buyerId?: string; listingTitle?: string } > {
   const client = createServiceClient();
-  // Validate the offer's listing belongs to this seller
+  // Validate the offer's listing belongs to this seller, and get buyer_id
   const { data: offer } = await client
     .from("offers")
-    .select("listing_id")
+    .select("listing_id, buyer_id")
     .eq("id", offerId)
     .maybeSingle();
-  if (!offer) return false;
+  if (!offer) return { ok: false };
 
+  const offerRow = offer as Record<string, unknown>;
   const { data: listing } = await client
     .from("listings")
-    .select("id")
-    .eq("id", (offer as Record<string, unknown>).listing_id)
+    .select("id, title")
+    .eq("id", offerRow.listing_id)
     .eq("seller_id", sellerId)
     .maybeSingle();
-  if (!listing) return false;
+  if (!listing) return { ok: false };
 
+  const listingRow = listing as Record<string, unknown>;
   const { error } = await client
     .from("offers")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", offerId);
-  return !error;
+  if (error) return { ok: false };
+  return { ok: true, buyerId: offerRow.buyer_id as string, listingTitle: listingRow.title as string };
+}
+
+export async function hasAcceptedOfferForBuyer(
+  buyerId: string,
+  listingId: string
+): Promise<boolean> {
+  const client = createServiceClient();
+  const { data, error } = await client
+    .from("offers")
+    .select("id")
+    .eq("buyer_id", buyerId)
+    .eq("listing_id", listingId)
+    .eq("status", "accepted")
+    .limit(1)
+    .maybeSingle();
+  if (error) return false;
+  return Boolean(data);
 }

@@ -28,6 +28,7 @@ export interface Listing {
   screenshots: string[];
   askingPrice: number;
   openToOffers: boolean;
+  contactMode: "direct" | "proposal";
   metrics: ListingMetrics;
   assetsIncluded: string[];
   sellerId: string;

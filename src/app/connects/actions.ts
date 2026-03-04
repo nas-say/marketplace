@@ -14,7 +14,11 @@ import { getListingById } from "@/lib/db/listings";
 import { revalidatePath } from "next/cache";
 import { absoluteUrl } from "@/lib/seo";
 
-async function notifySellerOfUnlock(sellerId: string, listingTitle: string): Promise<void> {
+async function notifySellerOfUnlock(
+  sellerId: string,
+  listingTitle: string,
+  contactMode: "direct" | "proposal"
+): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const fromEmail = process.env.INTEREST_FROM_EMAIL?.trim() || "SideFlip <onboarding@resend.dev>";
   if (!apiKey) return;
@@ -32,7 +36,10 @@ async function notifySellerOfUnlock(sellerId: string, listingTitle: string): Pro
         from: fromEmail,
         to: [email],
         subject: `[SideFlip] A buyer is interested in "${listingTitle}"`,
-        text: `Great news! A buyer just unlocked your listing "${listingTitle}" on SideFlip.\n\nThey can now see your contact details and will reach out if they want to move forward.\n\nView your listing analytics: ${absoluteUrl("/dashboard")}\n\n— The SideFlip Team`,
+        text:
+          contactMode === "proposal"
+            ? `A buyer just unlocked your listing "${listingTitle}" and can now send you a proposal request.\n\nReview incoming proposals in your dashboard. Contact details are revealed to buyers only after you accept.\n\n${absoluteUrl("/dashboard")}\n\n— The SideFlip Team`
+            : `Great news! A buyer just unlocked your listing "${listingTitle}" on SideFlip.\n\nThey can now see your contact details and may reach out to move forward.\n\nView your listing analytics: ${absoluteUrl("/dashboard")}\n\n— The SideFlip Team`,
       }),
     });
   } catch {
@@ -73,7 +80,7 @@ export async function unlockListingAction(listingId: string): Promise<{ error?: 
     revalidatePath(`/listing/${listingId}`);
     revalidatePath("/connects");
     // Fire-and-forget seller notification
-    notifySellerOfUnlock(listing.sellerId, listing.title).catch(() => null);
+    notifySellerOfUnlock(listing.sellerId, listing.title, listing.contactMode).catch(() => null);
   }
   return result;
 }

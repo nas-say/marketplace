@@ -17,6 +17,8 @@ interface PurchaseCardProps {
   mrr?: string;
   listingId: string;
   isUnlocked: boolean;
+  contactMode: "direct" | "proposal";
+  proposalAccepted: boolean;
   userId: string | null;
   connectsBalance: number;
   unlockCost: number;
@@ -31,6 +33,8 @@ export function PurchaseCard({
   mrr,
   listingId,
   isUnlocked,
+  contactMode,
+  proposalAccepted,
   userId,
   connectsBalance,
   unlockCost,
@@ -55,7 +59,11 @@ export function PurchaseCard({
       setUnlocking(false);
       return;
     }
-    toast.success("Listing unlocked! Seller contact info is now visible.");
+    if (contactMode === "proposal") {
+      toast.success("Unlocked. Send your proposal request to the seller.");
+    } else {
+      toast.success("Listing unlocked! Seller contact info is now visible.");
+    }
     router.refresh();
   };
 
@@ -66,16 +74,27 @@ export function PurchaseCard({
 
       {isUnlocked ? (
         <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/5 p-4">
-          <p className="mb-1 text-sm font-semibold text-green-400">Seller info unlocked</p>
+          <p className="mb-1 text-sm font-semibold text-green-400">
+            {contactMode === "proposal" && !proposalAccepted
+              ? "Unlocked — awaiting seller acceptance"
+              : "Seller info unlocked"}
+          </p>
           <p className="text-xs text-zinc-400">
-            Check the seller section below for contact details. Reach out directly to discuss the acquisition.
+            {contactMode === "proposal" && !proposalAccepted
+              ? "Send a proposal/message below. Seller contact is revealed after acceptance."
+              : "Check the seller section below for contact details. Reach out directly to discuss the acquisition."}
           </p>
         </div>
       ) : (
         <div className="mt-4 rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 text-center">
           <Lock className="h-5 w-5 text-zinc-500 mx-auto mb-2" />
-          <p className="text-sm font-medium text-zinc-300 mb-1">Unlock to connect with seller</p>
-          <p className="text-xs text-zinc-500 mb-3">Costs {unlockCost} connects — one-time per listing</p>
+          <p className="text-sm font-medium text-zinc-300 mb-1">
+            {contactMode === "proposal" ? "Unlock to send proposal request" : "Unlock to connect with seller"}
+          </p>
+          <p className="text-xs text-zinc-500 mb-3">
+            Costs {unlockCost} connects — one-time per listing
+            {contactMode === "proposal" ? ", then seller must accept to reveal contact" : ""}
+          </p>
           {!userId ? (
             <Link href="/sign-in">
               <Button size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500">
