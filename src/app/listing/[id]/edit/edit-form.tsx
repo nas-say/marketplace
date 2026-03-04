@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { CATEGORY_LABELS } from "@/lib/constants";
-import { CheckCircle, X, Info, Loader2 } from "lucide-react";
+import { CheckCircle, X, Info, Loader2, ImagePlus, Trash2 } from "lucide-react";
 import { Listing } from "@/types/listing";
 import { updateListingAction } from "./actions";
 
@@ -31,6 +31,9 @@ export function EditListingForm({ listing }: { listing: Listing }) {
   const [techInput, setTechInput] = useState("");
   const [techStack, setTechStack] = useState<string[]>(listing.techStack);
   const [assets, setAssets] = useState<string[]>(listing.assetsIncluded);
+  const [screenshots, setScreenshots] = useState<string[]>(listing.screenshots);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [screenshotError, setScreenshotError] = useState("");
   // prices stored as dollars in state (DB is in cents)
   const [mrr, setMrr] = useState(String(listing.metrics.mrr / 100));
   const [askingPrice, setAskingPrice] = useState(String(listing.askingPrice / 100));
@@ -44,6 +47,32 @@ export function EditListingForm({ listing }: { listing: Listing }) {
   const removeTech = (tech: string) => setTechStack(techStack.filter((t) => t !== tech));
   const toggleAsset = (id: string) =>
     setAssets((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
+
+  const handleScreenshotUpload = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (screenshots.length + files.length > 10) {
+      setScreenshotError("Maximum 10 screenshots allowed.");
+      return;
+    }
+    setUploadingScreenshot(true);
+    setScreenshotError("");
+    const uploaded: string[] = [];
+    for (const file of Array.from(files)) {
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await fetch("/api/upload/screenshot", { method: "POST", body: fd });
+        const json = await res.json();
+        if (json.error) { setScreenshotError(json.error); break; }
+        if (json.url) uploaded.push(json.url);
+      } catch {
+        setScreenshotError("Upload failed. Please try again.");
+        break;
+      }
+    }
+    setScreenshots((prev) => [...prev, ...uploaded]);
+    setUploadingScreenshot(false);
+  }, [screenshots.length]);
 
   const mrrNum = Number(mrr);
   const priceNum = Number(askingPrice);
@@ -75,6 +104,7 @@ export function EditListingForm({ listing }: { listing: Listing }) {
       monthlyVisitors: Number(fd.get("monthlyVisitors")) || 0,
       registeredUsers: Number(fd.get("registeredUsers")) || 0,
       assetsIncluded: assets,
+      screenshots,
     });
 
     if (result.error) {
@@ -229,6 +259,42 @@ export function EditListingForm({ listing }: { listing: Listing }) {
               </button>
             ))}
           </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-zinc-50 mb-1">Screenshots</h2>
+          <p className="text-sm text-zinc-500 mb-4">Upload up to 10 images (JPEG, PNG, WebP — max 5MB each).</p>
+          {screenshots.length > 0 && (
+            <div className="mb-3 grid grid-cols-3 gap-2">
+              {screenshots.map((url, i) => (
+                <div key={url} className="relative group aspect-video rounded-lg overflow-hidden border border-zinc-800">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setScreenshots((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 rounded-full bg-zinc-900/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {screenshotError && <p className="mb-2 text-xs text-red-400">{screenshotError}</p>}
+          {screenshots.length < 10 && (
+            <label className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-700 px-4 py-3 text-sm text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors ${uploadingScreenshot ? "opacity-50 pointer-events-none" : ""}`}>
+              {uploadingScreenshot ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+              {uploadingScreenshot ? "Uploading..." : "Add screenshot"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                className="sr-only"
+                onChange={(e) => handleScreenshotUpload(e.target.files)}
+              />
+            </label>
+          )}
         </section>
 
         <div className="flex gap-3">

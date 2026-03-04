@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import {
   claimSignupGift,
   ConnectsTransaction,
@@ -11,6 +12,33 @@ import {
 } from "@/lib/db/connects";
 import { getListingById } from "@/lib/db/listings";
 import { revalidatePath } from "next/cache";
+import { absoluteUrl } from "@/lib/seo";
+
+async function notifySellerOfUnlock(sellerId: string, listingTitle: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const fromEmail = process.env.INTEREST_FROM_EMAIL?.trim() || "SideFlip <onboarding@resend.dev>";
+  if (!apiKey) return;
+
+  try {
+    const client = await clerkClient();
+    const seller = await client.users.getUser(sellerId);
+    const email = seller.emailAddresses.find((e) => e.id === seller.primaryEmailAddressId)?.emailAddress;
+    if (!email) return;
+
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [email],
+        subject: `[SideFlip] A buyer is interested in "${listingTitle}"`,
+        text: `Great news! A buyer just unlocked your listing "${listingTitle}" on SideFlip.\n\nThey can now see your contact details and will reach out if they want to move forward.\n\nView your listing analytics: ${absoluteUrl("/dashboard")}\n\n— The SideFlip Team`,
+      }),
+    });
+  } catch {
+    // Non-critical — don't let notification failure break the unlock
+  }
+}
 
 export async function giftConnectsAction(): Promise<{
   error?: string;
@@ -44,6 +72,8 @@ export async function unlockListingAction(listingId: string): Promise<{ error?: 
   if (!result.error) {
     revalidatePath(`/listing/${listingId}`);
     revalidatePath("/connects");
+    // Fire-and-forget seller notification
+    notifySellerOfUnlock(listing.sellerId, listing.title).catch(() => null);
   }
   return result;
 }

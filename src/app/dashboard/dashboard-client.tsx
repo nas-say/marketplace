@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Listing } from "@/types/listing";
 import { BetaTest } from "@/types/beta-test";
 import { StatCard } from "@/components/shared/stat-card";
@@ -21,12 +21,32 @@ import {
   Loader2,
   CalendarDays,
   ArrowUpRight,
+  Unlock,
+  Handshake,
+  RotateCcw,
+  Star,
+  Zap,
+  Bell,
+  X,
+  Check,
+  CircleX,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/data";
-import { deleteDraftBetaTestAction, deleteListingAction, markSoldAction } from "./actions";
+import { formatPrice, getTesterScore, getListingCompleteness } from "@/lib/data";
+import { SavedSearch } from "@/lib/db/saved-searches";
+import { OfferWithListing } from "@/lib/db/offers";
+import {
+  deleteDraftBetaTestAction,
+  deleteListingAction,
+  markSoldAction,
+  markUnderOfferAction,
+  markActiveAction,
+  boostListingAction,
+  deleteSavedSearchAction,
+  respondToOfferAction,
+} from "./actions";
 
 const MONTHLY_DATA = [
   { month: "Mar", value: 22, label: "$22K" }, { month: "Apr", value: 35, label: "$35K" },
@@ -59,11 +79,16 @@ interface ApplicationRow {
 interface Props {
   displayName: string;
   isAdmin: boolean;
-  stats: { totalEarnings: string; activeListings: number; betaTests: number; feedbackGiven: number };
+  stats: { totalEarnings: string; activeListings: number; betaTests: number; feedbackGiven: number; betaTestsCompleted: number };
   listings: Listing[];
   betaTests: BetaTest[];
   unlockedListings: Listing[];
   myApplications: ApplicationRow[];
+  listingAnalytics: Record<string, { views: number; unlocks: number }>;
+  connectsBalance: number;
+  savedSearches: SavedSearch[];
+  receivedOffers: OfferWithListing[];
+  myOffers: OfferWithListing[];
 }
 
 export function DashboardClient({
@@ -74,6 +99,11 @@ export function DashboardClient({
   betaTests,
   unlockedListings,
   myApplications,
+  listingAnalytics,
+  connectsBalance,
+  savedSearches,
+  receivedOffers,
+  myOffers,
 }: Props) {
   const [activeTab, setActiveTab] = useState("Overview");
   const [betaSubTab, setBetaSubTab] = useState<"posted" | "applied">("posted");
@@ -81,6 +111,23 @@ export function DashboardClient({
   const [myListings, setMyListings] = useState(listings);
   const [myBetaTests, setMyBetaTests] = useState(betaTests);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [boostingListingId, setBoostingListingId] = useState<string | null>(null);
+  const [mySavedSearches, setMySavedSearches] = useState(savedSearches);
+  const [balance, setBalance] = useState(connectsBalance);
+  const [myReceivedOffers, setMyReceivedOffers] = useState(receivedOffers);
+  const mySubmittedOffers = myOffers;
+
+  const testerScore = getTesterScore({ betaTestsCompleted: stats.betaTestsCompleted, feedbackGiven: stats.feedbackGiven });
+
+  const [onboardingDismissed, setOnboardingDismissed] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("sideflip:onboarding-dismissed") === "1";
+  });
+  const dismissOnboarding = () => {
+    localStorage.setItem("sideflip:onboarding-dismissed", "1");
+    setOnboardingDismissed(true);
+  };
+  const showOnboarding = !onboardingDismissed && listings.length === 0 && betaTests.length === 0;
 
   const handleDelete = async (listingId: string) => {
     if (!window.confirm("Delete this listing? This cannot be undone.")) return;
@@ -92,6 +139,42 @@ export function DashboardClient({
     if (!window.confirm("Mark this listing as sold?")) return;
     const result = await markSoldAction(listingId);
     if (!result.error) setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, status: "sold" as const } : l));
+  };
+
+  const handleMarkUnderOffer = async (listingId: string) => {
+    if (!window.confirm("Mark this listing as under offer?")) return;
+    const result = await markUnderOfferAction(listingId);
+    if (!result.error) setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, status: "under_offer" as const } : l));
+  };
+
+  const handleMarkActive = async (listingId: string) => {
+    if (!window.confirm("Mark this listing as active again?")) return;
+    const result = await markActiveAction(listingId);
+    if (!result.error) setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, status: "active" as const } : l));
+  };
+
+  const handleBoost = useCallback(async (listingId: string, durationDays: 7 | 14 | 30) => {
+    setBoostingListingId(listingId);
+    const result = await boostListingAction(listingId, durationDays);
+    setBoostingListingId(null);
+    if (result.error) { window.alert(result.error); return; }
+    const featuredUntil = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+    setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, featured: true, featuredUntil } : l));
+    const COSTS: Record<number, number> = { 7: 5, 14: 8, 30: 15 };
+    setBalance((b) => b - (COSTS[durationDays] ?? 0));
+  }, []);
+
+  const handleDeleteSavedSearch = async (id: string) => {
+    const result = await deleteSavedSearchAction(id);
+    if (!result.error) setMySavedSearches((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleRespondToOffer = async (offerId: string, status: "accepted" | "rejected") => {
+    const result = await respondToOfferAction(offerId, status);
+    if (result.error) { window.alert(result.error); return; }
+    setMyReceivedOffers((prev) =>
+      prev.map((o) => (o.id === offerId ? { ...o, status } : o))
+    );
   };
 
   const handleDeleteDraftBetaTest = async (betaTestId: string) => {
@@ -170,7 +253,36 @@ export function DashboardClient({
 
       {activeTab === "Overview" && (
         <div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
+          {showOnboarding && (
+            <div className="mb-8 rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-zinc-50">Welcome to SideFlip! 🚀</p>
+                  <p className="mt-0.5 text-sm text-zinc-400">Get started in 3 steps to reach buyers.</p>
+                </div>
+                <button onClick={dismissOnboarding} className="text-zinc-600 hover:text-zinc-400 mt-0.5">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  { step: "1", label: "Create a listing", desc: "List your side project with metrics and assets.", href: "/create", cta: "Create listing" },
+                  { step: "2", label: "Verify ownership", desc: "Verified listings get 3× more unlocks from buyers.", href: null, cta: null },
+                  { step: "3", label: "Boost your listing", desc: "Use Connects to feature your listing at the top of browse.", href: "/connects", cta: "Get Connects" },
+                ].map((s) => (
+                  <div key={s.step} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">{s.step}</span>
+                    <p className="mt-2 font-medium text-zinc-200 text-sm">{s.label}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">{s.desc}</p>
+                    {s.href && (
+                      <Link href={s.href} className="mt-2 inline-block text-xs text-indigo-400 hover:text-indigo-300">{s.cta} →</Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 mb-8">
             <StatCard label="Total Earnings" value={stats.totalEarnings} icon={<DollarSign className="h-4 w-4" />} />
             <StatCard
               label="Active Listings"
@@ -180,6 +292,12 @@ export function DashboardClient({
             />
             <StatCard label="Beta Tests" value={String(myBetaTests.length)} icon={<TestTube className="h-4 w-4" />} />
             <StatCard label="Feedback Given" value={String(stats.feedbackGiven)} icon={<MessageSquare className="h-4 w-4" />} />
+            <StatCard
+              label="Tester Score"
+              value={testerScore.tier !== "none" ? `${testerScore.score}/100` : "—"}
+              secondaryValue={testerScore.tier !== "none" ? testerScore.label : undefined}
+              icon={<Star className="h-4 w-4" />}
+            />
           </div>
           <h3 className="text-lg font-semibold text-zinc-50 mb-4">Recent Activity</h3>
           <div className="space-y-2">
@@ -209,18 +327,22 @@ export function DashboardClient({
                 <div key={listing.id} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-zinc-200 truncate">{listing.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className="text-sm text-zinc-400">{formatPrice(listing.askingPrice)}</span>
                       <Badge className={
                         listing.status === "active"
                           ? "bg-green-500/10 text-green-400 border-green-500/20"
                           : listing.status === "sold"
                             ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
-                            : listing.status === "pending_verification"
-                              ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/20"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                            : listing.status === "under_offer"
+                              ? "bg-violet-500/10 text-violet-300 border-violet-500/20"
+                              : listing.status === "pending_verification"
+                                ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/20"
+                                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                       }>
-                        {listing.status === "pending_verification" ? "pending verification" : listing.status}
+                        {listing.status === "pending_verification" ? "pending verification"
+                          : listing.status === "under_offer" ? "under offer"
+                          : listing.status}
                       </Badge>
                       {listing.ownershipVerified && (
                         <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">
@@ -232,6 +354,26 @@ export function DashboardClient({
                         </Badge>
                       )}
                     </div>
+                    {(listingAnalytics[listing.id]?.views > 0 || listingAnalytics[listing.id]?.unlocks > 0) && (
+                      <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />{listingAnalytics[listing.id]?.views ?? 0} views
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Unlock className="h-3 w-3" />{listingAnalytics[listing.id]?.unlocks ?? 0} unlocks
+                        </span>
+                      </div>
+                    )}
+                    {(() => {
+                      const { score } = getListingCompleteness(listing);
+                      const color = score >= 80 ? "text-green-400" : score >= 50 ? "text-amber-400" : "text-red-400";
+                      return <span className={`text-xs ${color} mt-0.5 block`}>{score}% complete</span>;
+                    })()}
+                    {listing.featured && listing.featuredUntil && (
+                      <span className="text-xs text-amber-400 mt-0.5 block">
+                        Featured until {new Date(listing.featuredUntil).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Link href={`/listing/${listing.id}`}>
@@ -252,9 +394,52 @@ export function DashboardClient({
                       </Link>
                     )}
                     {listing.status === "active" && (
-                      <Button size="sm" variant="outline" className="border-zinc-700 text-amber-400 hover:text-amber-300 px-2" onClick={() => handleMarkSold(listing.id)}>
-                        <CheckCheck className="h-3.5 w-3.5" />
+                      <>
+                        <Button size="sm" variant="outline" className="border-zinc-700 text-violet-400 hover:text-violet-300 px-2" title="Mark as under offer" onClick={() => handleMarkUnderOffer(listing.id)}>
+                          <Handshake className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="border-zinc-700 text-amber-400 hover:text-amber-300 px-2" title="Mark as sold" onClick={() => handleMarkSold(listing.id)}>
+                          <CheckCheck className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
+                    {listing.status === "under_offer" && (
+                      <Button size="sm" variant="outline" className="border-zinc-700 text-green-400 hover:text-green-300 px-2" title="Re-activate listing" onClick={() => handleMarkActive(listing.id)}>
+                        <RotateCcw className="h-3.5 w-3.5" />
                       </Button>
+                    )}
+                    {!listing.featured && listing.status === "active" && (
+                      boostingListingId === listing.id ? (
+                        <div className="flex items-center gap-1">
+                          {([7, 14, 30] as const).map((d) => {
+                            const costs: Record<number, number> = { 7: 5, 14: 8, 30: 15 };
+                            return (
+                              <button
+                                key={d}
+                                onClick={() => handleBoost(listing.id, d)}
+                                disabled={balance < costs[d]}
+                                className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-300 hover:bg-amber-500/20 disabled:opacity-40"
+                                title={`${d}d — ${costs[d]} connects`}
+                              >
+                                {d}d·{costs[d]}c
+                              </button>
+                            );
+                          })}
+                          <button onClick={() => setBoostingListingId(null)} className="text-zinc-500 hover:text-zinc-300 px-1">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-amber-500/30 text-amber-400 hover:text-amber-300 px-2"
+                          title={`Boost listing (${balance} connects available)`}
+                          onClick={() => setBoostingListingId(listing.id)}
+                        >
+                          <Zap className="h-3.5 w-3.5" />
+                        </Button>
+                      )
                     )}
                     <Button size="sm" variant="outline" className="border-zinc-700 text-red-400 hover:text-red-300 px-2" onClick={() => handleDelete(listing.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
@@ -262,6 +447,56 @@ export function DashboardClient({
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {myReceivedOffers.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold text-zinc-50 mb-4">Received Offers</h3>
+              <div className="space-y-2">
+                {myReceivedOffers.map((offer) => (
+                  <div key={offer.id} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-zinc-200">{formatPrice(offer.amountCents)}</span>
+                        <Badge className={
+                          offer.status === "accepted"
+                            ? "bg-green-500/10 text-green-400 border-green-500/20"
+                            : offer.status === "rejected"
+                              ? "bg-red-500/10 text-red-400 border-red-500/20"
+                              : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                        }>
+                          {offer.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                        {offer.listingTitle} · {new Date(offer.createdAt).toLocaleDateString()}
+                      </p>
+                      {offer.message && (
+                        <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{offer.message}</p>
+                      )}
+                    </div>
+                    {offer.status === "pending" && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleRespondToOffer(offer.id, "accepted")}
+                          className="rounded-md border border-green-500/40 bg-green-500/10 p-1.5 text-green-400 hover:bg-green-500/20"
+                          title="Accept offer"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleRespondToOffer(offer.id, "rejected")}
+                          className="rounded-md border border-red-500/40 bg-red-500/10 p-1.5 text-red-400 hover:bg-red-500/20"
+                          title="Reject offer"
+                        >
+                          <CircleX className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -430,6 +665,66 @@ export function DashboardClient({
 
       {activeTab === "As Buyer" && (
         <div className="space-y-8">
+          {mySubmittedOffers.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-50 mb-4">My Offers</h3>
+              <div className="space-y-2">
+                {mySubmittedOffers.map((offer) => (
+                  <Link
+                    key={offer.id}
+                    href={`/listing/${offer.listingId}`}
+                    className="group flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 transition-colors hover:border-indigo-500/40"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-zinc-200">{formatPrice(offer.amountCents)}</span>
+                        <Badge className={
+                          offer.status === "accepted"
+                            ? "bg-green-500/10 text-green-400 border-green-500/20"
+                            : offer.status === "rejected"
+                              ? "bg-red-500/10 text-red-400 border-red-500/20"
+                              : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                        }>
+                          {offer.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                        {offer.listingTitle} · {new Date(offer.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 group-hover:text-indigo-300 shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-50 mb-4">Saved Alerts</h3>
+            {mySavedSearches.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-zinc-800 bg-zinc-900">
+                <Bell className="h-8 w-8 text-zinc-700 mb-3" />
+                <p className="font-medium text-zinc-400">No saved alerts</p>
+                <p className="mt-1 text-sm text-zinc-600">Browse listings and click the bell icon to create one.</p>
+                <Link href="/browse" className="mt-4">
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">Browse listings</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {mySavedSearches.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+                    <span className="text-sm text-zinc-300">
+                      {s.category ? CATEGORY_LABELS[s.category as Listing["category"]] ?? s.category : "Any category"}
+                      {s.maxPriceCents ? ` · Under $${(s.maxPriceCents / 100).toLocaleString()}` : ""}
+                    </span>
+                    <button onClick={() => handleDeleteSavedSearch(s.id)} className="text-zinc-600 hover:text-red-400 ml-4">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div>
             <h3 className="text-lg font-semibold text-zinc-50 mb-4">Unlocked Listings</h3>
             {unlockedListings.length === 0 ? (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Rocket } from "lucide-react";
+import { Menu, X, Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,7 +15,11 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 
-export function Navbar() {
+interface NavbarProps {
+  connectsBalance?: number | null;
+}
+
+export function Navbar({ connectsBalance }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -86,6 +90,16 @@ export function Navbar() {
                 )}
               </Link>
             ))}
+            {connectsBalance != null && (
+              <Link
+                href="/connects"
+                className="inline-flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300 hover:bg-indigo-500/20 transition-colors"
+                title="Your Connects balance"
+              >
+                <Zap className="h-3 w-3" />
+                {connectsBalance}
+              </Link>
+            )}
             <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
           </SignedIn>
         </div>
@@ -179,6 +193,16 @@ export function Navbar() {
                 <div className="flex items-center gap-3 py-2">
                   <UserButton />
                   <span className="text-sm text-zinc-400">My Account</span>
+                  {connectsBalance != null && (
+                    <Link
+                      href="/connects"
+                      className="ml-auto inline-flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <Zap className="h-3 w-3" />
+                      {connectsBalance}
+                    </Link>
+                  )}
                 </div>
               </SignedIn>
             </div>

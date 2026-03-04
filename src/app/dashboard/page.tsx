@@ -1,6 +1,9 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getAllListingsBySeller, getUnlockedListings } from "@/lib/db/listings";
+import { getAllListingsBySeller, getUnlockedListings, getListingAnalytics } from "@/lib/db/listings";
+import { getConnectsBalance } from "@/lib/db/connects";
+import { getSavedSearchesByUser } from "@/lib/db/saved-searches";
+import { getOffersForSeller, getOffersForBuyer } from "@/lib/db/offers";
 import { getBetaTestsByCreator } from "@/lib/db/beta-tests";
 import { getProfile } from "@/lib/db/profiles";
 import { formatPrice } from "@/lib/data";
@@ -18,13 +21,19 @@ export default async function DashboardPage() {
 
   const clerkUser = await currentUser();
 
-  const [profile, listings, allBetaTests, unlockedListings, myApplications] = await Promise.all([
+  const [profile, listings, allBetaTests, unlockedListings, myApplications, connectsBalance, savedSearches, receivedOffers, myOffers] = await Promise.all([
     getProfile(userId),
     getAllListingsBySeller(userId),
     getBetaTestsByCreator(userId),
     getUnlockedListings(userId),
     getUserApplications(userId),
+    getConnectsBalance(userId),
+    getSavedSearchesByUser(userId),
+    getOffersForSeller(userId),
+    getOffersForBuyer(userId),
   ]);
+
+  const listingAnalytics = await getListingAnalytics(listings.map((l) => l.id));
 
   const myBetaTests = allBetaTests;
 
@@ -39,6 +48,7 @@ export default async function DashboardPage() {
     activeListings: listings.filter((l) => l.status === "active").length,
     betaTests: myBetaTests.length,
     feedbackGiven: profile?.stats.feedbackGiven ?? 0,
+    betaTestsCompleted: profile?.stats.betaTestsCompleted ?? 0,
   };
 
   return (
@@ -50,6 +60,11 @@ export default async function DashboardPage() {
       betaTests={myBetaTests}
       unlockedListings={unlockedListings}
       myApplications={myApplications}
+      listingAnalytics={listingAnalytics}
+      connectsBalance={connectsBalance}
+      savedSearches={savedSearches}
+      receivedOffers={receivedOffers}
+      myOffers={myOffers}
     />
   );
 }

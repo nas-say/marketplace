@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { Navbar } from "@/components/layout/navbar";
+import { NavbarWrapper } from "@/components/layout/navbar-wrapper";
 import { Footer } from "@/components/layout/footer";
 import { PageTransition } from "@/components/layout/page-transition";
 import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/constants";
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <html lang="en" className="dark">
         <body className={`${inter.variable} ${jetbrains.variable} font-sans bg-zinc-950 text-zinc-50 antialiased`}>
           <div className="flex min-h-screen flex-col">
-            <Navbar />
+            <NavbarWrapper />
             <main className="flex-1">
               <PageTransition>{children}</PageTransition>
             </main>

@@ -6,23 +6,28 @@ import { ListingGrid } from "@/components/listing/listing-grid";
 import { ListingFilters } from "@/components/listing/listing-filters";
 import { PageHeader } from "@/components/shared/page-header";
 import { CATEGORY_LABELS } from "@/lib/constants";
-import { X, SlidersHorizontal } from "lucide-react";
+import { X, SlidersHorizontal, Bell, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { createSavedSearchAction } from "./actions";
 
 interface BrowseClientProps {
   initialListings: Listing[];
+  userId: string | null;
+  initialCategory?: string;
 }
 
-export function BrowseClient({ initialListings }: BrowseClientProps) {
+export function BrowseClient({ initialListings, userId, initialCategory }: BrowseClientProps) {
   const reduceMotion = useReducedMotion();
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(initialCategory ?? "");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [alertSaved, setAlertSaved] = useState(false);
+  const [alertSaving, setAlertSaving] = useState(false);
 
   const filtered = useMemo(() => {
     let result = [...initialListings];
@@ -44,7 +49,10 @@ export function BrowseClient({ initialListings }: BrowseClientProps) {
       case "revenue": result.sort((a, b) => b.metrics.mrr - a.metrics.mrr); break;
       default: result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
-    return result;
+    // Featured listings always appear first
+    const featured = result.filter((l) => l.featured);
+    const rest = result.filter((l) => !l.featured);
+    return [...featured, ...rest];
   }, [initialListings, search, category, verifiedOnly, sortBy, minPrice, maxPrice]);
 
   const activeFilters = [
@@ -62,6 +70,21 @@ export function BrowseClient({ initialListings }: BrowseClientProps) {
     setMinPrice("");
     setMaxPrice("");
     setSortBy("newest");
+    setAlertSaved(false);
+  };
+
+  const handleSaveSearch = async () => {
+    if (!userId) {
+      alert("Sign in to save search alerts.");
+      return;
+    }
+    if (alertSaved || alertSaving) return;
+    setAlertSaving(true);
+    const maxPriceCents = maxPrice ? Math.round(Number(maxPrice) * 100) : null;
+    const result = await createSavedSearchAction(category || null, maxPriceCents);
+    setAlertSaving(false);
+    if (result.error) { alert(result.error); return; }
+    setAlertSaved(true);
   };
 
   const filtersProps = {
@@ -75,7 +98,24 @@ export function BrowseClient({ initialListings }: BrowseClientProps) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader title="Browse Projects" description={`${filtered.length} project${filtered.length !== 1 ? "s" : ""} available`} />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader title="Browse Projects" description={`${filtered.length} project${filtered.length !== 1 ? "s" : ""} available`} />
+        {(category || maxPrice) && (
+          <button
+            onClick={handleSaveSearch}
+            disabled={alertSaving}
+            className={`mt-1 shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors
+              ${alertSaved
+                ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300"
+                : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-indigo-500/40 hover:text-indigo-300"
+              }`}
+            title={alertSaved ? "Alert saved" : "Save this search for daily alerts"}
+          >
+            {alertSaved ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+            {alertSaved ? "Alert saved" : "Save search"}
+          </button>
+        )}
+      </div>
 
       <div className="mb-4 lg:hidden">
         <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300" onClick={() => setMobileFiltersOpen((o) => !o)}>

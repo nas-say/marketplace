@@ -96,9 +96,19 @@ export function ListingCard({ listing }: ListingCardProps) {
               {CATEGORY_LABELS[listing.category]}
             </Badge>
 
-            {/* New / Hot badges */}
+            {/* Featured / New / Hot / Under Offer badges */}
             <div className="absolute top-2 right-2 flex flex-col gap-1">
-              {isNew && (
+              {listing.featured && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                  ⭐ Featured
+                </span>
+              )}
+              {listing.status === "under_offer" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-500/15 border border-violet-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-violet-300">
+                  Under Offer
+                </span>
+              )}
+              {isNew && listing.status !== "under_offer" && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-green-500/15 border border-green-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-green-400">
                   <Sparkles className="h-2.5 w-2.5" />
                   New

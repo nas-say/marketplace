@@ -43,6 +43,7 @@ export async function updateListingAction(
     monthlyVisitors: number;
     registeredUsers: number;
     assetsIncluded: string[];
+    screenshots: string[];
   }
 ): Promise<{ error?: string; success?: boolean }> {
   const { userId } = await auth();
@@ -100,6 +101,10 @@ export async function updateListingAction(
     .filter(Boolean)
     .slice(0, 50);
 
+  const screenshots = (payload.screenshots ?? [])
+    .filter((u) => typeof u === "string" && u.startsWith("https://"))
+    .slice(0, 10);
+
   const ok = await updateListing(userId, safeListingId, {
     title,
     pitch,
@@ -113,6 +118,7 @@ export async function updateListingAction(
     monthlyVisitors: Math.floor(payload.monthlyVisitors),
     registeredUsers: Math.floor(payload.registeredUsers),
     assetsIncluded,
+    screenshots,
   });
 
   if (!ok) return { error: "Failed to update. You may not have permission." };

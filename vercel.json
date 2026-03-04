@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/admin/payout-reconciliation",
       "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/saved-search-alerts",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/expire-featured-listings",
+      "schedule": "0 3 * * *"
     }
   ]
 }

@@ -41,6 +41,7 @@ export function Footer() {
               <li><Link href="/terms" className="text-sm text-zinc-400 hover:text-zinc-50">Terms of Service</Link></li>
               <li><Link href="/privacy" className="text-sm text-zinc-400 hover:text-zinc-50">Privacy Policy</Link></li>
               <li><Link href="/refund" className="text-sm text-zinc-400 hover:text-zinc-50">Refund Policy</Link></li>
+              <li><Link href="/contact" className="text-sm text-zinc-400 hover:text-zinc-50">Contact Us</Link></li>
             </ul>
           </div>
         </div>
