@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { creditRazorpayTopup, hasRazorpayTopupCredit } from "@/lib/db/connects";
 import { enforceUserCooldown, enforceUserRateLimit } from "@/lib/payments/abuse-guard";
 import {
@@ -41,6 +42,9 @@ export async function POST(request: Request) {
       },
       { forceReport: allowProbeReport }
     );
+    if (allowProbeReport) {
+      await Sentry.flush(2_000);
+    }
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
