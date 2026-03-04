@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 import { applyAction } from "./actions";
 import { CheckCircle, Loader2 } from "lucide-react";
 
@@ -45,9 +46,12 @@ export function ApplyButton({
   cashPayoutFeeMinor,
   rewardCurrency,
 }: Props) {
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
   const [applied, setApplied] = useState(alreadyApplied);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
   const [upiId, setUpiId] = useState(savedUpiId ?? "");
   const [email, setEmail] = useState(savedEmail ?? "");
 
@@ -86,14 +90,21 @@ export function ApplyButton({
       setLoading(false);
       return;
     }
+    if (captchaEnabled && !captchaToken) {
+      setError("Please complete the security check and try again.");
+      setLoading(false);
+      return;
+    }
 
     const result = await applyAction(betaTestId, {
       upiId: rewardType === "cash" ? upiId.trim() : undefined,
       applicantEmail: rewardType === "premium_access" ? email.trim() : undefined,
+      captchaToken,
     });
 
     if (result.error) {
       setError(result.error);
+      if (captchaEnabled) setCaptchaResetSignal((value) => value + 1);
     } else {
       setApplied(true);
     }
@@ -139,6 +150,19 @@ export function ApplyButton({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             className="bg-zinc-950 border-zinc-700 text-sm"
+          />
+        </div>
+      )}
+
+      {captchaEnabled && (
+        <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
+          <p className="mb-2 text-xs text-zinc-500">
+            Security check to prevent automated applications.
+          </p>
+          <TurnstileWidget
+            action="beta_apply"
+            resetSignal={captchaResetSignal}
+            onTokenChange={setCaptchaToken}
           />
         </div>
       )}

@@ -9,6 +9,11 @@ import { saveUpiId } from "@/lib/db/profiles";
 import { revalidatePath } from "next/cache";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
 import { isBetaApplyRateLimited } from "@/lib/abuse/velocity";
+import {
+  enforceActionRateLimit,
+  getActionRequestContext,
+} from "@/lib/abuse/action-guard";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UPI_PATTERN = /^[A-Za-z0-9._-]{2,256}@[A-Za-z]{2,64}$/;
@@ -32,10 +37,26 @@ interface ApproveApplicationRow {
 
 export async function applyAction(
   betaTestId: string,
-  payload?: { upiId?: string; applicantEmail?: string }
+  payload?: { upiId?: string; applicantEmail?: string; captchaToken?: string }
 ): Promise<{ error?: string; success?: boolean }> {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+
+  const requestContext = await getActionRequestContext(`/beta/${betaTestId}`);
+  const actionGuard = await enforceActionRateLimit({
+    userId,
+    action: "beta_apply",
+    context: requestContext,
+    windowMs: 5 * 60_000,
+    maxPerUser: 12,
+    maxPerIp: 40,
+  });
+  if (!actionGuard.allowed) {
+    if (actionGuard.reason === "ip") {
+      return { error: "Too many beta apply attempts from this network. Please try again shortly." };
+    }
+    return { error: "Too many apply attempts. Please wait a moment and retry." };
+  }
 
   if (await isBetaApplyRateLimited(userId)) {
     return { error: "Too many apply attempts. Please wait a moment and retry." };
@@ -72,6 +93,16 @@ export async function applyAction(
     if (!UPI_PATTERN.test(upiId) || upiId.length > 320) {
       return { error: "Enter a valid UPI ID (for example, yourname@upi)." };
     }
+  }
+
+  const captcha = await verifyTurnstileToken({
+    token: payload?.captchaToken,
+    expectedAction: "beta_apply",
+    remoteIp: requestContext.ip ?? undefined,
+    userId,
+  });
+  if (!captcha.ok) {
+    return { error: captcha.error ?? "Please complete the security check and try again." };
   }
 
   const persistDetails = async (): Promise<{ ok: boolean; error?: string }> => {

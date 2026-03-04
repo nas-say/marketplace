@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
+import { PAYMENT_INTEREST_FEATURES } from "@/lib/payments/interest-features";
 import { getActiveAdminNotifications, type AdminNotificationItem } from "@/lib/db/admin-notifications";
 
 type PayoutStatus = "pending" | "paid" | "failed";
@@ -498,6 +499,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
       client
         .from("payment_interest_signals")
         .select("id, clerk_user_id, feature, country_code, currency, created_at")
+        .in("feature", PAYMENT_INTEREST_FEATURES)
         .order("created_at", { ascending: false })
         .limit(200),
       client
@@ -513,6 +515,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
       client
         .from("payment_interest_signals")
         .select("country_code, currency, created_at")
+        .in("feature", PAYMENT_INTEREST_FEATURES)
         .gte("created_at", longWindowDate)
         .order("created_at", { ascending: false })
         .limit(2000),
