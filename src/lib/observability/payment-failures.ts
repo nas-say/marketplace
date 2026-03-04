@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/nextjs";
+import { randomUUID } from "node:crypto";
 
 type PaymentFailureLevel = "error" | "warning";
 
@@ -26,10 +26,54 @@ function resolveLevel(reason: string): PaymentFailureLevel {
 }
 
 export function logPaymentFailure(route: string, reason: string, context: Record<string, unknown>) {
-  return logPaymentFailureWithOptions(route, reason, context, {});
+  void logPaymentFailureWithOptions(route, reason, context, {});
 }
 
-export function logPaymentFailureWithOptions(
+async function sendPaymentFailureEvent(
+  route: string,
+  reason: string,
+  level: PaymentFailureLevel,
+  context: Record<string, unknown>
+) {
+  const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (!dsn) return;
+
+  const dsnUrl = new URL(dsn);
+  const projectId = dsnUrl.pathname.replace("/", "");
+  if (!projectId) return;
+
+  const eventId = randomUUID().replace(/-/g, "");
+  const message = `payment_failure:${route}:${reason}`;
+  const envelopeHeader = {
+    event_id: eventId,
+    dsn,
+  };
+  const itemHeader = { type: "event" };
+  const payload = {
+    event_id: eventId,
+    message,
+    level,
+    platform: "node",
+    environment: process.env.SENTRY_ENVIRONMENT || process.env.VERCEL_ENV || process.env.NODE_ENV,
+    tags: {
+      area: "payments",
+      "payments.route": route,
+      "payments.reason": reason,
+    },
+    extra: context,
+    timestamp: new Date().toISOString(),
+  };
+
+  const envelope = `${JSON.stringify(envelopeHeader)}\n${JSON.stringify(itemHeader)}\n${JSON.stringify(payload)}`;
+  const endpoint = `${dsnUrl.protocol}//${dsnUrl.host}/api/${projectId}/envelope/`;
+  await fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/x-sentry-envelope" },
+    body: envelope,
+  });
+}
+
+export async function logPaymentFailureWithOptions(
   route: string,
   reason: string,
   context: Record<string, unknown>,
@@ -42,14 +86,5 @@ export function logPaymentFailureWithOptions(
   }
 
   const level = resolveLevel(reason);
-  Sentry.withScope((scope) => {
-    scope.setLevel(level);
-    scope.setTag("area", "payments");
-    scope.setTag("payments.route", route);
-    scope.setTag("payments.reason", reason);
-    for (const [key, value] of Object.entries(context)) {
-      scope.setExtra(key, value as never);
-    }
-    Sentry.captureMessage(`payment_failure:${route}:${reason}`);
-  });
+  await sendPaymentFailureEvent(route, reason, level, context);
 }

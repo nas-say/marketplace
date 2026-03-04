@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   const { userId } = await auth();
   if (!userId) {
-    logPaymentFailureWithOptions(
+    await logPaymentFailureWithOptions(
       "razorpay/verify",
       "not_authenticated",
       {
