@@ -3,7 +3,9 @@ import {
   getListingByIdForSeller,
   getSimilarListings,
   getListingsBySeller,
+  recordListingView,
 } from "@/lib/db/listings";
+import { after } from "next/server";
 import { getProfile } from "@/lib/db/profiles";
 import { getConnectsBalance, isListingUnlocked, getUnlockCost } from "@/lib/db/connects";
 import { getRevenueMultiple, formatPrice, formatNumber } from "@/lib/data";
@@ -13,6 +15,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { PurchaseCard } from "@/components/listing/purchase-card";
 import { ListingCard } from "@/components/listing/listing-card";
 import { SellerWebsiteGate } from "./seller-section";
+import { OfferSection } from "./offer-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/shared/json-ld";
@@ -100,6 +103,11 @@ export default async function ListingDetailPage({ params }: Props) {
 
   const sellerOtherListings = sellerListings.filter((l) => l.id !== listing.id).slice(0, 2);
   const unlockCost = getUnlockCost(listing.askingPrice);
+
+  // Track view — fire after response is sent, skip seller's own views
+  if (!isSeller && (listing.status === "active" || listing.status === "under_offer")) {
+    after(() => recordListingView(listing.id, userId ?? null));
+  }
 
   const TrendIcon = listing.metrics.revenueTrend === "up" ? TrendingUp : listing.metrics.revenueTrend === "down" ? TrendingDown : Minus;
   const trendColor = listing.metrics.revenueTrend === "up" ? "text-green-400" : listing.metrics.revenueTrend === "down" ? "text-red-400" : "text-zinc-400";
@@ -214,6 +222,14 @@ export default async function ListingDetailPage({ params }: Props) {
             )}
           </div>
 
+          {listing.status === "under_offer" && !isSeller && (
+            <div className="mb-6 rounded-lg border border-violet-500/30 bg-violet-500/10 p-4">
+              <p className="text-sm text-violet-300">
+                This listing is currently under offer. You can still unlock and contact the seller — deals aren&apos;t final until both parties agree.
+              </p>
+            </div>
+          )}
+
           {isSeller && listing.status === "pending_verification" && (
             <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
               <p className="text-sm text-amber-300">
@@ -229,12 +245,19 @@ export default async function ListingDetailPage({ params }: Props) {
             </div>
           )}
 
-          <div className="mb-8 flex h-64 flex-col items-center justify-center rounded-lg border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-800">
-            <span className="text-4xl font-black tracking-wider text-zinc-700">
-              {listing.title.split(" ").map((w) => w[0]).join("").slice(0, 3)}
-            </span>
-            <span className="mt-2 text-xs text-zinc-600">Screenshots coming soon</span>
-          </div>
+          {listing.screenshots.length > 0 && (
+            <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {listing.screenshots.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={url}
+                  alt={`${listing.title} screenshot ${i + 1}`}
+                  className="aspect-video w-full rounded-lg border border-zinc-800 object-cover"
+                />
+              ))}
+            </div>
+          )}
 
           <div className="mb-8">{renderDescription(listing.description)}</div>
 
@@ -350,19 +373,28 @@ export default async function ListingDetailPage({ params }: Props) {
               </Link>
             </div>
           ) : (
-            <PurchaseCard
-              askingPrice={formatPrice(listing.askingPrice)}
-              openToOffers={listing.openToOffers}
-              age={listing.metrics.age}
-              revenueTrend={listing.metrics.revenueTrend}
-              revenueMultiple={revenueMultiple}
-              mrr={formatPrice(listing.metrics.mrr)}
-              listingId={listing.id}
-              isUnlocked={unlocked}
-              userId={userId ?? null}
-              connectsBalance={connectsBalance}
-              unlockCost={unlockCost}
-            />
+            <>
+              <PurchaseCard
+                askingPrice={formatPrice(listing.askingPrice)}
+                openToOffers={listing.openToOffers}
+                age={listing.metrics.age}
+                revenueTrend={listing.metrics.revenueTrend}
+                revenueMultiple={revenueMultiple}
+                mrr={formatPrice(listing.metrics.mrr)}
+                listingId={listing.id}
+                isUnlocked={unlocked}
+                userId={userId ?? null}
+                connectsBalance={connectsBalance}
+                unlockCost={unlockCost}
+              />
+              {listing.openToOffers && !isSeller && (
+                <OfferSection
+                  listingId={listing.id}
+                  askingPriceCents={listing.askingPrice}
+                  userId={userId ?? null}
+                />
+              )}
+            </>
           )}
         </div>
       </div>

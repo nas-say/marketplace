@@ -1,7 +1,7 @@
 import { getProfile } from "@/lib/db/profiles";
 import { getListingsBySeller } from "@/lib/db/listings";
 import { getBetaTests } from "@/lib/db/beta-tests";
-import { formatPrice } from "@/lib/data";
+import { formatPrice, getTesterScore } from "@/lib/data";
 import { ListingCard } from "@/components/listing/listing-card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/shared/stat-card";
@@ -41,6 +41,7 @@ export default async function SellerPage({ params }: Props) {
   if (!seller) notFound();
 
   const activeBetaTests = allBetaTests.filter((bt) => bt.creatorId === id && bt.status !== "closed");
+  const testerScore = getTesterScore({ betaTestsCompleted: seller.stats.betaTestsCompleted ?? 0, feedbackGiven: seller.stats.feedbackGiven ?? 0 });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -73,6 +74,19 @@ export default async function SellerPage({ params }: Props) {
             <div className="border-t border-zinc-800 pt-4 text-xs text-zinc-500 text-center">
               Member since {new Date(seller.stats.memberSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </div>
+            {testerScore.tier !== "none" && (
+              <div className="mt-3 flex justify-center">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${
+                  testerScore.tier === "gold"
+                    ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                    : testerScore.tier === "silver"
+                      ? "bg-zinc-400/15 border-zinc-400/30 text-zinc-300"
+                      : "bg-orange-700/15 border-orange-700/30 text-orange-400"
+                }`}>
+                  ⭐ {testerScore.label} · {testerScore.score}/100
+                </span>
+              </div>
+            )}
           </div>
         </aside>
 

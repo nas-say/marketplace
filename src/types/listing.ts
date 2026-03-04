@@ -31,11 +31,12 @@ export interface Listing {
   metrics: ListingMetrics;
   assetsIncluded: string[];
   sellerId: string;
-  status: "active" | "sold" | "draft" | "pending_verification";
+  status: "active" | "sold" | "draft" | "pending_verification" | "under_offer";
   ownershipVerified: boolean;
   ownershipVerificationMethod: "repo" | "domain" | "manual" | null;
   ownershipVerifiedAt: string | null;
   featured: boolean;
+  featuredUntil: string | null;
   createdAt: string;
   updatedAt: string;
 }

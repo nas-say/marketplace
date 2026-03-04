@@ -68,7 +68,7 @@ async function ensureBalanceRow(
   return {};
 }
 
-async function mutateBalanceAtomic(
+export async function mutateBalanceAtomic(
   clerkUserId: string,
   delta: number
 ): Promise<BalanceMutationResult> {

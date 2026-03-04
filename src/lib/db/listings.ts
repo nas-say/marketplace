@@ -1,5 +1,8 @@
 import { createServerClient, createServiceClient } from "@/lib/supabase";
 import { Listing } from "@/types/listing";
+import { mutateBalanceAtomic } from "@/lib/db/connects";
+
+const FEATURE_COSTS: Record<7 | 14 | 30, number> = { 7: 5, 14: 8, 30: 15 };
 
 // Map Supabase row → Listing type used throughout the app
 function rowToListing(row: Record<string, unknown>): Listing {
@@ -11,7 +14,7 @@ function rowToListing(row: Record<string, unknown>): Listing {
     description: (row.description as string) ?? "",
     category: row.category as Listing["category"],
     techStack: (row.tech_stack as string[]) ?? [],
-    screenshots: [],
+    screenshots: (row.screenshots as string[]) ?? [],
     askingPrice: Number(row.asking_price),
     openToOffers: Boolean(row.open_to_offers),
     metrics: {
@@ -30,17 +33,20 @@ function rowToListing(row: Record<string, unknown>): Listing {
       (row.ownership_verification_method as Listing["ownershipVerificationMethod"]) ?? null,
     ownershipVerifiedAt: (row.ownership_verified_at as string) ?? null,
     featured: Boolean(row.featured),
+    featuredUntil: (row.featured_until as string) ?? null,
     createdAt: row.created_at as string,
     updatedAt: (row.updated_at as string) ?? (row.created_at as string),
   };
 }
+
+const PUBLIC_STATUSES = ["active", "under_offer"] as const;
 
 export async function getListings(): Promise<Listing[]> {
   const client = await createServerClient();
   const { data, error } = await client
     .from("listings")
     .select("*")
-    .eq("status", "active")
+    .in("status", PUBLIC_STATUSES)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data.map(rowToListing);
@@ -51,7 +57,7 @@ export async function getFeaturedListings(): Promise<Listing[]> {
   const { data, error } = await client
     .from("listings")
     .select("*")
-    .eq("status", "active")
+    .in("status", PUBLIC_STATUSES)
     .eq("featured", true)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
@@ -101,7 +107,7 @@ export async function getSimilarListings(listing: Listing, count = 3): Promise<L
   const { data, error } = await client
     .from("listings")
     .select("*")
-    .eq("status", "active")
+    .in("status", PUBLIC_STATUSES)
     .eq("category", listing.category)
     .neq("id", listing.id)
     .limit(count);
@@ -127,7 +133,7 @@ export async function updateListing(
     title: string; pitch: string; description: string; category: string;
     techStack: string[]; askingPrice: number; openToOffers: boolean;
     mrr: number; monthlyProfit: number; monthlyVisitors: number;
-    registeredUsers: number; assetsIncluded: string[];
+    registeredUsers: number; assetsIncluded: string[]; screenshots: string[];
   }
 ): Promise<boolean> {
   const client = createServiceClient();
@@ -137,7 +143,7 @@ export async function updateListing(
     asking_price: payload.askingPrice, open_to_offers: payload.openToOffers,
     mrr: payload.mrr, monthly_profit: payload.monthlyProfit,
     monthly_visitors: payload.monthlyVisitors, registered_users: payload.registeredUsers,
-    assets_included: payload.assetsIncluded,
+    assets_included: payload.assetsIncluded, screenshots: payload.screenshots,
   }).eq("id", listingId).eq("seller_id", clerkUserId);
   return !error;
 }
@@ -145,7 +151,7 @@ export async function updateListing(
 export async function updateListingStatus(
   clerkUserId: string,
   listingId: string,
-  status: "active" | "sold" | "draft" | "pending_verification"
+  status: "active" | "sold" | "draft" | "pending_verification" | "under_offer"
 ): Promise<boolean> {
   const client = createServiceClient();
   const { error } = await client.from("listings").update({ status })
@@ -178,6 +184,7 @@ export async function createListing(
     monthlyVisitors: number;
     registeredUsers: number;
     assetsIncluded: string[];
+    screenshots?: string[];
   }
 ): Promise<{ id: string } | null> {
   const client = createServiceClient();
@@ -196,6 +203,7 @@ export async function createListing(
       monthly_visitors: payload.monthlyVisitors,
       registered_users: payload.registeredUsers,
       assets_included: payload.assetsIncluded,
+      screenshots: payload.screenshots ?? [],
       seller_id: clerkUserId,
       status: "pending_verification",
     })
@@ -222,4 +230,86 @@ export async function getUnlockedListings(clerkUserId: string): Promise<Listing[
       return rowToListing(listing);
     })
     .filter((listing): listing is Listing => listing !== null);
+}
+
+export async function recordListingView(
+  listingId: string,
+  viewerId: string | null
+): Promise<void> {
+  const client = createServiceClient();
+  await client.from("listing_views").insert({ listing_id: listingId, viewer_id: viewerId });
+}
+
+export async function featureListing(
+  clerkUserId: string,
+  listingId: string,
+  durationDays: 7 | 14 | 30
+): Promise<{ success?: boolean; error?: string }> {
+  const listing = await getListingByIdForSeller(clerkUserId, listingId);
+  if (!listing) return { error: "Listing not found." };
+
+  const cost = FEATURE_COSTS[durationDays];
+  const debited = await mutateBalanceAtomic(clerkUserId, -cost);
+  if (debited.insufficient) return { error: `Not enough Connects. This requires ${cost} connects.` };
+  if (debited.error) return { error: debited.error };
+
+  const featuredUntil = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+  const client = createServiceClient();
+
+  const { error: updateError } = await client
+    .from("listings")
+    .update({ featured: true, featured_until: featuredUntil })
+    .eq("id", listingId)
+    .eq("seller_id", clerkUserId);
+
+  if (updateError) {
+    await mutateBalanceAtomic(clerkUserId, cost);
+    return { error: "Could not feature listing right now. Please try again." };
+  }
+
+  await client.from("connects_transactions").insert({
+    clerk_user_id: clerkUserId,
+    amount: -cost,
+    type: "feature_boost",
+    description: `Listing featured for ${durationDays}d`,
+    listing_id: listingId,
+  });
+
+  return { success: true };
+}
+
+export async function expireFeaturedListings(): Promise<number> {
+  const client = createServiceClient();
+  const { data, error } = await client
+    .from("listings")
+    .update({ featured: false, featured_until: null })
+    .lt("featured_until", new Date().toISOString())
+    .eq("featured", true)
+    .select("id");
+  if (error) return 0;
+  return (data ?? []).length;
+}
+
+export async function getListingAnalytics(
+  listingIds: string[]
+): Promise<Record<string, { views: number; unlocks: number }>> {
+  if (listingIds.length === 0) return {};
+  const client = createServiceClient();
+
+  const [viewsRes, unlocksRes] = await Promise.all([
+    client.from("listing_views").select("listing_id").in("listing_id", listingIds),
+    client
+      .from("connects_transactions")
+      .select("listing_id")
+      .eq("type", "unlock")
+      .in("listing_id", listingIds),
+  ]);
+
+  const result: Record<string, { views: number; unlocks: number }> = {};
+  for (const id of listingIds) result[id] = { views: 0, unlocks: 0 };
+  for (const row of (viewsRes.data ?? []) as { listing_id: string }[])
+    result[row.listing_id].views++;
+  for (const row of (unlocksRes.data ?? []) as { listing_id: string }[])
+    result[row.listing_id].unlocks++;
+  return result;
 }
