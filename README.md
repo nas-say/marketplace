@@ -38,6 +38,10 @@ npm run build
   - `/api/cron/admin/daily-payout-summary` (when `CRON_SECRET` secret is set)
   - `/api/cron/admin/payout-reconciliation` (when `CRON_SECRET` secret is set)
 - `Uptime Alerts` workflow opens an incident issue automatically if uptime fails on `main`, and auto-closes it after recovery.
+- `Nightly Production Smoke` workflow runs Playwright against production every day and validates:
+  - `/`, `/browse`, `/beta`, `/how-it-works`, `/terms`, `/privacy`, `/refund`
+  - signed-out redirects on `/dashboard` and `/connects`
+  - `/robots.txt`, `/sitemap.xml`, and Google verification file reachability
 
 Recommended GitHub repo secrets:
 - `APP_BASE_URL` (optional, defaults to `https://sideflip.vercel.app`)

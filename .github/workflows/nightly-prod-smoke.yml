@@ -1,0 +1,41 @@
+name: Nightly Production Smoke
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Playwright Production Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ secrets.APP_BASE_URL || 'https://sideflip.vercel.app' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run production smoke tests
+        run: npx playwright test tests/e2e/public-smoke.spec.ts tests/e2e/auth-and-seo.spec.ts --project=chromium
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-prod-smoke
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
