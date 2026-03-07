@@ -13,7 +13,7 @@ export function Footer() {
               <span className="font-display text-lg font-semibold text-zinc-50">{SITE_NAME}</span>
             </div>
             <p className="mt-3 text-sm leading-7 text-slate-500">
-              The marketplace where indie hackers buy, sell & beta-test side projects.
+              The marketplace where founders buy, sell, and beta-test indie products and online businesses.
             </p>
           </div>
 

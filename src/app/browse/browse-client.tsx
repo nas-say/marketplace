@@ -127,7 +127,7 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
             <PageHeader
               eyebrow="Deal Room"
               title="Browse Projects"
-              description="Acquisition-ready side projects with cleaner deal sheets, trust markers, and clearer buyer flow before you spend connects."
+              description="Acquisition-ready indie products and online businesses with cleaner deal sheets, trust markers, and clearer buyer flow before you spend connects."
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:w-[420px]">

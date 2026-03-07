@@ -10,7 +10,7 @@ export function CtaBanner() {
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="max-w-2xl">
               <p className="eyebrow">For operators</p>
-              <h2 className="mt-3 text-4xl font-semibold text-zinc-50 sm:text-5xl">Ready to sell your side project?</h2>
+              <h2 className="mt-3 text-4xl font-semibold text-zinc-50 sm:text-5xl">Ready to sell your indie product?</h2>
               <p className="mt-4 text-[15px] leading-7 text-slate-400">
                 List in minutes, add trust signals, and let buyers self-select through direct or proposal-gated contact.
               </p>
