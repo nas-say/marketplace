@@ -3,10 +3,13 @@ import { isConfiguredAdminUser } from "@/lib/admin-access-shared";
 
 const isProtected = createRouteMatcher([
   "/admin(.*)",
+  "/dashboard(.*)",
   "/create(.*)",
   "/beta/create(.*)",
+  "/connects(.*)",
   "/settings(.*)",
   "/listing/:id/edit(.*)",
+  "/listing/:id/verify(.*)",
 ]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 

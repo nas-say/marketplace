@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Cloud, Smartphone, Puzzle, Globe, GitBranch, Bot, Server, Layout } from "lucide-react";
-import { getCategories } from "@/lib/data";
+import { getListings } from "@/lib/db/listings";
+import { CATEGORY_ICONS, CATEGORY_LABELS } from "@/lib/constants";
 
 const iconMap: Record<string, React.ReactNode> = {
   cloud: <Cloud className="h-6 w-6" />,
@@ -13,8 +14,18 @@ const iconMap: Record<string, React.ReactNode> = {
   layout: <Layout className="h-6 w-6" />,
 };
 
-export function CategoriesGrid() {
-  const categories = getCategories();
+export async function CategoriesGrid() {
+  const listings = await getListings();
+  const counts = listings.reduce<Record<string, number>>((acc, listing) => {
+    acc[listing.category] = (acc[listing.category] ?? 0) + 1;
+    return acc;
+  }, {});
+  const categories = Object.entries(CATEGORY_LABELS).map(([slug, label]) => ({
+    slug,
+    label,
+    icon: CATEGORY_ICONS[slug],
+    count: counts[slug] ?? 0,
+  }));
 
   return (
     <section className="py-20 bg-zinc-900/50">
