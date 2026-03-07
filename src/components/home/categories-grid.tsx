@@ -28,18 +28,24 @@ export async function CategoriesGrid() {
   }));
 
   return (
-    <section className="py-20 bg-zinc-900/50">
+    <section className="py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="text-center text-3xl font-bold text-zinc-50">Browse by Category</h2>
-        <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="max-w-2xl">
+          <p className="eyebrow">Category map</p>
+          <h2 className="mt-3 text-4xl font-semibold text-zinc-50 sm:text-5xl">Jump straight to your preferred asset type.</h2>
+          <p className="mt-3 text-[15px] leading-7 text-slate-400">
+            Marketplace inventory grouped by deal shape, not generic startup taxonomy.
+          </p>
+        </div>
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {categories.map((cat) => (
             <Link key={cat.slug} href={`/browse?category=${cat.slug}`}>
-              <div className="card-hover rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-center">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center text-indigo-500">
+              <div className="card-hover surface-panel rounded-[26px] p-5 text-left">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-sky-300">
                   {iconMap[cat.icon] || <Cloud className="h-6 w-6" />}
                 </div>
-                <p className="mt-2 text-sm font-medium text-zinc-50">{cat.label}</p>
-                <p className="text-xs text-zinc-500">{cat.count} projects</p>
+                <p className="mt-6 text-xl font-semibold text-zinc-50">{cat.label}</p>
+                <p className="mt-1 text-sm text-slate-400">{cat.count} active projects</p>
               </div>
             </Link>
           ))}

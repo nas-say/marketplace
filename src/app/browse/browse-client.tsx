@@ -55,6 +55,9 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
     return [...featured, ...rest];
   }, [initialListings, search, category, verifiedOnly, sortBy, minPrice, maxPrice]);
 
+  const verifiedCount = filtered.filter((listing) => listing.ownershipVerified).length;
+  const proposalCount = filtered.filter((listing) => listing.contactMode === "proposal").length;
+
   const activeFilters = [
     search && { label: `"${search}"`, onRemove: () => setSearch("") },
     category && { label: CATEGORY_LABELS[category], onRemove: () => setCategory("") },
@@ -98,16 +101,41 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader title="Browse Projects" description={`${filtered.length} project${filtered.length !== 1 ? "s" : ""} available`} />
+      <div className="surface-panel mb-8 rounded-[32px] p-6 sm:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <PageHeader
+              title="Browse Projects"
+              description="Tighter, trust-first listings with revenue, visitors, ownership proof, and seller contact rules up front."
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3 lg:w-[420px]">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="eyebrow">Live inventory</p>
+              <p className="mt-3 text-3xl font-semibold text-zinc-50">{filtered.length}</p>
+              <p className="mt-1 text-sm text-slate-400">Projects matching current filters</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="eyebrow">Verified</p>
+              <p className="mt-3 text-3xl font-semibold text-zinc-50">{verifiedCount}</p>
+              <p className="mt-1 text-sm text-slate-400">Listings with ownership proof</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="eyebrow">Proposal gate</p>
+              <p className="mt-3 text-3xl font-semibold text-zinc-50">{proposalCount}</p>
+              <p className="mt-1 text-sm text-slate-400">Sellers screening buyers first</p>
+            </div>
+          </div>
+        </div>
+
         {(category || maxPrice) && (
           <button
             onClick={handleSaveSearch}
             disabled={alertSaving}
-            className={`mt-1 shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors
+            className={`mt-6 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors
               ${alertSaved
-                ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300"
-                : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-indigo-500/40 hover:text-indigo-300"
+                ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
+                : "border-white/10 bg-white/5 text-slate-300 hover:border-sky-400/30 hover:text-sky-200"
               }`}
             title={alertSaved ? "Alert saved" : "Save this search for daily alerts"}
           >
@@ -118,11 +146,11 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
       </div>
 
       <div className="mb-4 lg:hidden">
-        <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300" onClick={() => setMobileFiltersOpen((o) => !o)}>
+        <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-slate-200" onClick={() => setMobileFiltersOpen((o) => !o)}>
           <SlidersHorizontal className="mr-2 h-4 w-4" />
           Filters
           {activeFilters.length > 0 && (
-            <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">{activeFilters.length}</span>
+            <span className="ml-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">{activeFilters.length}</span>
           )}
         </Button>
       </div>
@@ -134,7 +162,7 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900 p-4 lg:hidden"
+            className="surface-panel mb-6 rounded-[28px] p-4 lg:hidden"
           >
             <ListingFilters {...filtersProps} />
           </motion.div>
@@ -151,27 +179,28 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
                 animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0, scale: 0.92 }}
                 transition={{ duration: 0.18 }}
-                className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs text-indigo-300"
+                className="inline-flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-xs text-sky-200"
               >
                 {f.label}
                 <button onClick={f.onRemove}><X className="h-3 w-3" /></button>
               </motion.span>
             ))}
           </AnimatePresence>
-          <button onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2">Clear all</button>
+          <button onClick={clearAll} className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-300">Clear all</button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[290px_1fr]">
         <aside className="hidden lg:block">
           <ListingFilters {...filtersProps} />
         </aside>
         <div>
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <p className="text-lg font-semibold text-zinc-50">No projects found</p>
-              <p className="mt-2 text-sm text-zinc-500">Try adjusting your filters or search term.</p>
-              <button onClick={clearAll} className="mt-4 text-sm text-indigo-400 hover:text-indigo-300">Clear all filters</button>
+            <div className="surface-panel flex flex-col items-center justify-center rounded-[32px] py-24 text-center">
+              <p className="eyebrow">No matches</p>
+              <p className="mt-3 text-2xl font-semibold text-zinc-50">No projects found</p>
+              <p className="mt-2 text-sm text-slate-400">Try adjusting your filters or search term.</p>
+              <button onClick={clearAll} className="mt-4 text-sm text-sky-300 hover:text-sky-200">Clear all filters</button>
             </div>
           ) : (
             <ListingGrid listings={filtered} />

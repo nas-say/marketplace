@@ -9,20 +9,23 @@ export async function FeaturedListings() {
   return (
     <section className="py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-zinc-50">Featured Projects</h2>
-            <p className="mt-2 text-zinc-400">Hand-picked projects with strong revenue and growth.</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl">
+            <p className="eyebrow">Featured inventory</p>
+            <h2 className="mt-3 text-4xl font-semibold text-zinc-50 sm:text-5xl">Projects worth a serious look.</h2>
+            <p className="mt-3 text-[15px] leading-7 text-slate-400">
+              Higher-signal listings with stronger metrics, clearer trust markers, and cleaner operator fit.
+            </p>
           </div>
           <Link
             href="/browse"
-            className="hidden sm:flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="hidden items-center gap-1 text-sm text-sky-300 transition-colors hover:text-sky-200 sm:flex"
           >
             View all projects
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {listings.map((listing) => (
             <ListingCard key={listing.id} listing={listing} />
           ))}
@@ -30,7 +33,7 @@ export async function FeaturedListings() {
         <div className="mt-6 sm:hidden">
           <Link
             href="/browse"
-            className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="flex items-center gap-1 text-sm text-sky-300 transition-colors hover:text-sky-200"
           >
             View all projects
             <ArrowRight className="h-3.5 w-3.5" />

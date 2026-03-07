@@ -77,11 +77,11 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#060a13]/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
-          <Rocket className="h-6 w-6 text-indigo-500" />
-          <span className="text-lg font-bold text-zinc-50">{SITE_NAME}</span>
+          <Rocket className="h-6 w-6 text-sky-300" />
+          <span className="font-display text-lg font-semibold text-zinc-50">{SITE_NAME}</span>
         </Link>
 
         {/* Desktop nav */}
@@ -98,7 +98,7 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
               {isActive(link.href) && (
                 <motion.span
                   layoutId="desktop-nav-underline"
-                  className="absolute -bottom-[5px] left-0 right-0 h-0.5 rounded-full bg-indigo-500"
+                  className="absolute -bottom-[5px] left-0 right-0 h-0.5 rounded-full bg-sky-400"
                 />
               )}
             </Link>
@@ -106,12 +106,12 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
 
           <SignedOut>
             <SignInButton mode="modal">
-              <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+              <Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10">
                 Sign In
               </Button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500">
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
                 Sign Up
               </Button>
             </SignUpButton>
@@ -135,7 +135,7 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
                 {isActive(link.href) && (
                   <motion.span
                     layoutId="desktop-nav-underline"
-                    className="absolute -bottom-[5px] left-0 right-0 h-0.5 rounded-full bg-indigo-500"
+                    className="absolute -bottom-[5px] left-0 right-0 h-0.5 rounded-full bg-sky-400"
                   />
                 )}
               </Link>
@@ -143,7 +143,7 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
             {connectsBalance != null && (
               <Link
                 href="/connects"
-                className="inline-flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300 hover:bg-indigo-500/20 transition-colors"
+                className="inline-flex items-center gap-1 rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-300/20"
                 title="Your Connects balance"
               >
                 <Zap className="h-3 w-3" />
@@ -154,12 +154,12 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
               <button
                 type="button"
                 onClick={handleToggleNotifications}
-                className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100"
+                className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:border-white/20 hover:text-zinc-100"
                 title="Notifications"
               >
                 <Bell className="h-4 w-4" />
                 {localUnreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold text-white">
+                  <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
                     {localUnreadCount > 9 ? "9+" : localUnreadCount}
                   </span>
                 )}
@@ -171,7 +171,7 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.16 }}
-                    className="absolute right-0 top-10 z-50 w-80 rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-2xl"
+                    className="absolute right-0 top-10 z-50 w-80 rounded-xl border border-white/10 bg-[#09101b] p-2 shadow-2xl"
                   >
                     <div className="mb-1 flex items-center justify-between px-2 py-1">
                       <p className="text-sm font-medium text-zinc-100">Notifications</p>

@@ -33,90 +33,102 @@ export function ListingFilters({
   onMaxPriceChange,
 }: ListingFiltersProps) {
   return (
-    <div className="space-y-6">
-      <SearchBar value={search} onChange={onSearchChange} />
+    <div className="surface-panel rounded-[28px] p-5">
+      <div className="mb-5">
+        <p className="eyebrow">Filter desk</p>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          Narrow by category, trust level, and price band.
+        </p>
+      </div>
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-zinc-50">Category</h3>
-        <div className="space-y-1">
-          <button
-            onClick={() => onCategoryChange("")}
-            className={`block w-full text-left text-sm px-2 py-1.5 rounded ${
-              selectedCategory === "" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-50"
-            }`}
-          >
-            All Categories
-          </button>
-          {Object.entries(CATEGORY_LABELS).map(([slug, label]) => (
+      <div className="space-y-6">
+        <SearchBar value={search} onChange={onSearchChange} />
+
+        <div>
+          <h3 className="eyebrow mb-3">Category</h3>
+          <div className="flex flex-wrap gap-2">
             <button
-              key={slug}
-              onClick={() => onCategoryChange(slug)}
-              className={`block w-full text-left text-sm px-2 py-1.5 rounded ${
-                selectedCategory === slug ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-50"
+              onClick={() => onCategoryChange("")}
+              className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
+                selectedCategory === ""
+                  ? "bg-blue-600 text-white"
+                  : "border border-white/10 bg-white/5 text-slate-300 hover:border-sky-400/25"
               }`}
             >
-              {label}
+              All
             </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-zinc-50">Price Range</h3>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">$</span>
-            <input
-              type="number"
-              min="0"
-              placeholder="Min"
-              value={minPrice}
-              onChange={(e) => onMinPriceChange(e.target.value)}
-              className="w-full rounded-md border border-zinc-800 bg-zinc-900 pl-6 pr-2 py-1.5 text-sm text-zinc-50 placeholder:text-zinc-600"
-            />
-          </div>
-          <span className="text-zinc-600 text-xs">–</span>
-          <div className="relative flex-1">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">$</span>
-            <input
-              type="number"
-              min="0"
-              placeholder="Max"
-              value={maxPrice}
-              onChange={(e) => onMaxPriceChange(e.target.value)}
-              className="w-full rounded-md border border-zinc-800 bg-zinc-900 pl-6 pr-2 py-1.5 text-sm text-zinc-50 placeholder:text-zinc-600"
-            />
+            {Object.entries(CATEGORY_LABELS).map(([slug, label]) => (
+              <button
+                key={slug}
+                onClick={() => onCategoryChange(slug)}
+                className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
+                  selectedCategory === slug
+                    ? "bg-blue-600 text-white"
+                    : "border border-white/10 bg-white/5 text-slate-300 hover:border-sky-400/25"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-zinc-50">Trust</h3>
-        <button
-          type="button"
-          onClick={() => onVerifiedOnlyChange(!verifiedOnly)}
-          className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-            verifiedOnly
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-              : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-50"
-          }`}
-        >
-          {verifiedOnly ? "Verified listings only" : "Show all verification states"}
-        </button>
-      </div>
+        <div>
+          <h3 className="eyebrow mb-3">Price band</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
+              <input
+                type="number"
+                min="0"
+                placeholder="Min"
+                value={minPrice}
+                onChange={(e) => onMinPriceChange(e.target.value)}
+                className="h-11 w-full rounded-2xl border border-white/10 bg-white/5 pl-7 pr-3 text-sm text-zinc-50 placeholder:text-slate-500"
+              />
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
+              <input
+                type="number"
+                min="0"
+                placeholder="Max"
+                value={maxPrice}
+                onChange={(e) => onMaxPriceChange(e.target.value)}
+                className="h-11 w-full rounded-2xl border border-white/10 bg-white/5 pl-7 pr-3 text-sm text-zinc-50 placeholder:text-slate-500"
+              />
+            </div>
+          </div>
+        </div>
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-zinc-50">Sort By</h3>
-        <select
-          value={sortBy}
-          onChange={(e) => onSortChange(e.target.value)}
-          className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-50"
-        >
-          <option value="newest">Newest First</option>
-          <option value="price-low">Price: Low to High</option>
-          <option value="price-high">Price: High to Low</option>
-          <option value="revenue">Highest Revenue</option>
-        </select>
+        <div>
+          <h3 className="eyebrow mb-3">Trust</h3>
+          <button
+            type="button"
+            onClick={() => onVerifiedOnlyChange(!verifiedOnly)}
+            className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition-colors ${
+              verifiedOnly
+                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
+                : "border-white/10 bg-white/5 text-slate-300 hover:border-sky-400/25"
+            }`}
+          >
+            {verifiedOnly ? "Verified listings only" : "Show all verification states"}
+          </button>
+        </div>
+
+        <div>
+          <h3 className="eyebrow mb-3">Sort</h3>
+          <select
+            value={sortBy}
+            onChange={(e) => onSortChange(e.target.value)}
+            className="h-11 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-zinc-50"
+          >
+            <option value="newest">Newest first</option>
+            <option value="price-low">Price: low to high</option>
+            <option value="price-high">Price: high to low</option>
+            <option value="revenue">Highest revenue</option>
+          </select>
+        </div>
       </div>
     </div>
   );

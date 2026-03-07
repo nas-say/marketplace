@@ -11,7 +11,7 @@ export function HeroAurora() {
       <>
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(129,140,248,0.22),transparent_45%),radial-gradient(circle_at_82%_24%,rgba(34,211,238,0.18),transparent_42%),radial-gradient(circle_at_65%_78%,rgba(167,139,250,0.14),transparent_48%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(59,130,246,0.2),transparent_45%),radial-gradient(circle_at_82%_24%,rgba(14,165,233,0.18),transparent_42%),radial-gradient(circle_at_65%_78%,rgba(251,191,36,0.14),transparent_48%)]"
         />
         <div
           aria-hidden
@@ -30,7 +30,7 @@ export function HeroAurora() {
     return (
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute left-[-24%] top-[-28%] h-[420px] w-[420px] rounded-full bg-indigo-500/24 blur-[105px]"
+        className="pointer-events-none absolute left-[-24%] top-[-28%] h-[420px] w-[420px] rounded-full bg-blue-500/24 blur-[105px]"
         animate={{ x: [0, 40, 10, 0], y: [0, 36, 12, 0], scale: [1, 1.05, 0.98, 1] }}
         transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
@@ -41,19 +41,19 @@ export function HeroAurora() {
     <>
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -left-24 top-[-28%] h-[520px] w-[520px] rounded-full bg-indigo-500/30 blur-[120px]"
+        className="pointer-events-none absolute -left-24 top-[-28%] h-[520px] w-[520px] rounded-full bg-blue-500/30 blur-[120px]"
         animate={{ x: [0, 80, 25, 0], y: [0, 55, 20, 0], scale: [1, 1.08, 0.98, 1] }}
         transition={{ duration: 24, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute right-[-12%] top-[8%] h-[480px] w-[480px] rounded-full bg-cyan-400/20 blur-[110px]"
+        className="pointer-events-none absolute right-[-12%] top-[8%] h-[480px] w-[480px] rounded-full bg-sky-400/20 blur-[110px]"
         animate={{ x: [0, -70, -20, 0], y: [0, 80, 30, 0], scale: [1, 1.1, 1, 1] }}
         transition={{ duration: 26, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 1.2 }}
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute bottom-[-34%] left-[30%] h-[540px] w-[540px] rounded-full bg-violet-500/20 blur-[130px]"
+        className="pointer-events-none absolute bottom-[-34%] left-[30%] h-[540px] w-[540px] rounded-full bg-amber-400/14 blur-[130px]"
         animate={{ x: [0, 55, -30, 0], y: [0, -40, -70, 0], scale: [1.02, 0.96, 1.08, 1.02] }}
         transition={{ duration: 28, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 0.6 }}
       />
