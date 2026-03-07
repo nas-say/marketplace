@@ -4,7 +4,6 @@ import { Listing } from "@/types/listing";
 import { ListingCard } from "./listing-card";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMotionProfile } from "@/components/shared/use-motion-profile";
-import { cn } from "@/lib/utils";
 
 interface ListingGridProps {
   listings: Listing[];
@@ -44,10 +43,7 @@ export function ListingGrid({ listings }: ListingGridProps) {
       {listings.map((listing) => (
         <motion.div
           key={listing.id}
-          className={cn(
-            "h-full",
-            listings.length > 2 && listing === listings[0] ? "lg:col-span-2" : ""
-          )}
+          className="h-full"
           variants={
             disableHeavyMotion
               ? undefined
