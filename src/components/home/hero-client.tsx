@@ -85,14 +85,14 @@ export function HeroClient({
             </div>
             <div className="editorial-rule max-w-4xl">
               <h1 className="section-title">
-                Buy operating side projects.
+                Buy indie products with real traction.
                 <br />
                 <span className="text-gradient-animated">Recruit serious beta testers.</span>
               </h1>
             </div>
             <p className="section-copy mt-6 max-w-2xl">
-              SideFlip is built for founders who want live revenue, real proof, and cleaner deal flow.
-              Less directory noise, more credible projects and test programs.
+              SideFlip is built for founders who want live revenue, real proof, and cleaner deal flow across
+              SaaS, templates, extensions, APIs, automations, and online businesses.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2">

@@ -10,8 +10,9 @@ import { SectionReveal } from "@/components/shared/section-reveal";
 import { absoluteUrl, publicPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = publicPageMetadata({
-  title: "Buy, Sell & Beta-Test Side Projects",
-  description: "Discover profitable side projects, connect with sellers, and join high-quality beta tests.",
+  title: "Buy, Sell & Beta-Test Indie Products",
+  description:
+    "Discover verified SaaS, templates, extensions, APIs, and online businesses. Connect with sellers and join high-quality beta tests.",
   path: "/",
 });
 

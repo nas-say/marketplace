@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!label) return { title: "Not Found" };
   return publicPageMetadata({
     title: `${label} for Sale`,
-    description: `Browse ${label.toLowerCase()} side projects for sale on SideFlip. Real metrics, verified sellers, transparent pricing.`,
+    description: `Browse ${label.toLowerCase()} products and online businesses for sale on SideFlip. Real metrics, verified sellers, transparent pricing.`,
     path: `/browse/${category}`,
   });
 }

@@ -273,7 +273,7 @@ export function DashboardClient({
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {[
-                  { step: "1", label: "Create a listing", desc: "List your side project with metrics and assets.", href: "/create", cta: "Create listing" },
+                  { step: "1", label: "Create a listing", desc: "List your product or online business with metrics and assets.", href: "/create", cta: "Create listing" },
                   { step: "2", label: "Verify ownership", desc: "Verified listings get 3× more unlocks from buyers.", href: null, cta: null },
                   { step: "3", label: "Boost your listing", desc: "Use Connects to feature your listing at the top of browse.", href: "/connects", cta: "Get Connects" },
                 ].map((s) => (

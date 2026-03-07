@@ -6,7 +6,7 @@ import { publicPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = publicPageMetadata({
   title: "Browse Projects",
-  description: "Explore verified side projects with real metrics, pricing, and seller details.",
+  description: "Explore verified indie products and online businesses with real metrics, pricing, and seller details.",
   path: "/browse",
 });
 

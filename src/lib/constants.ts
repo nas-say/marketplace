@@ -1,5 +1,6 @@
 export const SITE_NAME = "SideFlip";
-export const SITE_DESCRIPTION = "Buy, sell & beta-test side projects. The marketplace for indie hackers.";
+export const SITE_DESCRIPTION =
+  "Buy, sell & beta-test indie products. Discover SaaS, templates, extensions, APIs, and online businesses on SideFlip.";
 
 export const NAV_LINKS = [
   { label: "Browse", href: "/browse" },
