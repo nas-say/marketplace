@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { BetaTest } from "@/types/beta-test";
 import { User } from "@/types/user";
 import { BetaGrid } from "@/components/beta/beta-grid";
+import { BetaSpotlightRail } from "@/components/beta/beta-spotlight-rail";
 import { SearchBar } from "@/components/shared/search-bar";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -43,12 +44,49 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
     return result;
   }, [betaTests, draftBetaTests, search, statusFilter, fundedCashOnly]);
 
+  const spotlightBetaTests = useMemo(() => {
+    if (statusFilter === "draft") return [];
+
+    const fundedCash = filtered.filter(
+      (bt) => bt.reward.type === "cash" && bt.reward.poolStatus === "funded" && bt.status !== "closed"
+    );
+    if (fundedCash.length > 0) return fundedCash.slice(0, 3);
+
+    return [...filtered]
+      .filter((bt) => bt.status !== "draft")
+      .sort((a, b) => {
+        const readinessDelta =
+          Number(b.reward.poolStatus === "funded") - Number(a.reward.poolStatus === "funded");
+        if (readinessDelta !== 0) return readinessDelta;
+        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      })
+      .slice(0, 3);
+  }, [filtered, statusFilter]);
+
+  const spotlightIds = new Set(spotlightBetaTests.map((betaTest) => betaTest.id));
+  const gridBetaTests =
+    filtered.length > spotlightBetaTests.length
+      ? filtered.filter((betaTest) => !spotlightIds.has(betaTest.id))
+      : filtered;
+
+  const fundedCount = betaTests.filter(
+    (betaTest) => betaTest.reward.type === "cash" && betaTest.reward.poolStatus === "funded"
+  ).length;
+  const openSpotCount = betaTests.reduce(
+    (sum, betaTest) => sum + Math.max(0, betaTest.spots.total - betaTest.spots.filled),
+    0
+  );
+
   const gridKey = `${statusFilter}:${fundedCashOnly}:${search.trim().toLowerCase()}:${filtered.length}`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-start justify-between mb-8">
-        <PageHeader title="Beta Test Board" description="Find projects to test and earn rewards" />
+      <div className="mb-8 flex items-start justify-between">
+        <PageHeader
+          eyebrow="Testing Board"
+          title="Beta Test Board"
+          description="Structured test runs with clearer rewards, funded cash pools, and approval-ready workflows."
+        />
         <div className="flex items-center gap-2 shrink-0">
           <Link href="/beta/create">
             <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 shrink-0">
@@ -69,6 +107,23 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
               Drafts ({draftBetaTests.length})
             </Button>
           )}
+        </div>
+      </div>
+      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(9,18,32,0.95),rgba(5,11,20,0.95))] p-4">
+          <p className="eyebrow">Live tests</p>
+          <p className="mt-3 text-3xl font-semibold text-zinc-50">{betaTests.length}</p>
+          <p className="mt-1 text-sm text-slate-400">Active beta programs discoverable now</p>
+        </div>
+        <div className="rounded-[24px] border border-cyan-400/12 bg-[linear-gradient(180deg,rgba(6,16,28,0.96),rgba(5,10,18,0.96))] p-4">
+          <p className="eyebrow text-cyan-200/75">Funded cash</p>
+          <p className="mt-3 text-3xl font-semibold text-zinc-50">{fundedCount}</p>
+          <p className="mt-1 text-sm text-slate-400">Reward pools already ready for approvals</p>
+        </div>
+        <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(9,18,32,0.95),rgba(5,11,20,0.95))] p-4">
+          <p className="eyebrow">Open tester slots</p>
+          <p className="mt-3 text-3xl font-semibold text-zinc-50">{openSpotCount}</p>
+          <p className="mt-1 text-sm text-slate-400">Seats still available across live tests</p>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
@@ -144,13 +199,14 @@ export function BetaPageClient({ betaTests, draftBetaTests, canViewDrafts, topTe
                 exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
                 transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               >
-                <BetaGrid betaTests={filtered} />
+                <BetaSpotlightRail betaTests={spotlightBetaTests} />
+                <BetaGrid betaTests={gridBetaTests} />
               </motion.div>
             </AnimatePresence>
           )}
         </div>
         <aside>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 sticky top-24">
+          <div className="sticky top-24 rounded-[28px] border border-cyan-400/10 bg-[linear-gradient(180deg,rgba(10,19,34,0.96),rgba(6,12,22,0.96))] p-5">
             <div className="flex items-center gap-2 mb-4">
               <Trophy className="h-4 w-4 text-yellow-400" />
               <h3 className="text-sm font-semibold text-zinc-50">Top Beta Testers</h3>

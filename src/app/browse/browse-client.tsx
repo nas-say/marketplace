@@ -5,6 +5,7 @@ import { Listing } from "@/types/listing";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { ListingFilters } from "@/components/listing/listing-filters";
 import { PageHeader } from "@/components/shared/page-header";
+import { ListingSpotlightRail } from "@/components/listing/listing-spotlight-rail";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { X, SlidersHorizontal, Bell, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,25 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
     const rest = result.filter((l) => !l.featured);
     return [...featured, ...rest];
   }, [initialListings, search, category, verifiedOnly, sortBy, minPrice, maxPrice]);
+
+  const spotlightListings = useMemo(() => {
+    const featured = filtered.filter((listing) => listing.featured);
+    if (featured.length > 0) return featured.slice(0, 3);
+
+    return [...filtered]
+      .sort((a, b) => {
+        const trustDelta = Number(b.ownershipVerified) - Number(a.ownershipVerified);
+        if (trustDelta !== 0) return trustDelta;
+        return b.metrics.mrr - a.metrics.mrr;
+      })
+      .slice(0, 3);
+  }, [filtered]);
+
+  const spotlightIds = new Set(spotlightListings.map((listing) => listing.id));
+  const gridListings =
+    filtered.length > spotlightListings.length
+      ? filtered.filter((listing) => !spotlightIds.has(listing.id))
+      : filtered;
 
   const verifiedCount = filtered.filter((listing) => listing.ownershipVerified).length;
   const proposalCount = filtered.filter((listing) => listing.contactMode === "proposal").length;
@@ -105,8 +125,9 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <PageHeader
+              eyebrow="Deal Room"
               title="Browse Projects"
-              description="Tighter, trust-first listings with revenue, visitors, ownership proof, and seller contact rules up front."
+              description="Acquisition-ready side projects with cleaner deal sheets, trust markers, and clearer buyer flow before you spend connects."
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:w-[420px]">
@@ -121,9 +142,9 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
               <p className="mt-1 text-sm text-slate-400">Listings with ownership proof</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="eyebrow">Proposal gate</p>
+              <p className="eyebrow">Screened deals</p>
               <p className="mt-3 text-3xl font-semibold text-zinc-50">{proposalCount}</p>
-              <p className="mt-1 text-sm text-slate-400">Sellers screening buyers first</p>
+              <p className="mt-1 text-sm text-slate-400">Sellers screening buyers before reveal</p>
             </div>
           </div>
         </div>
@@ -195,6 +216,7 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
           <ListingFilters {...filtersProps} />
         </aside>
         <div>
+          <ListingSpotlightRail listings={spotlightListings} />
           {filtered.length === 0 ? (
             <div className="surface-panel flex flex-col items-center justify-center rounded-[32px] py-24 text-center">
               <p className="eyebrow">No matches</p>
@@ -203,7 +225,7 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
               <button onClick={clearAll} className="mt-4 text-sm text-sky-300 hover:text-sky-200">Clear all filters</button>
             </div>
           ) : (
-            <ListingGrid listings={filtered} />
+            <ListingGrid listings={gridListings} />
           )}
         </div>
       </div>

@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Bookmark,
   BookmarkCheck,
   Flame,
@@ -14,25 +11,16 @@ import {
   ShieldCheck,
   Handshake,
   ArrowUpRight,
+  Clock3,
+  MessageSquareText,
 } from "lucide-react";
 import { Listing } from "@/types/listing";
 import { TechStackBadges } from "@/components/shared/tech-stack-badges";
 import { formatPrice, formatNumber } from "@/lib/formatting";
-import { CATEGORY_LABELS } from "@/lib/constants";
+import { CATEGORY_ACCENT_CLASSES, CATEGORY_LABELS } from "@/lib/constants";
 import { useWatchlist } from "@/lib/use-watchlist";
 import { TiltCardShell } from "@/components/shared/tilt-card-shell";
-
-// Category gradient backgrounds
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  saas: "from-blue-500 to-sky-300",
-  "mobile-app": "from-sky-500 to-cyan-300",
-  "chrome-extension": "from-indigo-500 to-blue-300",
-  domain: "from-emerald-500 to-lime-300",
-  "open-source": "from-orange-500 to-amber-300",
-  "bot-automation": "from-cyan-500 to-teal-300",
-  api: "from-rose-500 to-orange-300",
-  "template-theme": "from-amber-500 to-yellow-300",
-};
+import { ProductPreviewPanel } from "@/components/shared/product-preview-panel";
 
 const HOT_VISITOR_THRESHOLD = 4000;
 const NEW_LISTING_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
@@ -47,20 +35,6 @@ interface ListingCardProps {
 export function ListingCard({ listing }: ListingCardProps) {
   const { isWatchlisted, toggle } = useWatchlist(listing.id);
 
-  const TrendIcon =
-    listing.metrics.revenueTrend === "up"
-      ? TrendingUp
-      : listing.metrics.revenueTrend === "down"
-      ? TrendingDown
-      : Minus;
-
-  const trendColor =
-    listing.metrics.revenueTrend === "up"
-      ? "text-green-500"
-      : listing.metrics.revenueTrend === "down"
-      ? "text-red-500"
-      : "text-zinc-500";
-
   const isNew = new Date(listing.createdAt).getTime() > NEW_LISTING_CUTOFF;
   const isHot = listing.metrics.monthlyVisitors >= HOT_VISITOR_THRESHOLD;
   const daysSinceUpdate = Math.floor(
@@ -68,118 +42,165 @@ export function ListingCard({ listing }: ListingCardProps) {
   );
   const isStale = daysSinceUpdate >= STALE_THRESHOLD_DAYS;
 
-  const gradient = CATEGORY_GRADIENTS[listing.category] ?? "from-zinc-800 to-zinc-900";
+  const accentClassName =
+    CATEGORY_ACCENT_CLASSES[listing.category] ?? "from-zinc-700/20 via-zinc-500/10 to-transparent";
+
+  const trustLabel = listing.ownershipVerified
+    ? listing.ownershipVerificationMethod === "repo"
+      ? "Repository verified"
+      : listing.ownershipVerificationMethod === "domain"
+        ? "Domain verified"
+        : "Manually reviewed"
+    : "Trust check pending";
+
+  const summaryBadges: Array<{ key: string; className: string; label: React.ReactNode }> = [];
+  if (listing.featured) {
+    summaryBadges.push({
+      key: "featured",
+      className: "border-amber-400/25 bg-amber-400/10 text-amber-200",
+      label: "Featured",
+    });
+  }
+  if (listing.status === "under_offer") {
+    summaryBadges.push({
+      key: "under-offer",
+      className: "border-blue-400/20 bg-blue-400/10 text-blue-200",
+      label: "Under offer",
+    });
+  } else if (isHot) {
+    summaryBadges.push({
+      key: "hot",
+      className: "border-orange-400/20 bg-orange-400/10 text-orange-200",
+      label: (
+        <>
+          <Flame className="mr-1 h-3 w-3" />
+          Hot
+        </>
+      ),
+    });
+  } else if (isNew) {
+    summaryBadges.push({
+      key: "new",
+      className: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
+      label: (
+        <>
+          <Sparkles className="mr-1 h-3 w-3" />
+          New
+        </>
+      ),
+    });
+  }
 
   return (
     <TiltCardShell className="relative" overlayClassName="rounded-[28px]">
       <Link href={`/listing/${listing.id}`} className="block h-full">
-        <Card className="card-hover flex h-full min-h-[396px] cursor-pointer flex-col gap-0 overflow-hidden rounded-[28px] border-white/10 bg-[#0b1120]/95 py-0">
-          <div className={`h-1.5 w-full bg-gradient-to-r ${gradient}`} />
-          <CardContent className="flex flex-1 flex-col p-0">
-            <div className="border-b border-white/[0.08] p-5">
-              <div className="flex items-start justify-between gap-3 pr-10">
-                <div>
-                  <p className="eyebrow">{CATEGORY_LABELS[listing.category]}</p>
-                  <h3 className="mt-4 line-clamp-2 text-2xl font-semibold leading-tight text-zinc-50">
-                    {listing.title}
-                  </h3>
-                </div>
-                <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-500" />
+        <Card className="card-hover flex h-full min-h-[520px] cursor-pointer flex-col gap-0 overflow-hidden rounded-[28px] border-white/10 bg-[#0b1120]/95 py-0">
+          <CardContent className="flex flex-1 flex-col p-5">
+            <ProductPreviewPanel
+              className="h-[188px]"
+              imageSrc={listing.screenshots[0] ?? null}
+              eyebrow={CATEGORY_LABELS[listing.category]}
+              accentClassName={accentClassName}
+              stats={[
+                { label: "Ask", value: formatPrice(listing.askingPrice) },
+                { label: "MRR", value: formatPrice(listing.metrics.mrr) },
+                { label: "Visitors", value: formatNumber(listing.metrics.monthlyVisitors) },
+                { label: "Users", value: formatNumber(listing.metrics.registeredUsers) },
+              ]}
+              footer={listing.contactMode === "proposal" ? "Proposal gate enabled" : "Direct unlock flow"}
+            />
+
+            <div className="mt-5 flex items-start justify-between gap-3 pr-10">
+              <div>
+                <p className="text-xs uppercase tracking-[0.26em] text-slate-500">
+                  {CATEGORY_LABELS[listing.category]}  /  {trustLabel}
+                </p>
+                <h3 className="mt-3 line-clamp-2 text-[1.8rem] font-semibold leading-tight text-zinc-50">
+                  {listing.title}
+                </h3>
               </div>
-              <p className="mt-3 line-clamp-3 min-h-[72px] text-sm leading-6 text-slate-300">{listing.pitch}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {listing.featured && (
-                  <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-200">Featured</Badge>
-                )}
-                {listing.status === "under_offer" && (
-                  <Badge className="border-blue-400/20 bg-blue-400/10 text-blue-200">Under offer</Badge>
-                )}
-                {listing.contactMode === "proposal" && (
-                  <Badge className="border-sky-400/20 bg-sky-400/10 text-sky-200">Proposal gate</Badge>
-                )}
-                {isNew && listing.status !== "under_offer" && (
-                  <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-200">
-                    <Sparkles className="mr-1 h-3 w-3" />
-                    New
-                  </Badge>
-                )}
-                {isHot && (
-                  <Badge className="border-orange-400/20 bg-orange-400/10 text-orange-200">
-                    <Flame className="mr-1 h-3 w-3" />
-                    Hot
-                  </Badge>
-                )}
-              </div>
+              <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-500" />
             </div>
 
-            <div className="grid grid-cols-2 gap-px border-b border-white/[0.08] bg-white/[0.08]">
-              <div className="bg-[#0b1120] p-4">
-                <p className="eyebrow">MRR</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <TrendIcon className={`h-3.5 w-3.5 ${trendColor}`} />
-                  <p className="text-lg font-semibold text-zinc-50">{formatPrice(listing.metrics.mrr)}</p>
-                </div>
-              </div>
-              <div className="bg-[#0b1120] p-4">
-                <p className="eyebrow">Visitors</p>
+            <p className="mt-3 line-clamp-3 min-h-[72px] text-sm leading-6 text-slate-300">{listing.pitch}</p>
+
+            <div className="mt-4 flex min-h-6 flex-wrap gap-2">
+              {summaryBadges.map((badge) => (
+                <Badge key={badge.key} className={badge.className}>
+                  {badge.label}
+                </Badge>
+              ))}
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="eyebrow">Monthly profit</p>
                 <p className="mt-2 text-lg font-semibold text-zinc-50">
-                  {formatNumber(listing.metrics.monthlyVisitors)}
+                  {formatPrice(listing.metrics.monthlyProfit)}
                 </p>
               </div>
-              <div className="bg-[#0b1120] p-4">
-                <p className="eyebrow">Users</p>
-                <p className="mt-2 text-lg font-semibold text-zinc-50">
-                  {formatNumber(listing.metrics.registeredUsers)}
-                </p>
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="eyebrow">Product age</p>
+                <p className="mt-2 text-lg font-semibold text-zinc-50">{listing.metrics.age}</p>
               </div>
-              <div className="bg-[#0b1120] p-4">
-                <p className="eyebrow">Contact</p>
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="eyebrow">Buyer flow</p>
                 <p className="mt-2 text-sm font-medium text-zinc-50">
                   {listing.contactMode === "proposal" ? "Seller screens buyers" : "Unlock and message"}
                 </p>
               </div>
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="eyebrow">Assets included</p>
+                <p className="mt-2 text-lg font-semibold text-zinc-50">{listing.assetsIncluded.length}</p>
+              </div>
             </div>
 
-            <div className="flex flex-1 flex-col p-5">
-              <div className="min-h-[48px]">
-                {listing.ownershipVerified ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
-                    <ShieldCheck className="h-3 w-3" />
-                    {listing.ownershipVerificationMethod === "repo"
-                      ? "Repository ownership verified"
-                      : listing.ownershipVerificationMethod === "domain"
-                        ? "Domain ownership verified"
-                        : "Manually reviewed by SideFlip"}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[11px] font-medium text-amber-200">
-                    Trust check pending
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-4 min-h-6">
-                <TechStackBadges stack={listing.techStack} max={4} />
-              </div>
-
-              <div className="mt-auto flex items-end justify-between gap-4 pt-5">
+            <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="grid grid-cols-1 gap-4 text-sm text-slate-300 sm:grid-cols-3">
                 <div>
-                  <p className="eyebrow">Ask</p>
-                  <p className="mt-2 text-2xl font-semibold text-amber-200">{formatPrice(listing.askingPrice)}</p>
-                </div>
-                <div className="text-right">
-                  {listing.openToOffers ? (
-                    <p className="inline-flex items-center gap-1 text-sm text-sky-200">
-                      <Handshake className="h-3.5 w-3.5" />
-                      Open to offers
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-400">Fixed ask</p>
-                  )}
-                  <p className="mt-2 text-xs text-slate-500">
-                    {isStale ? `Last updated ${daysSinceUpdate}d ago` : "Recently refreshed"}
+                  <p className="eyebrow">Trust</p>
+                  <p className="mt-2 inline-flex items-center gap-1 text-sm text-zinc-100">
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
+                    {trustLabel}
                   </p>
                 </div>
+                <div>
+                  <p className="eyebrow">Contact mode</p>
+                  <p className="mt-2 inline-flex items-center gap-1 text-sm text-zinc-100">
+                    <MessageSquareText className="h-3.5 w-3.5 text-sky-300" />
+                    {listing.contactMode === "proposal" ? "Offer first, reveal later" : "Instant unlock"}
+                  </p>
+                </div>
+                <div>
+                  <p className="eyebrow">Freshness</p>
+                  <p className="mt-2 inline-flex items-center gap-1 text-sm text-zinc-100">
+                    <Clock3 className="h-3.5 w-3.5 text-amber-300" />
+                    {isStale ? `${daysSinceUpdate}d since last refresh` : "Recently refreshed"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 min-h-6">
+              <TechStackBadges stack={listing.techStack} max={3} />
+            </div>
+
+            <div className="mt-auto flex items-end justify-between gap-4 pt-5">
+              <div>
+                <p className="eyebrow">Acquisition thesis</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Revenue, traffic, and buyer flow are visible before you spend connects.
+                </p>
+              </div>
+              <div className="text-right">
+                {listing.openToOffers ? (
+                  <p className="inline-flex items-center gap-1 text-sm text-sky-200">
+                    <Handshake className="h-3.5 w-3.5" />
+                    Open to offers
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-400">Fixed ask</p>
+                )}
               </div>
             </div>
           </CardContent>
