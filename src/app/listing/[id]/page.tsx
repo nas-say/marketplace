@@ -8,7 +8,7 @@ import {
 import { after } from "next/server";
 import { getProfile } from "@/lib/db/profiles";
 import { getConnectsBalance, isListingUnlocked, getUnlockCost } from "@/lib/db/connects";
-import { getRevenueMultiple, formatPrice, formatNumber } from "@/lib/data";
+import { getRevenueMultiple, formatPrice, formatNumber } from "@/lib/formatting";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { TechStackBadges } from "@/components/shared/tech-stack-badges";
 import { StatCard } from "@/components/shared/stat-card";

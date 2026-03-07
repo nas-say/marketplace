@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Bookmark, BookmarkCheck, Flame, Sparkles, ShieldCheck } from "lucide-react";
 import { Listing } from "@/types/listing";
 import { TechStackBadges } from "@/components/shared/tech-stack-badges";
-import { formatPrice, formatNumber } from "@/lib/data";
+import { formatPrice, formatNumber } from "@/lib/formatting";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { useWatchlist } from "@/lib/use-watchlist";
 import { TiltCardShell } from "@/components/shared/tilt-card-shell";

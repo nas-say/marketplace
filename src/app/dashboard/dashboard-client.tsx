@@ -34,7 +34,8 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice, getTesterScore, getListingCompleteness } from "@/lib/data";
+import { formatPrice } from "@/lib/formatting";
+import { getTesterScore, getListingCompleteness } from "@/lib/scoring";
 import { SavedSearch } from "@/lib/db/saved-searches";
 import { OfferWithListing } from "@/lib/db/offers";
 import {

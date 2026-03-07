@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAllPendingSavedSearches, markSavedSearchesNotified } from "@/lib/db/saved-searches";
 import { getListings } from "@/lib/db/listings";
 import { absoluteUrl } from "@/lib/seo";
-import { formatPrice } from "@/lib/data";
+import { formatPrice } from "@/lib/formatting";
 
 export const runtime = "nodejs";
 

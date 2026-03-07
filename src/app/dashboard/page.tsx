@@ -6,7 +6,7 @@ import { getSavedSearchesByUser } from "@/lib/db/saved-searches";
 import { getOffersForSeller, getOffersForBuyer } from "@/lib/db/offers";
 import { getBetaTestsByCreator } from "@/lib/db/beta-tests";
 import { getProfile } from "@/lib/db/profiles";
-import { formatPrice } from "@/lib/data";
+import { formatPrice } from "@/lib/formatting";
 import { getUserApplications } from "@/lib/db/applications";
 import { isAdminUser } from "@/lib/admin-access";
 import { DashboardClient } from "./dashboard-client";

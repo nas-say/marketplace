@@ -10,6 +10,48 @@ export async function getWatchlistIds(clerkUserId: string): Promise<string[]> {
   return data.map((row) => row.listing_id as string);
 }
 
+export async function mergeWatchlistIds(
+  clerkUserId: string,
+  listingIds: string[]
+): Promise<string[]> {
+  const normalizedIds = Array.from(
+    new Set(listingIds.map((id) => id.trim()).filter((id) => id.length > 0))
+  );
+
+  if (normalizedIds.length === 0) {
+    return getWatchlistIds(clerkUserId);
+  }
+
+  const client = createServiceClient();
+  const { data: listings, error: listingError } = await client
+    .from("listings")
+    .select("id")
+    .in("id", normalizedIds);
+
+  if (listingError) {
+    throw new Error("Could not sync watchlist state.");
+  }
+
+  const validIds = (listings ?? []).map((row) => row.id as string);
+  if (validIds.length === 0) {
+    return getWatchlistIds(clerkUserId);
+  }
+
+  const { error: upsertError } = await client.from("watchlist").upsert(
+    validIds.map((listingId) => ({
+      clerk_user_id: clerkUserId,
+      listing_id: listingId,
+    })),
+    { onConflict: "clerk_user_id,listing_id", ignoreDuplicates: true }
+  );
+
+  if (upsertError) {
+    throw new Error("Could not sync watchlist state.");
+  }
+
+  return getWatchlistIds(clerkUserId);
+}
+
 export async function toggleWatchlist(
   clerkUserId: string,
   listingId: string

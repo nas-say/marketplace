@@ -2,9 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { toggleWatchlistAction, getWatchlistIdsAction } from "./watchlist-actions";
+import {
+  toggleWatchlistAction,
+  getWatchlistIdsAction,
+  mergeWatchlistIdsAction,
+} from "./watchlist-actions";
 
 const STORAGE_KEY = "sideflip_watchlist";
+let bootstrapUserId: string | null = null;
+let bootstrapPromise: Promise<string[] | null> | null = null;
 
 function getLocalWatchlist(): string[] {
   if (typeof window === "undefined") return [];
@@ -19,9 +25,43 @@ function saveLocalWatchlist(ids: string[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
 }
 
+function clearLocalWatchlist() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 function loadLocalWatchlistAsync(setter: (ids: string[]) => void) {
   const ids = getLocalWatchlist();
   queueMicrotask(() => setter(ids));
+}
+
+async function loadServerWatchlist(userId: string): Promise<string[] | null> {
+  if (bootstrapPromise && bootstrapUserId === userId) {
+    return bootstrapPromise;
+  }
+
+  const nextPromise = (async () => {
+    const localIds = Array.from(new Set(getLocalWatchlist()));
+    if (localIds.length > 0) {
+      const mergedIds = await mergeWatchlistIdsAction(localIds);
+      if (mergedIds !== null) {
+        clearLocalWatchlist();
+      }
+      return mergedIds;
+    }
+    return getWatchlistIdsAction();
+  })();
+
+  bootstrapUserId = userId;
+  bootstrapPromise = nextPromise;
+
+  try {
+    return await nextPromise;
+  } finally {
+    if (bootstrapPromise === nextPromise) {
+      bootstrapPromise = null;
+      bootstrapUserId = null;
+    }
+  }
 }
 
 export function useWatchlist(listingId: string) {
@@ -33,7 +73,7 @@ export function useWatchlist(listingId: string) {
     if (!userId) {
       loadLocalWatchlistAsync(setWatchlist);
     } else {
-      getWatchlistIdsAction().then((ids) => {
+      loadServerWatchlist(userId).then((ids) => {
         if (ids !== null) setWatchlist(ids);
       });
     }
@@ -84,7 +124,7 @@ export function useAllWatchlisted() {
     if (!userId) {
       loadLocalWatchlistAsync(setWatchlist);
     } else {
-      getWatchlistIdsAction().then((ids) => {
+      loadServerWatchlist(userId).then((ids) => {
         if (ids !== null) setWatchlist(ids);
       });
     }

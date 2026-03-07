@@ -1,7 +1,8 @@
 import { getProfile } from "@/lib/db/profiles";
 import { getListingsBySeller } from "@/lib/db/listings";
 import { getBetaTests } from "@/lib/db/beta-tests";
-import { formatPrice, getTesterScore } from "@/lib/data";
+import { formatPrice } from "@/lib/formatting";
+import { getTesterScore } from "@/lib/scoring";
 import { ListingCard } from "@/components/listing/listing-card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/shared/stat-card";

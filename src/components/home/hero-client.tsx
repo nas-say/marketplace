@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/data";
+import { formatPrice } from "@/lib/formatting";
 import { AnimatedCount } from "./animated-count";
 import { MagneticButton } from "./magnetic-button";
 import type { MouseEvent } from "react";
