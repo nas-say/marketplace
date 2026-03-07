@@ -3,7 +3,18 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, Bookmark, BookmarkCheck, Flame, Sparkles, ShieldCheck } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Bookmark,
+  BookmarkCheck,
+  Flame,
+  Sparkles,
+  ShieldCheck,
+  Handshake,
+  ArrowUpRight,
+} from "lucide-react";
 import { Listing } from "@/types/listing";
 import { TechStackBadges } from "@/components/shared/tech-stack-badges";
 import { formatPrice, formatNumber } from "@/lib/formatting";
@@ -13,37 +24,14 @@ import { TiltCardShell } from "@/components/shared/tilt-card-shell";
 
 // Category gradient backgrounds
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  saas: "from-indigo-900/60 to-indigo-700/20",
-  "mobile-app": "from-violet-900/60 to-violet-700/20",
-  "chrome-extension": "from-blue-900/60 to-blue-700/20",
-  domain: "from-emerald-900/60 to-emerald-700/20",
-  "open-source": "from-orange-900/60 to-orange-700/20",
-  "bot-automation": "from-cyan-900/60 to-cyan-700/20",
-  api: "from-rose-900/60 to-rose-700/20",
-  "template-theme": "from-amber-900/60 to-amber-700/20",
-};
-
-// Category initials for the placeholder
-const CATEGORY_INITIALS: Record<string, string> = {
-  saas: "SaaS",
-  "mobile-app": "APP",
-  "chrome-extension": "EXT",
-  domain: "DOM",
-  "open-source": "OSS",
-  "bot-automation": "BOT",
-  api: "API",
-  "template-theme": "UI",
-};
-
-const CATEGORY_TEXT_COLORS: Record<string, string> = {
-  saas: "text-indigo-400",
-  "mobile-app": "text-violet-400",
-  "chrome-extension": "text-blue-400",
-  domain: "text-emerald-400",
-  "open-source": "text-orange-400",
-  "bot-automation": "text-cyan-400",
-  api: "text-rose-400",
-  "template-theme": "text-amber-400",
+  saas: "from-blue-500 to-sky-300",
+  "mobile-app": "from-sky-500 to-cyan-300",
+  "chrome-extension": "from-indigo-500 to-blue-300",
+  domain: "from-emerald-500 to-lime-300",
+  "open-source": "from-orange-500 to-amber-300",
+  "bot-automation": "from-cyan-500 to-teal-300",
+  api: "from-rose-500 to-orange-300",
+  "template-theme": "from-amber-500 to-yellow-300",
 };
 
 const HOT_VISITOR_THRESHOLD = 4000;
@@ -81,132 +69,135 @@ export function ListingCard({ listing }: ListingCardProps) {
   const isStale = daysSinceUpdate >= STALE_THRESHOLD_DAYS;
 
   const gradient = CATEGORY_GRADIENTS[listing.category] ?? "from-zinc-800 to-zinc-900";
-  const initials = CATEGORY_INITIALS[listing.category] ?? "?";
-  const textColor = CATEGORY_TEXT_COLORS[listing.category] ?? "text-zinc-400";
 
   return (
-    <TiltCardShell className="relative" overlayClassName="rounded-lg">
-      <Link href={`/listing/${listing.id}`}>
-        <Card className="card-hover flex h-full min-h-[360px] cursor-pointer flex-col border-zinc-800 bg-zinc-900">
-          {/* Gradient thumbnail */}
-          <div
-            className={`relative h-40 bg-gradient-to-br ${gradient} rounded-t-lg flex flex-col items-center justify-center gap-1`}
-          >
-            <span className={`text-2xl font-bold tracking-widest ${textColor} opacity-60`}>
-              {initials}
-            </span>
-            <span className="text-xs text-zinc-600">{listing.title}</span>
-
-            {/* Category badge */}
-            <Badge className="absolute top-2 left-2 bg-zinc-900/70 text-zinc-300 text-xs backdrop-blur-sm border border-zinc-700">
-              {CATEGORY_LABELS[listing.category]}
-            </Badge>
-
-            {/* Featured / New / Hot / Under Offer badges */}
-            <div className="absolute top-2 right-2 flex flex-col gap-1">
-              {listing.featured && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
-                  ⭐ Featured
-                </span>
-              )}
-              {listing.status === "under_offer" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-500/15 border border-violet-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-violet-300">
-                  Under Offer
-                </span>
-              )}
-              {listing.contactMode === "proposal" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-300">
-                  Proposal Gate
-                </span>
-              )}
-              {isNew && listing.status !== "under_offer" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-green-500/15 border border-green-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-green-400">
-                  <Sparkles className="h-2.5 w-2.5" />
-                  New
-                </span>
-              )}
-              {isHot && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-500/15 border border-orange-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-orange-400">
-                  <Flame className="h-2.5 w-2.5" />
-                  Hot
-                </span>
-              )}
-            </div>
-          </div>
-
-          <CardContent className="flex flex-1 flex-col p-4">
-            <h3 className="font-semibold text-zinc-50 truncate">{listing.title}</h3>
-            <p className="mt-1 text-sm text-zinc-400 line-clamp-1">{listing.pitch}</p>
-            <div className="mt-2 min-h-5">
-              {listing.ownershipVerified ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
-                  <ShieldCheck className="h-3 w-3" />
-                  {listing.ownershipVerificationMethod === "repo"
-                    ? "Repo ownership verified"
-                    : listing.ownershipVerificationMethod === "domain"
-                      ? "Domain ownership verified"
-                      : "Ownership manually reviewed"}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
-                  Trust check pending
-                </span>
-              )}
-            </div>
-
-            <div className="mt-3 min-h-4 flex items-center gap-3 text-xs text-zinc-500">
-              <span className="flex items-center gap-1">
-                <TrendIcon className={`h-3 w-3 ${trendColor}`} />
-                {formatPrice(listing.metrics.mrr)}/mo
-              </span>
-              <span>{formatNumber(listing.metrics.monthlyVisitors)} visitors</span>
-            </div>
-
-            <div className="mt-3 min-h-6">
-              <TechStackBadges stack={listing.techStack} max={3} />
-            </div>
-
-            <div className="mt-auto flex items-center justify-between pt-3">
-              <span className="text-lg font-bold text-violet-400">
-                {formatPrice(listing.askingPrice)}
-              </span>
-              <div className="flex items-center gap-2">
-                {isStale && (
-                  <span className="text-[10px] text-amber-500/80" title={`Last updated ${daysSinceUpdate} days ago`}>
-                    ⚠ {daysSinceUpdate}d ago
-                  </span>
+    <TiltCardShell className="relative" overlayClassName="rounded-[28px]">
+      <Link href={`/listing/${listing.id}`} className="block h-full">
+        <Card className="card-hover flex h-full min-h-[396px] cursor-pointer flex-col gap-0 overflow-hidden rounded-[28px] border-white/10 bg-[#0b1120]/95 py-0">
+          <div className={`h-1.5 w-full bg-gradient-to-r ${gradient}`} />
+          <CardContent className="flex flex-1 flex-col p-0">
+            <div className="border-b border-white/[0.08] p-5">
+              <div className="flex items-start justify-between gap-3 pr-10">
+                <div>
+                  <p className="eyebrow">{CATEGORY_LABELS[listing.category]}</p>
+                  <h3 className="mt-4 line-clamp-2 text-2xl font-semibold leading-tight text-zinc-50">
+                    {listing.title}
+                  </h3>
+                </div>
+                <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-500" />
+              </div>
+              <p className="mt-3 line-clamp-3 min-h-[72px] text-sm leading-6 text-slate-300">{listing.pitch}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {listing.featured && (
+                  <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-200">Featured</Badge>
                 )}
-                {!isStale && listing.ownershipVerified && (
-                  <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5">
+                {listing.status === "under_offer" && (
+                  <Badge className="border-blue-400/20 bg-blue-400/10 text-blue-200">Under offer</Badge>
+                )}
+                {listing.contactMode === "proposal" && (
+                  <Badge className="border-sky-400/20 bg-sky-400/10 text-sky-200">Proposal gate</Badge>
+                )}
+                {isNew && listing.status !== "under_offer" && (
+                  <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-200">
+                    <Sparkles className="mr-1 h-3 w-3" />
+                    New
+                  </Badge>
+                )}
+                {isHot && (
+                  <Badge className="border-orange-400/20 bg-orange-400/10 text-orange-200">
+                    <Flame className="mr-1 h-3 w-3" />
+                    Hot
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-px border-b border-white/[0.08] bg-white/[0.08]">
+              <div className="bg-[#0b1120] p-4">
+                <p className="eyebrow">MRR</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <TrendIcon className={`h-3.5 w-3.5 ${trendColor}`} />
+                  <p className="text-lg font-semibold text-zinc-50">{formatPrice(listing.metrics.mrr)}</p>
+                </div>
+              </div>
+              <div className="bg-[#0b1120] p-4">
+                <p className="eyebrow">Visitors</p>
+                <p className="mt-2 text-lg font-semibold text-zinc-50">
+                  {formatNumber(listing.metrics.monthlyVisitors)}
+                </p>
+              </div>
+              <div className="bg-[#0b1120] p-4">
+                <p className="eyebrow">Users</p>
+                <p className="mt-2 text-lg font-semibold text-zinc-50">
+                  {formatNumber(listing.metrics.registeredUsers)}
+                </p>
+              </div>
+              <div className="bg-[#0b1120] p-4">
+                <p className="eyebrow">Contact</p>
+                <p className="mt-2 text-sm font-medium text-zinc-50">
+                  {listing.contactMode === "proposal" ? "Seller screens buyers" : "Unlock and message"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col p-5">
+              <div className="min-h-[48px]">
+                {listing.ownershipVerified ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+                    <ShieldCheck className="h-3 w-3" />
                     {listing.ownershipVerificationMethod === "repo"
-                      ? "Repo verified"
+                      ? "Repository ownership verified"
                       : listing.ownershipVerificationMethod === "domain"
-                        ? "Domain verified"
-                        : "Reviewed"}
+                        ? "Domain ownership verified"
+                        : "Manually reviewed by SideFlip"}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[11px] font-medium text-amber-200">
+                    Trust check pending
                   </span>
                 )}
-                {listing.openToOffers && (
-                  <span className="text-xs text-zinc-500">Open to offers</span>
-                )}
+              </div>
+
+              <div className="mt-4 min-h-6">
+                <TechStackBadges stack={listing.techStack} max={4} />
+              </div>
+
+              <div className="mt-auto flex items-end justify-between gap-4 pt-5">
+                <div>
+                  <p className="eyebrow">Ask</p>
+                  <p className="mt-2 text-2xl font-semibold text-amber-200">{formatPrice(listing.askingPrice)}</p>
+                </div>
+                <div className="text-right">
+                  {listing.openToOffers ? (
+                    <p className="inline-flex items-center gap-1 text-sm text-sky-200">
+                      <Handshake className="h-3.5 w-3.5" />
+                      Open to offers
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-400">Fixed ask</p>
+                  )}
+                  <p className="mt-2 text-xs text-slate-500">
+                    {isStale ? `Last updated ${daysSinceUpdate}d ago` : "Recently refreshed"}
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </Link>
 
-      {/* Watchlist button — outside the Link to avoid nested anchors */}
       <button
         onClick={(e) => {
           e.preventDefault();
           toggle();
         }}
-        className="absolute bottom-[4.5rem] right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800/90 border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-zinc-700"
+        className="absolute right-4 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#121a2a]/90 opacity-0 transition-opacity hover:border-sky-400/30 hover:bg-[#182134] group-hover:opacity-100"
         title={isWatchlisted ? "Remove from watchlist" : "Save to watchlist"}
       >
         {isWatchlisted ? (
-          <BookmarkCheck className="h-3.5 w-3.5 text-indigo-400" />
+          <BookmarkCheck className="h-4 w-4 text-sky-300" />
         ) : (
-          <Bookmark className="h-3.5 w-3.5 text-zinc-400" />
+          <Bookmark className="h-4 w-4 text-slate-400" />
         )}
       </button>
     </TiltCardShell>

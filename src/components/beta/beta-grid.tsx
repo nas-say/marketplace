@@ -4,6 +4,7 @@ import { BetaTest } from "@/types/beta-test";
 import { BetaCard } from "./beta-card";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMotionProfile } from "@/components/shared/use-motion-profile";
+import { cn } from "@/lib/utils";
 
 interface BetaGridProps {
   betaTests: BetaTest[];
@@ -43,7 +44,10 @@ export function BetaGrid({ betaTests }: BetaGridProps) {
       {betaTests.map((bt) => (
         <motion.div
           key={bt.id}
-          className="h-full"
+          className={cn(
+            "h-full",
+            betaTests.length > 2 && bt === betaTests[0] ? "lg:col-span-2" : ""
+          )}
           variants={
             disableHeavyMotion
               ? undefined

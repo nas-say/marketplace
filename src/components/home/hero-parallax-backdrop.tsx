@@ -16,11 +16,11 @@ export function HeroParallaxBackdrop() {
     <>
       <motion.div
         style={{ y: yLeft }}
-        className="pointer-events-none absolute -top-24 left-[-8%] h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-[-8%] h-72 w-72 rounded-full bg-blue-500/18 blur-3xl"
       />
       <motion.div
         style={{ y: yRight }}
-        className="pointer-events-none absolute -bottom-24 right-[-6%] h-80 w-80 rounded-full bg-violet-500/20 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 right-[-6%] h-80 w-80 rounded-full bg-amber-300/10 blur-3xl"
       />
     </>
   );

@@ -7,6 +7,7 @@ import { BetaTest } from "@/types/beta-test";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { calculateCashBetaPayout } from "@/lib/payments/beta-payouts";
 import { TiltCardShell } from "@/components/shared/tilt-card-shell";
+import { ArrowUpRight, IndianRupee, ShieldCheck, Star, Users } from "lucide-react";
 
 interface BetaCardProps {
   betaTest: BetaTest;
@@ -32,12 +33,12 @@ export function BetaCard({ betaTest }: BetaCardProps) {
 
   const statusColor =
     betaTest.status === "draft"
-      ? "bg-violet-500/10 text-violet-400"
+      ? "bg-slate-500/10 text-slate-300 border-slate-400/15"
       : betaTest.status === "accepting"
-      ? "bg-green-500/10 text-green-500"
+      ? "bg-emerald-500/10 text-emerald-300 border-emerald-400/15"
       : betaTest.status === "almost_full"
-      ? "bg-amber-500/10 text-amber-500"
-      : "bg-zinc-500/10 text-zinc-500";
+      ? "bg-amber-500/10 text-amber-300 border-amber-400/15"
+      : "bg-zinc-500/10 text-zinc-400 border-zinc-400/15";
 
   const statusLabel =
     betaTest.status === "draft"
@@ -71,62 +72,103 @@ export function BetaCard({ betaTest }: BetaCardProps) {
         };
 
   return (
-    <TiltCardShell overlayClassName="rounded-lg">
-      <Link href={`/beta/${betaTest.id}`}>
-        <Card className="card-hover flex h-full min-h-[360px] cursor-pointer flex-col border-zinc-800 bg-zinc-900">
-          <CardContent className="flex flex-1 flex-col p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="line-clamp-2 min-h-[56px] font-semibold text-zinc-50">{betaTest.title}</h3>
-                <p className="mt-1 line-clamp-2 min-h-10 text-sm text-zinc-400">{betaTest.description}</p>
+    <TiltCardShell overlayClassName="rounded-[28px]">
+      <Link href={`/beta/${betaTest.id}`} className="block h-full">
+        <Card className="card-hover flex h-full min-h-[396px] cursor-pointer flex-col gap-0 overflow-hidden rounded-[28px] border-white/10 bg-[#0b1120]/95 py-0">
+          <div className="h-1.5 w-full bg-gradient-to-r from-sky-400 via-blue-500 to-amber-300" />
+          <CardContent className="flex flex-1 flex-col p-0">
+            <div className="border-b border-white/[0.08] p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="eyebrow">{CATEGORY_LABELS[betaTest.category]}</p>
+                  <h3 className="mt-4 line-clamp-2 min-h-[62px] text-2xl font-semibold leading-tight text-zinc-50">
+                    {betaTest.title}
+                  </h3>
+                </div>
+                <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-500" />
               </div>
-            </div>
-
-            <div className="mt-3 flex min-h-[56px] max-h-[56px] flex-wrap content-start gap-1 overflow-hidden">
-              <Badge className={statusColor}>{statusLabel}</Badge>
-              <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs">
-                {CATEGORY_LABELS[betaTest.category]}
-              </Badge>
-              <Badge variant="outline" className={`text-xs ${trustBadge.className}`}>
-                {trustBadge.label}
-              </Badge>
-              {betaTest.platform.map((p) => (
-                <Badge key={p} variant="outline" className="border-zinc-700 text-zinc-400 text-xs capitalize">
-                  {p}
+              <p className="mt-3 line-clamp-3 min-h-[72px] text-sm leading-6 text-slate-300">
+                {betaTest.description}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Badge className={statusColor}>{statusLabel}</Badge>
+                <Badge variant="outline" className={`border text-xs ${trustBadge.className}`}>
+                  {trustBadge.label}
                 </Badge>
-              ))}
-            </div>
-
-            <div className="mt-4">
-              <div className="mb-1 flex justify-between text-xs text-zinc-500">
-                <span>{betaTest.spots.filled} of {betaTest.spots.total} spots filled</span>
-                <span>{spotsRemaining} left</span>
-              </div>
-              <div className="h-2 rounded-full bg-zinc-800">
-                <div
-                  className="h-2 rounded-full bg-indigo-600 transition-all"
-                  style={{ width: `${fillPercent}%` }}
-                />
+                {betaTest.platform.slice(0, 2).map((p) => (
+                  <Badge key={p} variant="outline" className="border-white/10 bg-white/5 text-slate-300 text-xs capitalize">
+                    {p}
+                  </Badge>
+                ))}
               </div>
             </div>
 
-            <div className="mt-auto flex items-end justify-between pt-3">
-              <div className="max-w-[78%]">
-                <span className="line-clamp-2 text-sm font-medium text-violet-400">
-                  {betaTest.reward.description}
-                </span>
+            <div className="grid grid-cols-2 gap-px border-b border-white/[0.08] bg-white/[0.08]">
+              <div className="bg-[#0b1120] p-4">
+                <p className="eyebrow">Reward</p>
+                <p className="mt-2 text-lg font-semibold text-amber-200">{betaTest.reward.description}</p>
+              </div>
+              <div className="bg-[#0b1120] p-4">
+                <p className="eyebrow">Deadline</p>
+                <p className="mt-2 text-sm font-medium text-zinc-50">
+                  {new Date(betaTest.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col p-5">
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="eyebrow">Tester capacity</p>
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                    <Users className="h-3.5 w-3.5" />
+                    {spotsRemaining} left
+                  </span>
+                </div>
+                <div className="mt-3 h-2 rounded-full bg-white/[0.08]">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-sky-400 to-blue-500 transition-all"
+                    style={{ width: `${fillPercent}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-sm text-slate-400">
+                  {betaTest.spots.filled} of {betaTest.spots.total} spots filled
+                </p>
+              </div>
+
+              <div className="mt-4 flex min-h-6 flex-wrap gap-2">
+                {betaTest.reward.type === "cash" ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+                    <IndianRupee className="h-3 w-3" />
+                    SideFlip pays approved testers
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[11px] font-medium text-sky-200">
+                    <Star className="h-3 w-3" />
+                    Creator grants premium access directly
+                  </span>
+                )}
+                {betaTest.reward.poolStatus === "funded" && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+                    <ShieldCheck className="h-3 w-3" />
+                    Ready for approvals
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-auto pt-5">
                 {cashPayout && (
-                  <p className="text-[11px] text-zinc-500">
-                    Net after 5% fee: {formatCurrencyMinor(cashPayout.netMinor, betaTest.reward.currency)}
+                  <p className="text-sm text-slate-300">
+                    Net tester payout after 5% fee:{" "}
+                    <span className="font-semibold text-zinc-50">
+                      {formatCurrencyMinor(cashPayout.netMinor, betaTest.reward.currency)}
+                    </span>
                   </p>
                 )}
-                {betaTest.reward.type === "cash" && (
-                  <p className="text-[11px] text-zinc-500">SideFlip pays approved testers from this reward pool.</p>
+                {!cashPayout && (
+                  <p className="text-sm text-slate-300">Best for onboarding power users before a wider launch.</p>
                 )}
               </div>
-              <span className="text-right text-xs text-zinc-500">
-                Due {new Date(betaTest.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-              </span>
             </div>
           </CardContent>
         </Card>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { NavbarWrapper } from "@/components/layout/navbar-wrapper";
@@ -9,7 +9,8 @@ import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/constants";
 import { absoluteUrl, DEFAULT_OG_IMAGE_URL, SITE_URL } from "@/lib/seo";
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" });
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
@@ -55,7 +56,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider>
       <html lang="en" className="dark">
-        <body className={`${inter.variable} ${jetbrains.variable} font-sans bg-zinc-950 text-zinc-50 antialiased`}>
+        <body
+          className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} bg-zinc-950 text-zinc-50 antialiased`}
+        >
           <div className="flex min-h-screen flex-col">
             <NavbarWrapper />
             <main className="flex-1">
