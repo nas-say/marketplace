@@ -39,6 +39,8 @@ export function ProductPreviewPanel({
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-30"
           loading="lazy"
+          decoding="async"
+          fetchPriority="low"
         />
       ) : (
         <div className="absolute inset-0 opacity-90">

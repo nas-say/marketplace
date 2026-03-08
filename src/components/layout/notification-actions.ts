@@ -6,6 +6,7 @@ import {
   getUserNotifications,
   markAllUserNotificationsRead,
 } from "@/lib/db/notifications";
+import { getConnectsBalance } from "@/lib/db/connects";
 import { revalidatePath } from "next/cache";
 import { UserNotificationItem } from "@/types/notification";
 
@@ -23,6 +24,22 @@ export async function getNotificationsSnapshotAction(): Promise<{
   ]);
 
   return { unread, notifications };
+}
+
+export async function getNavbarMetaAction(): Promise<{
+  error?: string;
+  unread: number;
+  connectsBalance: number | null;
+}> {
+  const { userId } = await auth();
+  if (!userId) return { error: "Not authenticated", unread: 0, connectsBalance: null };
+
+  const [unread, connectsBalance] = await Promise.all([
+    getUnreadUserNotificationCount(userId),
+    getConnectsBalance(userId),
+  ]);
+
+  return { unread, connectsBalance };
 }
 
 export async function markAllNotificationsReadAction(): Promise<{
