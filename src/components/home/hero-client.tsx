@@ -1,13 +1,8 @@
-"use client";
-
 import Link from "next/link";
-import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, BadgeCheck, ChartNoAxesCombined, Handshake, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/formatting";
 import { AnimatedCount } from "./animated-count";
-import { MagneticButton } from "./magnetic-button";
-import type { MouseEvent } from "react";
 import type { Listing } from "@/types/listing";
 import { CATEGORY_LABELS } from "@/lib/constants";
 
@@ -20,8 +15,6 @@ interface HeroClientProps {
   leadListing: Listing | null;
 }
 
-const SPOTLIGHT_OVERSCAN = 220;
-
 export function HeroClient({
   listingsCount,
   betaTestsCount,
@@ -30,56 +23,12 @@ export function HeroClient({
   proposalCount,
   leadListing,
 }: HeroClientProps) {
-  const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll();
-
-  const titleY = useTransform(scrollYProgress, [0, 0.28], [0, 40]);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.2, 0.34], [1, 1, 0.55]);
-  const ctaY = useTransform(scrollYProgress, [0, 0.25], [0, 22]);
-  const ctaOpacity = useTransform(scrollYProgress, [0, 0.24, 0.36], [1, 1, 0.65]);
-
-  const mouseX = useMotionValue(-1000);
-  const mouseY = useMotionValue(-1000);
-  const spotlightBg = useMotionTemplate`radial-gradient(340px circle at ${mouseX}px ${mouseY}px, rgba(59,130,246,0.22), rgba(251,191,36,0.1) 42%, transparent 74%)`;
-
-  const handlePointerMove = (event: MouseEvent<HTMLDivElement>) => {
-    if (reduceMotion) return;
-    if (window.innerWidth < 1024) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    mouseX.set(event.clientX - rect.left + SPOTLIGHT_OVERSCAN);
-    mouseY.set(event.clientY - rect.top + SPOTLIGHT_OVERSCAN);
-  };
-
-  const handlePointerLeave = () => {
-    mouseX.set(-1000);
-    mouseY.set(-1000);
-  };
-
   return (
-    <div
-      className="relative z-10 w-full py-24 sm:py-28"
-      onMouseMove={handlePointerMove}
-      onMouseLeave={handlePointerLeave}
-    >
-      {!reduceMotion && (
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute z-0 hidden lg:block"
-          style={{
-            top: -SPOTLIGHT_OVERSCAN,
-            right: -SPOTLIGHT_OVERSCAN,
-            bottom: -SPOTLIGHT_OVERSCAN,
-            left: -SPOTLIGHT_OVERSCAN,
-            background: spotlightBg,
-            filter: "blur(8px)",
-          }}
-        />
-      )}
-
+    <div className="relative z-10 w-full py-24 sm:py-28">
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,420px)] lg:items-end">
-          <motion.div style={reduceMotion ? undefined : { y: titleY, opacity: titleOpacity }}>
-            <div className="animate-float-slow mb-6 inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/8 px-4 py-1.5 text-sm text-sky-200">
+          <div>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/8 px-4 py-1.5 text-sm text-sky-200">
               <Zap className="h-3.5 w-3.5" />
               Curated marketplace for indie operators
             </div>
@@ -107,30 +56,23 @@ export function HeroClient({
               </span>
             </div>
 
-            <motion.div
-              className="mt-10 flex flex-col gap-3 sm:flex-row"
-              style={reduceMotion ? undefined : { y: ctaY, opacity: ctaOpacity }}
-            >
-              <MagneticButton className="inline-block">
-                <Link href="/browse">
-                  <Button size="lg" className="min-w-[190px] bg-blue-600 text-white hover:bg-blue-500">
-                    Browse Listings
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </MagneticButton>
-              <MagneticButton className="inline-block">
-                <Link href="/create">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="min-w-[190px] border-white/[0.12] bg-white/5 text-slate-200 hover:border-amber-300/35 hover:bg-amber-300/10"
-                  >
-                    List Your Product
-                  </Button>
-                </Link>
-              </MagneticButton>
-            </motion.div>
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <Link href="/browse">
+                <Button size="lg" className="min-w-[190px] bg-blue-600 text-white hover:bg-blue-500">
+                  Browse Listings
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/create">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="min-w-[190px] border-white/[0.12] bg-white/5 text-slate-200 hover:border-amber-300/35 hover:bg-amber-300/10"
+                >
+                  List Your Product
+                </Button>
+              </Link>
+            </div>
 
             <div className="mt-12 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="metric-panel rounded-2xl p-4">
@@ -160,14 +102,9 @@ export function HeroClient({
                 <p className="mt-1 text-sm text-slate-400">Used only for seller unlocks</p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            className="surface-panel rounded-[28px] p-5 sm:p-6"
-            initial={reduceMotion ? undefined : { opacity: 0, x: 16, y: 12 }}
-            animate={reduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: reduceMotion ? 0 : 0.08 }}
-          >
+          <div className="surface-panel rounded-[28px] p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="eyebrow">Live market snapshot</p>
@@ -245,7 +182,7 @@ export function HeroClient({
             <p className="mt-5 text-sm leading-6 text-slate-400">
               Beta testing is free to post with rewards. For cash-reward beta tests, SideFlip deducts a 5% platform fee while paying testers.
             </p>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

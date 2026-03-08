@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, CheckCheck, Loader2, Menu, Rocket, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
+  getNavbarMetaAction,
   getNotificationsSnapshotAction,
   markAllNotificationsReadAction,
 } from "./notification-actions";
@@ -17,6 +18,7 @@ import {
   SignInButton,
   SignUpButton,
   UserButton,
+  useAuth,
 } from "@clerk/nextjs";
 import type { UserNotificationItem } from "@/types/notification";
 
@@ -38,13 +40,20 @@ function formatNotificationTime(input: string): string {
 }
 
 export function Navbar({ connectsBalance, unreadNotifications, notifications }: NavbarProps) {
+  const { isLoaded, userId } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [markingRead, setMarkingRead] = useState(false);
+  const [localConnectsBalance, setLocalConnectsBalance] = useState(connectsBalance ?? null);
   const [localUnreadCount, setLocalUnreadCount] = useState(unreadNotifications);
   const [localNotifications, setLocalNotifications] = useState(notifications);
+  const [localStateUserId, setLocalStateUserId] = useState<string | null>(null);
   const pathname = usePathname();
+  const isLocalStateFresh = Boolean(userId) && localStateUserId === userId;
+  const resolvedConnectsBalance = isLocalStateFresh ? localConnectsBalance : connectsBalance ?? null;
+  const resolvedUnreadCount = isLocalStateFresh ? localUnreadCount : unreadNotifications;
+  const resolvedNotifications = isLocalStateFresh ? localNotifications : notifications;
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -59,22 +68,52 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
     const snapshot = await getNotificationsSnapshotAction();
     setLoadingNotifications(false);
     if (snapshot.error) return;
+    setLocalStateUserId(userId ?? null);
     setLocalUnreadCount(snapshot.unread);
     setLocalNotifications(snapshot.notifications);
   };
 
   const handleMarkAllRead = async () => {
-    if (markingRead || localUnreadCount === 0) return;
+    if (markingRead || resolvedUnreadCount === 0) return;
     setMarkingRead(true);
     const result = await markAllNotificationsReadAction();
     setMarkingRead(false);
     if (result.error) return;
     const nowIso = new Date().toISOString();
+    setLocalStateUserId(userId ?? null);
     setLocalUnreadCount(0);
     setLocalNotifications((prev) =>
       prev.map((item) => ({ ...item, readAt: item.readAt ?? nowIso }))
     );
   };
+
+  useEffect(() => {
+    if (!isLoaded || !userId || localStateUserId === userId) return;
+
+    let cancelled = false;
+    const run = async () => {
+      const snapshot = await getNavbarMetaAction();
+      if (cancelled || snapshot.error) return;
+      setLocalStateUserId(userId);
+      setLocalConnectsBalance(snapshot.connectsBalance);
+      setLocalUnreadCount(snapshot.unread);
+    };
+
+    let clearScheduledRun = () => {};
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleHandle = window.requestIdleCallback(run, { timeout: 1200 });
+      clearScheduledRun = () => window.cancelIdleCallback(idleHandle);
+    } else {
+      const timeoutHandle = globalThis.setTimeout(run, 150);
+      clearScheduledRun = () => globalThis.clearTimeout(timeoutHandle);
+    }
+
+    return () => {
+      cancelled = true;
+      clearScheduledRun();
+    };
+  }, [isLoaded, localStateUserId, userId]);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#060a13]/80 backdrop-blur-md">
@@ -140,14 +179,14 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
                 )}
               </Link>
             ))}
-            {connectsBalance != null && (
+            {resolvedConnectsBalance != null && (
               <Link
                 href="/connects"
                 className="inline-flex items-center gap-1 rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-300/20"
                 title="Your Connects balance"
               >
                 <Zap className="h-3 w-3" />
-                {connectsBalance}
+                {resolvedConnectsBalance}
               </Link>
             )}
             <div className="relative">
@@ -158,9 +197,9 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
                 title="Notifications"
               >
                 <Bell className="h-4 w-4" />
-                {localUnreadCount > 0 && (
+                {resolvedUnreadCount > 0 && (
                   <span className="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
-                    {localUnreadCount > 9 ? "9+" : localUnreadCount}
+                    {resolvedUnreadCount > 9 ? "9+" : resolvedUnreadCount}
                   </span>
                 )}
               </button>
@@ -178,7 +217,7 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
                       <button
                         type="button"
                         onClick={handleMarkAllRead}
-                        disabled={markingRead || localUnreadCount === 0}
+                        disabled={markingRead || resolvedUnreadCount === 0}
                         className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {markingRead ? (
@@ -193,13 +232,13 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
                       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-sm text-zinc-500">
                         Loading...
                       </div>
-                    ) : localNotifications.length === 0 ? (
+                    ) : resolvedNotifications.length === 0 ? (
                       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-sm text-zinc-500">
                         No notifications yet.
                       </div>
                     ) : (
                       <div className="max-h-96 space-y-1 overflow-y-auto">
-                        {localNotifications.map((item) => {
+                        {resolvedNotifications.map((item) => {
                           const content = (
                             <div className="flex items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 transition-colors hover:border-zinc-700">
                               {!item.readAt ? (
@@ -322,22 +361,22 @@ export function Navbar({ connectsBalance, unreadNotifications, notifications }: 
                   </Link>
                 ))}
                 <div className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-zinc-400">Notifications</span>
-                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-xs text-indigo-300">
-                    {localUnreadCount}
+                    <span className="text-zinc-400">Notifications</span>
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-xs text-indigo-300">
+                    {resolvedUnreadCount}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 py-2">
                   <UserButton />
                   <span className="text-sm text-zinc-400">My Account</span>
-                  {connectsBalance != null && (
+                  {resolvedConnectsBalance != null && (
                     <Link
                       href="/connects"
                       className="ml-auto inline-flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300"
                       onClick={() => setMobileOpen(false)}
                     >
                       <Zap className="h-3 w-3" />
-                      {connectsBalance}
+                      {resolvedConnectsBalance}
                     </Link>
                   )}
                 </div>
