@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
+import { useMotionProfile } from "./use-motion-profile";
 
 interface SectionRevealProps {
   children: ReactNode;
@@ -11,8 +12,9 @@ interface SectionRevealProps {
 
 export function SectionReveal({ children, delay = 0, y = 24 }: SectionRevealProps) {
   const reduceMotion = useReducedMotion();
+  const { isMobile } = useMotionProfile();
 
-  if (reduceMotion) {
+  if (reduceMotion || isMobile) {
     return <>{children}</>;
   }
 
