@@ -78,21 +78,21 @@ export function HeroClient({
               <div className="metric-panel rounded-2xl p-4">
                 <p className="eyebrow">Listings</p>
                 <p className="mt-3 text-3xl font-semibold text-white">
-                  <AnimatedCount value={listingsCount} formatter={(v) => String(Math.round(v))} />
+                  <AnimatedCount value={listingsCount} variant="integer" />
                 </p>
                 <p className="mt-1 text-sm text-slate-400">Active listings live now</p>
               </div>
               <div className="metric-panel rounded-2xl p-4">
                 <p className="eyebrow">Inventory</p>
                 <p className="mt-3 text-3xl font-semibold text-white">
-                  <AnimatedCount value={totalSalesValue} formatter={(v) => formatPrice(Math.round(v))} />
+                  <AnimatedCount value={totalSalesValue} variant="currency" />
                 </p>
                 <p className="mt-1 text-sm text-slate-400">Asking value on-market</p>
               </div>
               <div className="metric-panel rounded-2xl p-4">
                 <p className="eyebrow">Beta Tests</p>
                 <p className="mt-3 text-3xl font-semibold text-white">
-                  <AnimatedCount value={betaTestsCount} formatter={(v) => String(Math.round(v))} />
+                  <AnimatedCount value={betaTestsCount} variant="integer" />
                 </p>
                 <p className="mt-1 text-sm text-slate-400">Open programs recruiting testers</p>
               </div>
