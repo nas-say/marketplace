@@ -20,8 +20,8 @@ export function Footer() {
           <div>
             <h3 className="eyebrow">Marketplace</h3>
             <ul className="mt-3 space-y-2">
-              <li><Link href="/browse" className="text-sm text-slate-400 hover:text-zinc-50">Browse Projects</Link></li>
-              <li><Link href="/create" className="text-sm text-slate-400 hover:text-zinc-50">List a Project</Link></li>
+              <li><Link href="/browse" className="text-sm text-slate-400 hover:text-zinc-50">Browse Listings</Link></li>
+              <li><Link href="/create" className="text-sm text-slate-400 hover:text-zinc-50">List a Product</Link></li>
               <li><Link href="/how-it-works" className="text-sm text-slate-400 hover:text-zinc-50">How It Works</Link></li>
             </ul>
           </div>

@@ -101,7 +101,7 @@ export default function TermsPage() {
             SideFlip is not a party to any project sale. We do not:
           </p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Hold funds in escrow for project sales.</li>
+            <li>Hold funds in escrow for marketplace sales.</li>
             <li>Guarantee that any project sale will be completed.</li>
             <li>Verify the accuracy of seller claims beyond what is visible on the listing.</li>
             <li>Accept liability for losses arising from project transactions conducted off-platform.</li>

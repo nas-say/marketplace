@@ -12,7 +12,7 @@ export async function FeaturedListings() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <p className="eyebrow">Featured inventory</p>
-            <h2 className="mt-3 text-4xl font-semibold text-zinc-50 sm:text-5xl">Projects worth a serious look.</h2>
+            <h2 className="mt-3 text-4xl font-semibold text-zinc-50 sm:text-5xl">Listings worth a serious look.</h2>
             <p className="mt-3 text-[15px] leading-7 text-slate-400">
               Higher-signal listings with stronger metrics, clearer trust markers, and cleaner operator fit.
             </p>
@@ -21,7 +21,7 @@ export async function FeaturedListings() {
             href="/browse"
             className="hidden items-center gap-1 text-sm text-sky-300 transition-colors hover:text-sky-200 sm:flex"
           >
-            View all projects
+            View all listings
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -35,7 +35,7 @@ export async function FeaturedListings() {
             href="/browse"
             className="flex items-center gap-1 text-sm text-sky-300 transition-colors hover:text-sky-200"
           >
-            View all projects
+            View all listings
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>

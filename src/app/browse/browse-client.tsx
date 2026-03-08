@@ -126,7 +126,7 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
           <div className="max-w-3xl">
             <PageHeader
               eyebrow="Deal Room"
-              title="Browse Projects"
+              title="Browse Listings"
               description="Acquisition-ready indie products and online businesses with cleaner deal sheets, trust markers, and clearer buyer flow before you spend connects."
             />
           </div>
@@ -134,7 +134,7 @@ export function BrowseClient({ initialListings, userId, initialCategory }: Brows
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <p className="eyebrow">Live inventory</p>
               <p className="mt-3 text-3xl font-semibold text-zinc-50">{filtered.length}</p>
-              <p className="mt-1 text-sm text-slate-400">Projects matching current filters</p>
+              <p className="mt-1 text-sm text-slate-400">Listings matching current filters</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <p className="eyebrow">Verified</p>
