@@ -2,27 +2,32 @@
 
 import { animate, useInView, useMotionValue, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { formatPrice } from "@/lib/formatting";
 
 interface AnimatedCountProps {
   value: number;
   duration?: number;
-  formatter?: (value: number) => string;
+  variant?: "integer" | "currency";
 }
 
-function defaultFormatter(value: number): string {
+function formatAnimatedValue(value: number, variant: AnimatedCountProps["variant"]): string {
+  if (variant === "currency") {
+    return formatPrice(Math.round(value));
+  }
+
   return String(Math.round(value));
 }
 
 export function AnimatedCount({
   value,
   duration = 1.2,
-  formatter = defaultFormatter,
+  variant = "integer",
 }: AnimatedCountProps) {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLSpanElement | null>(null);
   const inView = useInView(ref, { once: true, amount: 0.6 });
   const motionValue = useMotionValue(reduceMotion ? value : 0);
-  const [displayValue, setDisplayValue] = useState(() => formatter(reduceMotion ? value : 0));
+  const [displayValue, setDisplayValue] = useState(() => formatAnimatedValue(reduceMotion ? value : 0, variant));
 
   useEffect(() => {
     if (reduceMotion || !inView) return;
@@ -31,15 +36,15 @@ export function AnimatedCount({
       duration,
       ease: [0.22, 1, 0.36, 1],
       onUpdate: (latest) => {
-        setDisplayValue(formatter(latest));
+        setDisplayValue(formatAnimatedValue(latest, variant));
       },
     });
 
     return () => controls.stop();
-  }, [duration, formatter, inView, motionValue, reduceMotion, value]);
+  }, [duration, inView, motionValue, reduceMotion, value, variant]);
 
   if (reduceMotion) {
-    return <span ref={ref}>{formatter(value)}</span>;
+    return <span ref={ref}>{formatAnimatedValue(value, variant)}</span>;
   }
 
   return <span ref={ref}>{displayValue}</span>;
