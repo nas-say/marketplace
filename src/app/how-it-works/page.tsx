@@ -16,21 +16,21 @@ import { absoluteUrl, publicPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = publicPageMetadata({
   title: "How It Works",
-  description: "Understand how SideFlip helps founders list projects, buyers unlock leads, and testers earn rewards.",
+  description: "Understand how SideFlip helps founders list products, buyers unlock leads, and testers earn rewards.",
   path: "/how-it-works",
 });
 
 const FAQ_ITEMS = [
   {
-    q: "How do project sales happen?",
+    q: "How do product sales happen?",
     a: "SideFlip connects you with the seller; the transaction is handled directly between buyer and seller.",
   },
   {
-    q: "How are projects verified?",
-    a: "Project metrics are self-reported by sellers and can be independently verified via repo or domain ownership checks.",
+    q: "How are listings verified?",
+    a: "Listing metrics are self-reported by sellers and can be independently verified via repo or domain ownership checks.",
   },
   {
-    q: "Can I list a project for free?",
+    q: "Can I list for free?",
     a: "Yes. Listing is free. Connecting with sellers costs Connects.",
   },
   {
@@ -42,11 +42,11 @@ const FAQ_ITEMS = [
     a: "No. SideFlip does not mediate sales. For larger deals, use a trusted third-party escrow service.",
   },
   {
-    q: "Is there a platform fee on project sales?",
+    q: "Is there a platform fee on marketplace sales?",
     a: "No percentage fee is charged on sale value. You only spend Connects to unlock seller info.",
   },
   {
-    q: "Can I buy projects and beta test too?",
+    q: "Can I buy listings and beta test too?",
     a: "Yes. Many users browse listings and participate in beta tests from the same account.",
   },
 ];
@@ -69,7 +69,10 @@ export default function HowItWorksPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <JsonLd data={faqJsonLd} />
-      <PageHeader title="How SideFlip Works" description="The marketplace lifecycle: Build, Test, Improve, Sell." />
+      <PageHeader
+        title="How SideFlip Works"
+        description="The marketplace workflow for listing, verifying, buying, and beta-testing indie products."
+      />
 
       <section className="mb-16">
         <h2 className="mb-8 text-2xl font-bold text-zinc-50">For Sellers</h2>
@@ -78,7 +81,7 @@ export default function HowItWorksPage() {
             {
               icon: <Upload className="h-6 w-6" />,
               title: "List",
-              desc: "Add your project: title, metrics, tech stack, and asking price.",
+              desc: "Add your product or business: title, metrics, tech stack, and asking price.",
             },
             {
               icon: <UserCheck className="h-6 w-6" />,
@@ -114,7 +117,7 @@ export default function HowItWorksPage() {
             {
               icon: <Search className="h-6 w-6" />,
               title: "Browse",
-              desc: "Filter listings by category, price, MRR, and revenue trend.",
+              desc: "Filter listings by category, price, traction, and trust signals.",
             },
             {
               icon: <Eye className="h-6 w-6" />,
@@ -147,7 +150,7 @@ export default function HowItWorksPage() {
         <h2 className="mb-8 text-2xl font-bold text-zinc-50">For Beta Testers</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-4">
           {[
-            { icon: <Search className="h-6 w-6" />, title: "Browse", desc: "Find projects looking for beta testers." },
+            { icon: <Search className="h-6 w-6" />, title: "Browse", desc: "Find products looking for beta testers." },
             { icon: <ArrowRight className="h-6 w-6" />, title: "Apply", desc: "Apply with your contact details (and UPI for cash rewards)." },
             { icon: <MessageSquare className="h-6 w-6" />, title: "Test & Feedback", desc: "Test the product and submit structured feedback." },
             { icon: <Trophy className="h-6 w-6" />, title: "Earn", desc: "Get cash rewards (net of 5% platform fee) or premium access." },
@@ -164,9 +167,9 @@ export default function HowItWorksPage() {
       </section>
 
       <section className="mb-16">
-        <h2 className="mb-8 text-2xl font-bold text-zinc-50">The SideFlip Pipeline</h2>
+        <h2 className="mb-8 text-2xl font-bold text-zinc-50">The SideFlip Lifecycle</h2>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          {["Build", "Beta Test", "Improve", "Sell"].map((step, i) => (
+          {["Launch", "Beta Test", "Improve", "Sell"].map((step, i) => (
             <div key={step} className="flex items-center gap-4">
               <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-6 py-3 text-center">
                 <p className="font-semibold text-indigo-400">{step}</p>

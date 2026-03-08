@@ -114,7 +114,7 @@ export function HeroClient({
               <MagneticButton className="inline-block">
                 <Link href="/browse">
                   <Button size="lg" className="min-w-[190px] bg-blue-600 text-white hover:bg-blue-500">
-                    Browse Projects
+                    Browse Listings
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -126,7 +126,7 @@ export function HeroClient({
                     variant="outline"
                     className="min-w-[190px] border-white/[0.12] bg-white/5 text-slate-200 hover:border-amber-300/35 hover:bg-amber-300/10"
                   >
-                    List Your Project
+                    List Your Product
                   </Button>
                 </Link>
               </MagneticButton>
@@ -138,7 +138,7 @@ export function HeroClient({
                 <p className="mt-3 text-3xl font-semibold text-white">
                   <AnimatedCount value={listingsCount} formatter={(v) => String(Math.round(v))} />
                 </p>
-                <p className="mt-1 text-sm text-slate-400">Active projects live now</p>
+                <p className="mt-1 text-sm text-slate-400">Active listings live now</p>
               </div>
               <div className="metric-panel rounded-2xl p-4">
                 <p className="eyebrow">Inventory</p>

@@ -459,7 +459,7 @@ export default async function ListingDetailPage({ params }: Props) {
         <div className="mt-16 border-t border-zinc-800 pt-12">
           <div className="flex items-end justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-zinc-50">Similar Projects</h2>
+              <h2 className="text-2xl font-bold text-zinc-50">Similar Listings</h2>
               <p className="mt-1 text-zinc-400 text-sm">More {CATEGORY_LABELS[listing.category]} listings</p>
             </div>
             <Link href={`/browse?category=${listing.category}`} className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">View all →</Link>

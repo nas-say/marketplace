@@ -5,7 +5,7 @@ export const SITE_DESCRIPTION =
 export const NAV_LINKS = [
   { label: "Browse", href: "/browse" },
   { label: "Beta Tests", href: "/beta" },
-  { label: "List Project", href: "/create" },
+  { label: "List Product", href: "/create" },
 ];
 
 export const CATEGORY_LABELS: Record<string, string> = {
