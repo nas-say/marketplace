@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getFeaturedListings } from "@/lib/db/listings";
+import { getFeaturedListings, getListings } from "@/lib/db/listings";
 import { ListingCard } from "@/components/listing/listing-card";
 
 export async function FeaturedListings() {
-  const listings = await getFeaturedListings();
+  const featuredListings = await getFeaturedListings();
+  const listings =
+    featuredListings.length > 0 ? featuredListings : (await getListings()).slice(0, 4);
 
   return (
     <section className="py-20">
@@ -14,7 +16,9 @@ export async function FeaturedListings() {
             <p className="eyebrow">Featured inventory</p>
             <h2 className="mt-3 text-4xl font-semibold text-zinc-50 sm:text-5xl">Listings worth a serious look.</h2>
             <p className="mt-3 text-[15px] leading-7 text-slate-400">
-              Higher-signal listings with stronger metrics, clearer trust markers, and cleaner operator fit.
+              {featuredListings.length > 0
+                ? "Higher-signal listings with stronger metrics, clearer trust markers, and cleaner operator fit."
+                : "Fresh listings from across the marketplace, even when no paid featured slots are active."}
             </p>
           </div>
           <Link
