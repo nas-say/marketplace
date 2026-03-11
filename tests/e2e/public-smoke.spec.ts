@@ -6,7 +6,7 @@ test.describe("Public pages", () => {
     expect(response.status()).toBe(200);
     const html = await response.text();
     expect(html).toContain("Buy, Sell &amp; Beta-Test");
-    expect(html).toContain("Browse Projects");
+    expect(html).toContain("Browse Listings");
   });
 
   test("core public routes return success", async ({ request }) => {

@@ -14,11 +14,14 @@ const isProtected = createRouteMatcher([
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
+  const { userId, redirectToSignIn } = await auth();
+
   if (isProtected(req)) {
-    await auth.protect();
+    if (!userId) {
+      return redirectToSignIn({ returnBackUrl: req.url });
+    }
   }
   if (isAdminRoute(req)) {
-    const { userId } = await auth();
     if (!isConfiguredAdminUser(userId)) {
       return new Response("Not found", { status: 404 });
     }
